@@ -1,0 +1,77 @@
+{
+  "name": "Token",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Token name"
+    },
+    "ticker": {
+      "type": "string",
+      "description": "Symbol, e.g. KYD"
+    },
+    "description": {
+      "type": "string"
+    },
+    "image_url": {
+      "type": "string"
+    },
+    "website": {
+      "type": "string"
+    },
+    "twitter": {
+      "type": "string"
+    },
+    "telegram": {
+      "type": "string"
+    },
+    "creator": {
+      "type": "string",
+      "description": "Creator wallet address or handle"
+    },
+    "total_supply": {
+      "type": "number",
+      "default": 1000000000
+    },
+    "reserve": {
+      "type": "number",
+      "description": "HOOD collected in the bonding curve",
+      "default": 0
+    },
+    "tokens_sold": {
+      "type": "number",
+      "description": "Tokens sold from the curve",
+      "default": 0
+    },
+    "market_cap": {
+      "type": "number",
+      "description": "Market cap in HOOD",
+      "default": 0
+    },
+    "graduation_target": {
+      "type": "number",
+      "description": "Reserve needed to graduate (HOOD)",
+      "default": 85
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "live",
+        "graduated"
+      ],
+      "default": "live"
+    },
+    "trade_count": {
+      "type": "number",
+      "default": 0
+    },
+    "holder_count": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "name",
+    "ticker"
+  ]
+}

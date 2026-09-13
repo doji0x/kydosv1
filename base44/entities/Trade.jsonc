@@ -1,0 +1,45 @@
+{
+  "name": "Trade",
+  "type": "object",
+  "properties": {
+    "token_id": {
+      "type": "string"
+    },
+    "ticker": {
+      "type": "string"
+    },
+    "side": {
+      "type": "string",
+      "enum": [
+        "buy",
+        "sell"
+      ]
+    },
+    "hood_amount": {
+      "type": "number",
+      "description": "HOOD spent or received"
+    },
+    "token_amount": {
+      "type": "number",
+      "description": "Tokens bought or sold"
+    },
+    "price": {
+      "type": "number",
+      "description": "Price per token in HOOD after trade"
+    },
+    "market_cap": {
+      "type": "number",
+      "description": "Market cap after trade (HOOD)"
+    },
+    "trader": {
+      "type": "string",
+      "description": "Wallet address or handle"
+    }
+  },
+  "required": [
+    "token_id",
+    "side",
+    "hood_amount",
+    "token_amount"
+  ]
+}
