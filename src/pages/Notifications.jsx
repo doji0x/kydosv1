@@ -43,7 +43,9 @@ export default function Notifications() {
 
   return (
     <div>
-      <div className="sticky top-14 z-30 flex border-b border-border bg-background/85 backdrop-blur-xl">
+      <div className="sticky top-14 z-30 border-b border-border bg-background/85 backdrop-blur-xl">
+      <h1 className="px-4 h-12 flex items-center text-xl font-bold font-heading">Notifications</h1>
+      <div className="flex">
         {TABS.map(([k, label]) => (
           <button
             key={k}
@@ -54,6 +56,7 @@ export default function Notifications() {
             {tab === k && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 w-10 rounded-full bg-primary" />}
           </button>
         ))}
+      </div>
       </div>
       {!list ? (
         <div className="p-4 space-y-3">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-16 rounded-xl" />)}</div>

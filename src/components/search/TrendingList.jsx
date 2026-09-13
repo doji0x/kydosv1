@@ -1,27 +1,24 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Flame } from "lucide-react";
 import { fmtHood } from "@/lib/curve";
 
+// X-style trends list: rank + subject line + volume, one tappable row each.
 export default function TrendingList({ tokens }) {
-  if (tokens.length === 0) return null;
+  if (tokens.length === 0) {
+    return <p className="py-16 text-center text-sm text-muted-foreground">Nothing trending yet.</p>;
+  }
   return (
-    <div className="mt-2">
-      <p className="px-4 py-2 text-[11px] uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-        <Flame className="h-3.5 w-3.5 text-primary" /> Trending
-      </p>
+    <div>
+      <h2 className="px-4 pt-4 pb-2 text-xl font-bold font-heading">Trending on Kydos</h2>
       <div className="divide-y divide-border/60">
         {tokens.map((t, i) => (
-          <Link key={t.id} to={`/token/${t.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-secondary/40 transition-colors">
-            <span className="font-mono text-xs text-muted-foreground w-4">{i + 1}</span>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold truncate">${t.ticker}</p>
-              <p className="text-xs text-muted-foreground truncate">{t.name}</p>
-            </div>
-            <div className="text-right font-mono text-xs">
-              <p>{fmtHood(t.market_cap || 0)} HOOD</p>
-              <p className="text-muted-foreground">{t.trade_count || 0} trades</p>
-            </div>
+          <Link key={t.id} to={`/token/${t.id}`} className="block px-4 py-3 hover:bg-secondary/40 transition-colors">
+            <p className="text-[11px] text-muted-foreground">{i + 1} · Trending</p>
+            <p className="text-[15px] font-bold mt-0.5">${t.ticker}</p>
+            <p className="text-[13px] text-muted-foreground truncate">{t.name}</p>
+            <p className="text-[11px] text-muted-foreground font-mono mt-0.5">
+              {t.trade_count || 0} trades · {fmtHood(t.market_cap || 0)} HOOD mcap
+            </p>
           </Link>
         ))}
       </div>
