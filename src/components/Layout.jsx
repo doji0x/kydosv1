@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import TopBar from "@/components/nav/TopBar";
 import BottomTabBar from "@/components/nav/BottomTabBar";
 import { MeProvider } from "@/lib/MeContext";
+import { SignInGateProvider } from "@/lib/SignInGate";
 
 export default function Layout() {
   const { pathname } = useLocation();
@@ -12,6 +13,7 @@ export default function Layout() {
 
   return (
     <MeProvider>
+      <SignInGateProvider>
       <div className="min-h-screen flex flex-col">
         {!immersive && <TopBar />}
         <main className={`flex-1 ${immersive ? "" : "pb-28"}`}>
@@ -29,6 +31,7 @@ export default function Layout() {
         </main>
         {!immersive && <BottomTabBar />}
       </div>
+      </SignInGateProvider>
     </MeProvider>
   );
 }

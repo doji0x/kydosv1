@@ -7,6 +7,7 @@ import { Image } from "@/components/ui/image";
 import Avatar from "@/components/social/Avatar";
 import { isVideo } from "@/components/media/MediaUploadField";
 import { useMe } from "@/lib/MeContext";
+import { useSignInGate } from "@/lib/SignInGate";
 import { repost } from "@/lib/social";
 import { timeAgo } from "@/lib/time";
 
@@ -20,12 +21,13 @@ function Action({ icon: Icon, count, active, onClick, activeCls }) {
 
 export default function PostCard({ post, large }) {
   const { me, likedIds, toggleLike } = useMe();
+  const { requireAuth } = useSignInGate();
   const navigate = useNavigate();
   const liked = likedIds.has(post.id);
   const stop = (e) => e.stopPropagation();
 
   const doRepost = async () => {
-    if (!me) return base44.auth.redirectToLogin();
+    if (!requireAuth("repost")) return;
     await repost(me, post);
     toast.success("Reposted");
   };
@@ -51,7 +53,7 @@ export default function PostCard({ post, large }) {
         <div className="flex items-center gap-7 mt-3">
           <Action icon={MessageCircle} count={post.reply_count} onClick={() => navigate(`/post/${post.id}`)} />
           <Action icon={Repeat2} count={post.repost_count} onClick={doRepost} />
-          <Action icon={Heart} count={post.like_count} active={liked} activeCls="text-primary" onClick={() => toggleLike(post)} />
+          <Action icon={Heart} count={post.like_count} active={liked} activeCls="text-primary" onClick={() => requireAuth("like posts") && toggleLike(post)} />
         </div>
       </div>
     </article>

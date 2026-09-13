@@ -7,10 +7,12 @@ import MediaUploadField from "@/components/media/MediaUploadField";
 import Avatar from "@/components/social/Avatar";
 import TokenTagPicker from "@/components/forum/TokenTagPicker";
 import { useMe } from "@/lib/MeContext";
+import { useSignInGate } from "@/lib/SignInGate";
 import { createPost } from "@/lib/social";
 
 export default function PostComposer({ token: fixedToken, replyTo, placeholder = "What's happening on the curve?", onPosted }) {
   const { me } = useMe();
+  const { requireAuth } = useSignInGate();
   const [body, setBody] = useState("");
   const [image, setImage] = useState("");
   const [showImage, setShowImage] = useState(false);
@@ -19,7 +21,7 @@ export default function PostComposer({ token: fixedToken, replyTo, placeholder =
 
   if (me === null) {
     return (
-      <button onClick={() => base44.auth.redirectToLogin()} className="w-full p-4 text-sm text-primary text-left border-b border-border hover:bg-card/60">
+      <button onClick={() => requireAuth("post")} className="w-full p-4 text-sm text-primary text-left border-b border-border hover:bg-card/60">
         Sign in to join the conversation →
       </button>
     );

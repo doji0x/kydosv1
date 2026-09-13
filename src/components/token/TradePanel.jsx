@@ -7,12 +7,14 @@ import { toast } from "sonner";
 import { quoteBuy, quoteSell, currentPrice, marketCap, fmtTokens, fmtHood, GRADUATION_TARGET } from "@/lib/curve";
 import { getWallet } from "@/lib/wallet";
 import { useMe } from "@/lib/MeContext";
+import { useSignInGate } from "@/lib/SignInGate";
 import { cashOf, adjustBalance } from "@/lib/balance";
 
 const PRESETS = [0.1, 0.5, 1, 5];
 
 export default function TradePanel({ token, onTraded, initialSide = "buy" }) {
   const { me, refresh } = useMe();
+  const { requireAuth } = useSignInGate();
   const [side, setSide] = useState(initialSide);
   const [amount, setAmount] = useState("");
   const [busy, setBusy] = useState(false);
@@ -25,7 +27,7 @@ export default function TradePanel({ token, onTraded, initialSide = "buy" }) {
 
   const trade = async () => {
     if (n <= 0) return;
-    if (!me) return base44.auth.redirectToLogin();
+    if (!requireAuth(side === "buy" ? "buy" : "sell")) return;
     if (side === "buy" && n > cash) return toast.error(`Not enough HOOD — balance ${fmtHood(cash)}`);
     setBusy(true);
     let reserve, tokens_sold, hood_amount, token_amount;

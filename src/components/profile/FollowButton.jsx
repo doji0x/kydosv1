@@ -2,9 +2,11 @@ import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { useMe } from "@/lib/MeContext";
+import { useSignInGate } from "@/lib/SignInGate";
 
 export default function FollowButton({ targetId }) {
   const { me } = useMe();
+  const { requireAuth } = useSignInGate();
   const [rec, setRec] = useState(undefined);
 
   useEffect(() => {
@@ -15,7 +17,7 @@ export default function FollowButton({ targetId }) {
   }, [me?.id, targetId]);
 
   const toggle = async () => {
-    if (!me) return base44.auth.redirectToLogin();
+    if (!requireAuth("follow")) return;
     if (rec) { setRec(null); await base44.entities.Follow.delete(rec.id); }
     else { const r = await base44.entities.Follow.create({ follower_id: me.id, followee_id: targetId }); setRec(r); }
   };
