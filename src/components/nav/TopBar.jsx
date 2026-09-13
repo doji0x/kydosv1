@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Wallet } from "lucide-react";
+import { Wallet, Search } from "lucide-react";
 import { LOGO_URL } from "@/lib/brand";
 import { useMe } from "@/lib/MeContext";
 import { cashOf } from "@/lib/balance";
@@ -16,12 +16,17 @@ export default function TopBar() {
           <img src={LOGO_URL} alt="Kydos" className="h-8 w-8 rounded-full ring-1 ring-primary/30" />
           <span className="font-display font-semibold tracking-[0.18em] gold-text">KYDOS</span>
         </Link>
+        <div className="flex items-center gap-2">
+        <Link to="/search" aria-label="Search" className="h-8 w-8 flex items-center justify-center rounded-full border border-border bg-card text-muted-foreground hover:text-foreground hover:border-primary/50 transition">
+          <Search className="h-4 w-4" />
+        </Link>
         {me && (
           <Link to="/profile" className="flex items-center gap-1.5 h-8 px-3 rounded-full border border-border bg-card text-[11px] font-mono text-muted-foreground hover:border-primary/50 hover:text-foreground transition">
             <Wallet className="h-3.5 w-3.5 text-primary" />
             {fmtHood(cashOf(me.profile))} HOOD
           </Link>
         )}
+        </div>
       </div>
     </header>
   );
