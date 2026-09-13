@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TrendingUp, TrendingDown, Wallet } from "lucide-react";
 import { fmtHood } from "@/lib/curve";
 import { buildPortfolio } from "@/lib/portfolio";
 import PositionRow from "@/components/profile/PositionRow";
@@ -26,53 +25,26 @@ export default function PortfolioCard({ userId }) {
   const tokensById = useMemo(() => Object.fromEntries(tokens.map((t) => [t.id, t])), [tokens]);
   const p = useMemo(() => (trades ? buildPortfolio(trades, tokensById) : null), [trades, tokensById]);
 
-  if (!p) return <Skeleton className="h-40 mx-4 mt-6 rounded-2xl" />;
+  if (!p) return <Skeleton className="h-20 mx-4 mt-6 rounded-xl" />;
 
   const up = p.pnl >= 0;
-  const Arrow = up ? TrendingUp : TrendingDown;
 
   return (
-    <section className="mx-4 mt-6 rounded-2xl border border-border bg-card overflow-hidden">
-      <div className="p-5">
-        <p className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-          <Wallet className="h-3.5 w-3.5" /> Portfolio balance
-        </p>
-        <p className="font-mono text-3xl font-bold mt-1.5">
-          {fmtHood(p.value)} <span className="text-base text-muted-foreground font-normal">HOOD</span>
-        </p>
-        <p className={`font-mono text-sm mt-1 flex items-center gap-1 ${up ? "text-emerald-400" : "text-destructive"}`}>
-          <Arrow className="h-4 w-4" />
-          {up ? "+" : ""}{fmtHood(p.pnl)} HOOD ({up ? "+" : ""}{p.pct.toFixed(1)}%) all time
-        </p>
+    <section className="px-4 mt-6">
+      <p className="text-xs uppercase tracking-wider text-muted-foreground">Portfolio</p>
+      <div className="flex items-baseline gap-3 mt-1">
+        <p className="font-mono text-2xl font-semibold">{fmtHood(p.value)}</p>
+        <span className="font-mono text-xs text-muted-foreground">HOOD</span>
+        <span className={`font-mono text-xs ml-auto ${up ? "text-emerald-400" : "text-destructive"}`}>
+          {up ? "+" : ""}{fmtHood(p.pnl)} ({up ? "+" : ""}{p.pct.toFixed(1)}%)
+        </span>
+      </div>
 
-        <div className="grid grid-cols-3 gap-3 mt-4 font-mono text-xs">
-          <Stat label="Invested" value={`${fmtHood(p.invested)}`} />
-          <Stat label="Unrealized" value={`${p.unrealized >= 0 ? "+" : ""}${fmtHood(p.unrealized)}`} tone={p.unrealized >= 0} />
-          <Stat label="Realized" value={`${p.realized >= 0 ? "+" : ""}${fmtHood(p.realized)}`} tone={p.realized >= 0} />
+      {p.open.length > 0 && (
+        <div className="mt-2 divide-y divide-border/50 border-t border-border/50">
+          {p.open.map((pos) => <PositionRow key={pos.token_id} position={pos} />)}
         </div>
-      </div>
-
-      <div className="border-t border-border px-5 py-3">
-        {p.open.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-3 text-center">No open positions yet.</p>
-        ) : (
-          <>
-            <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Holdings · {p.open.length}</p>
-            <div className="divide-y divide-border/60">
-              {p.open.map((pos) => <PositionRow key={pos.token_id} position={pos} />)}
-            </div>
-          </>
-        )}
-      </div>
+      )}
     </section>
-  );
-}
-
-function Stat({ label, value, tone }) {
-  return (
-    <div className="rounded-xl bg-muted/50 p-2.5">
-      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
-      <p className={`mt-0.5 text-sm ${tone === undefined ? "" : tone ? "text-emerald-400" : "text-destructive"}`}>{value}</p>
-    </div>
   );
 }
