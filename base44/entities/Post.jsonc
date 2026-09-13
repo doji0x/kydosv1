@@ -15,7 +15,8 @@
       "type": "string"
     },
     "image_url": {
-      "type": "string"
+      "type": "string",
+      "description": "Attached image or video URL"
     },
     "token_id": {
       "type": "string",

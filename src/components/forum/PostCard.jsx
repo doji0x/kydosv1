@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 import { Image } from "@/components/ui/image";
 import Avatar from "@/components/social/Avatar";
+import { isVideo } from "@/components/media/MediaUploadField";
 import { useMe } from "@/lib/MeContext";
 import { repost } from "@/lib/social";
 import { timeAgo } from "@/lib/time";
@@ -42,7 +43,11 @@ export default function PostCard({ post, large }) {
           )}
         </div>
         <p className={`mt-1 whitespace-pre-wrap break-words leading-relaxed ${large ? "text-lg" : "text-[15px]"}`}>{post.body}</p>
-        {post.image_url && <Image src={post.image_url} alt="" className="mt-3 rounded-2xl w-full aspect-video" />}
+        {post.image_url && (
+          isVideo(post.image_url)
+            ? <video src={post.image_url} controls onClick={stop} className="mt-3 rounded-2xl w-full aspect-video bg-black" />
+            : <Image src={post.image_url} alt="" className="mt-3 rounded-2xl w-full aspect-video" />
+        )}
         <div className="flex items-center gap-7 mt-3">
           <Action icon={MessageCircle} count={post.reply_count} onClick={() => navigate(`/post/${post.id}`)} />
           <Action icon={Repeat2} count={post.repost_count} onClick={doRepost} />

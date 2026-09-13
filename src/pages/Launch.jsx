@@ -10,6 +10,7 @@ import { getWallet } from "@/lib/wallet";
 import { useMe } from "@/lib/MeContext";
 import { TOTAL_SUPPLY, GRADUATION_TARGET } from "@/lib/curve";
 import LaunchPreview from "@/components/launch/LaunchPreview";
+import MediaUploadField from "@/components/media/MediaUploadField";
 
 const empty = { name: "", ticker: "", description: "", image_url: "", website: "", twitter: "", telegram: "" };
 
@@ -54,7 +55,9 @@ export default function Launch() {
             <Field label="Ticker"><Input required value={form.ticker} onChange={set("ticker")} placeholder="KCAT" className="h-11 bg-card font-mono uppercase" /></Field>
           </div>
           <Field label="Description"><Textarea value={form.description} onChange={set("description")} rows={4} placeholder="What is this token about?" className="bg-card resize-none" /></Field>
-          <Field label="Image URL"><Input value={form.image_url} onChange={set("image_url")} placeholder="https://…" className="h-11 bg-card" /></Field>
+          <Field label="Token image">
+            <MediaUploadField value={form.image_url} onChange={(url) => setForm((f) => ({ ...f, image_url: url }))} />
+          </Field>
           <div className="grid sm:grid-cols-3 gap-4">
             <Field label="Website"><Input value={form.website} onChange={set("website")} placeholder="optional" className="h-11 bg-card" /></Field>
             <Field label="X / Twitter"><Input value={form.twitter} onChange={set("twitter")} placeholder="optional" className="h-11 bg-card" /></Field>

@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useMe } from "@/lib/MeContext";
+import MediaUploadField from "@/components/media/MediaUploadField";
 
 export default function ProfileEditDialog({ profile, open, onOpenChange }) {
   const { refresh } = useMe();
@@ -35,8 +36,8 @@ export default function ProfileEditDialog({ profile, open, onOpenChange }) {
             <div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">@</span><Input required value={form.handle} onChange={set("handle")} className="h-11 pl-8 bg-background font-mono" /></div></div>
           <div className="space-y-1.5"><Label className="text-xs uppercase tracking-wider text-muted-foreground">Bio</Label>
             <Textarea value={form.bio} onChange={set("bio")} rows={3} maxLength={160} className="bg-background resize-none" /></div>
-          <div className="space-y-1.5"><Label className="text-xs uppercase tracking-wider text-muted-foreground">Avatar URL</Label>
-            <Input value={form.avatar_url} onChange={set("avatar_url")} placeholder="https://…" className="h-11 bg-background" /></div>
+          <div className="space-y-1.5"><Label className="text-xs uppercase tracking-wider text-muted-foreground">Avatar</Label>
+            <MediaUploadField value={form.avatar_url} onChange={(url) => setForm((f) => ({ ...f, avatar_url: url }))} /></div>
           <Button type="submit" disabled={saving} className="w-full h-11 rounded-full font-semibold">
             {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Save
           </Button>
