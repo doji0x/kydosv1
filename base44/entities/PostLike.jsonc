@@ -1,0 +1,16 @@
+{
+  "name": "PostLike",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string"
+    },
+    "post_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "user_id",
+    "post_id"
+  ]
+}

@@ -9,8 +9,8 @@ import { getWallet } from "@/lib/wallet";
 
 const PRESETS = [0.1, 0.5, 1, 5];
 
-export default function TradePanel({ token, onTraded }) {
-  const [side, setSide] = useState("buy");
+export default function TradePanel({ token, onTraded, initialSide = "buy" }) {
+  const [side, setSide] = useState(initialSide);
   const [amount, setAmount] = useState("");
   const [busy, setBusy] = useState(false);
   const graduated = token.status === "graduated";

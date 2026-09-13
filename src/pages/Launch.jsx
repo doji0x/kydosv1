@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Loader2, Rocket } from "lucide-react";
+import { Loader2, Rocket, X } from "lucide-react";
 import { getWallet } from "@/lib/wallet";
+import { useMe } from "@/lib/MeContext";
 import { TOTAL_SUPPLY, GRADUATION_TARGET } from "@/lib/curve";
 import LaunchPreview from "@/components/launch/LaunchPreview";
 
@@ -16,6 +17,7 @@ export default function Launch() {
   const [form, setForm] = useState(empty);
   const [saving, setSaving] = useState(false);
   const navigate = useNavigate();
+  const { me } = useMe();
   const set = (k) => (e) => setForm({ ...form, [k]: k === "ticker" ? e.target.value.toUpperCase().slice(0, 8) : e.target.value });
 
   const submit = async (e) => {
@@ -24,6 +26,8 @@ export default function Launch() {
     const token = await base44.entities.Token.create({
       ...form,
       creator: getWallet(),
+      creator_id: me?.id || "",
+      creator_handle: me?.profile?.handle || "",
       total_supply: TOTAL_SUPPLY,
       graduation_target: GRADUATION_TARGET,
       reserve: 0, tokens_sold: 0, market_cap: 0, trade_count: 0, holder_count: 0, status: "live",
@@ -32,11 +36,18 @@ export default function Launch() {
   };
 
   return (
-    <div className="mx-auto max-w-5xl px-4 sm:px-6 py-10 pb-20">
-      <p className="font-mono text-xs tracking-[0.3em] text-primary mb-3">NEW LAUNCH</p>
-      <h1 className="font-display text-3xl sm:text-4xl font-bold mb-8">Create your token</h1>
+    <div className="min-h-screen">
+      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-xl">
+        <div className="mx-auto max-w-5xl px-2 h-14 flex items-center gap-2">
+          <button type="button" onClick={() => navigate(-1)} aria-label="Close" className="h-10 w-10 rounded-full flex items-center justify-center hover:bg-card"><X className="h-5 w-5" /></button>
+          <div>
+            <p className="font-mono text-[10px] tracking-[0.3em] text-primary leading-none">NEW LAUNCH</p>
+            <h1 className="font-display font-semibold leading-tight">Create your token</h1>
+          </div>
+        </div>
+      </header>
 
-      <div className="grid gap-10 lg:grid-cols-[1fr_360px]">
+      <div className="mx-auto max-w-5xl px-4 sm:px-6 py-8 pb-24 grid gap-10 lg:grid-cols-[1fr_360px]">
         <form onSubmit={submit} className="space-y-6">
           <div className="grid sm:grid-cols-[1fr_160px] gap-4">
             <Field label="Name"><Input required value={form.name} onChange={set("name")} placeholder="Kydos Cat" className="h-11 bg-card" /></Field>

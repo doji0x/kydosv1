@@ -1,0 +1,52 @@
+{
+  "name": "Post",
+  "type": "object",
+  "properties": {
+    "author_id": {
+      "type": "string"
+    },
+    "author_handle": {
+      "type": "string"
+    },
+    "author_avatar": {
+      "type": "string"
+    },
+    "body": {
+      "type": "string"
+    },
+    "image_url": {
+      "type": "string"
+    },
+    "token_id": {
+      "type": "string",
+      "description": "Tagged token (also makes it appear in that token's thread)"
+    },
+    "token_ticker": {
+      "type": "string"
+    },
+    "reply_to": {
+      "type": "string",
+      "description": "Parent post id when this is a reply"
+    },
+    "repost_of": {
+      "type": "string",
+      "description": "Original post id when this is a repost"
+    },
+    "like_count": {
+      "type": "number",
+      "default": 0
+    },
+    "reply_count": {
+      "type": "number",
+      "default": 0
+    },
+    "repost_count": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "author_id",
+    "body"
+  ]
+}

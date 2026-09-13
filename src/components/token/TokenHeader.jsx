@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import { Globe, Send } from "lucide-react";
 import { Image } from "@/components/ui/image";
 import { marketCap, currentPrice, fmtHood, fmtPrice } from "@/lib/curve";
@@ -26,7 +27,12 @@ export default function TokenHeader({ token }) {
           <span className="font-mono text-primary">${token.ticker}</span>
           {token.status === "graduated" && <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400">Graduated</span>}
         </div>
-        <p className="text-xs text-muted-foreground mt-1 font-mono">created by {shortAddr(token.creator)}</p>
+        <p className="text-xs text-muted-foreground mt-1 font-mono">
+          created by{" "}
+          {token.creator_id ? (
+            <Link to={`/profile/${token.creator_id}`} className="text-primary hover:underline">@{token.creator_handle || "anon"}</Link>
+          ) : shortAddr(token.creator)}
+        </p>
         <p className="text-sm text-muted-foreground mt-3 leading-relaxed">{token.description}</p>
         {links.length > 0 && (
           <div className="flex gap-3 mt-3">

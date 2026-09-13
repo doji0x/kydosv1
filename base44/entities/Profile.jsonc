@@ -1,7 +1,10 @@
 {
-  "name": "User",
+  "name": "Profile",
   "type": "object",
   "properties": {
+    "user_id": {
+      "type": "string"
+    },
     "handle": {
       "type": "string"
     },
@@ -11,5 +14,9 @@
     "avatar_url": {
       "type": "string"
     }
-  }
+  },
+  "required": [
+    "user_id",
+    "handle"
+  ]
 }

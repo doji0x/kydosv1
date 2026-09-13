@@ -27,7 +27,14 @@
     },
     "creator": {
       "type": "string",
-      "description": "Creator wallet address or handle"
+      "description": "Creator wallet address"
+    },
+    "creator_id": {
+      "type": "string",
+      "description": "Creator user id"
+    },
+    "creator_handle": {
+      "type": "string"
     },
     "total_supply": {
       "type": "number",
