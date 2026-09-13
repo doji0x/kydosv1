@@ -4,7 +4,7 @@ import PostList from "@/components/forum/PostList";
 import { usePosts } from "@/hooks/usePosts";
 import WalletTab from "@/components/profile/WalletTab";
 
-const TABS = [["wallet", "Wallet"], ["posts", "Posts"], ["replies", "Replies"], ["likes", "Likes"]];
+const TABS = [["posts", "Posts"], ["replies", "Replies"], ["likes", "Likes"], ["wallet", "Wallet"]];
 
 export default function ProfileTabs({ userId }) {
   const [tab, setTab] = useState("posts");
