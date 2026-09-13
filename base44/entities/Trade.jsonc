@@ -34,6 +34,10 @@
     "trader": {
       "type": "string",
       "description": "Wallet address or handle"
+    },
+    "trader_id": {
+      "type": "string",
+      "description": "User id of the trader"
     }
   },
   "required": [
