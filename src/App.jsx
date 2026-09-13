@@ -14,6 +14,8 @@ import TokenDetail from '@/pages/TokenDetail';
 import Forum from '@/pages/Forum';
 import Thread from '@/pages/Thread';
 import Profile from '@/pages/Profile';
+import Search from '@/pages/Search';
+import Notifications from '@/pages/Notifications';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -48,6 +50,8 @@ const AuthenticatedApp = () => {
         <Route path="/token/:id" element={<TokenDetail />} />
         <Route path="/forum" element={<Forum />} />
         <Route path="/post/:id" element={<Thread />} />
+        <Route path="/search" element={<Search />} />
+        <Route path="/notifications" element={<Notifications />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/profile/:userId" element={<Profile />} />
       </Route>
