@@ -1,6 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { MessageCircle } from "lucide-react";
+import TokenPostDialog from "@/components/token/TokenPostDialog";
 import { Image } from "@/components/ui/image";
 import ProgressRing from "@/components/tokens/ProgressRing";
 import { marketCap, progress, fmtHood } from "@/lib/curve";
@@ -8,6 +10,7 @@ import { shortAddr } from "@/lib/wallet";
 import { timeAgo } from "@/lib/time";
 
 export default function TokenCard({ token, index = 0 }) {
+  const [posting, setPosting] = useState(false);
   const graduated = token.status === "graduated";
   const creator = token.creator_handle ? `@${token.creator_handle}` : shortAddr(token.creator);
 
@@ -38,11 +41,19 @@ export default function TokenCard({ token, index = 0 }) {
             <p className="text-sm text-white/70 line-clamp-1 mt-0.5">{token.description}</p>
           </div>
         </div>
-        <div className="px-4 py-3 flex items-center justify-between font-mono text-xs">
+        <div className="px-4 py-3 flex items-center gap-3 font-mono text-xs">
           <span className="text-muted-foreground">MC <span className="text-foreground font-semibold">{fmtHood(marketCap(token))}</span> HOOD</span>
-          <span className="text-muted-foreground">{token.trade_count || 0} trades · {timeAgo(token.created_date)}</span>
+          <span className="text-muted-foreground ml-auto">{token.trade_count || 0} trades · {timeAgo(token.created_date)}</span>
+          <button
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setPosting(true); }}
+            aria-label={`Post about $${token.ticker}`}
+            className="h-8 w-8 -my-1 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/50 transition"
+          >
+            <MessageCircle className="h-4 w-4" />
+          </button>
         </div>
       </Link>
+      <TokenPostDialog token={token} open={posting} onOpenChange={setPosting} />
     </motion.div>
   );
 }
