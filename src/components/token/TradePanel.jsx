@@ -7,11 +7,12 @@ import { toast } from "sonner";
 import { quoteBuy, quoteSell, currentPrice, marketCap, fmtTokens, fmtHood, GRADUATION_TARGET } from "@/lib/curve";
 import { getWallet } from "@/lib/wallet";
 import { useMe } from "@/lib/MeContext";
+import { cashOf, adjustBalance } from "@/lib/balance";
 
 const PRESETS = [0.1, 0.5, 1, 5];
 
 export default function TradePanel({ token, onTraded, initialSide = "buy" }) {
-  const { me } = useMe();
+  const { me, refresh } = useMe();
   const [side, setSide] = useState(initialSide);
   const [amount, setAmount] = useState("");
   const [busy, setBusy] = useState(false);
@@ -20,8 +21,12 @@ export default function TradePanel({ token, onTraded, initialSide = "buy" }) {
 
   const quote = side === "buy" ? quoteBuy(token, n) : quoteSell(token, n);
 
+  const cash = cashOf(me?.profile);
+
   const trade = async () => {
     if (n <= 0) return;
+    if (!me) return base44.auth.redirectToLogin();
+    if (side === "buy" && n > cash) return toast.error(`Not enough HOOD — balance ${fmtHood(cash)}`);
     setBusy(true);
     let reserve, tokens_sold, hood_amount, token_amount;
     if (side === "buy") {
@@ -44,6 +49,10 @@ export default function TradePanel({ token, onTraded, initialSide = "buy" }) {
       holder_count: Math.max(token.holder_count || 0, side === "buy" ? 1 : 0),
       status: reserve >= target ? "graduated" : token.status,
     });
+    if (me.profile) {
+      await adjustBalance(me.profile, side === "buy" ? -hood_amount : hood_amount);
+      await refresh();
+    }
     toast.success(side === "buy" ? `Bought ${fmtTokens(token_amount)} $${token.ticker}` : `Sold ${fmtTokens(token_amount)} $${token.ticker}`);
     if (reserve >= target && !graduated) toast(`$${token.ticker} graduated — liquidity locked`, { icon: "🏛️" });
     setAmount("");
@@ -81,6 +90,7 @@ export default function TradePanel({ token, onTraded, initialSide = "buy" }) {
           <div className="mt-4 rounded-xl bg-muted/60 p-3 font-mono text-xs space-y-1.5">
             <Row label="You receive" value={side === "buy" ? `${fmtTokens(quote)} $${token.ticker}` : `${fmtHood(quote)} HOOD`} />
             <Row label="Price" value={`${currentPrice(token).toExponential(3)} HOOD`} />
+            {side === "buy" && <Row label="Your balance" value={`${fmtHood(cash)} HOOD`} />}
           </div>
           <Button onClick={trade} disabled={busy || n <= 0}
             className={`w-full h-12 mt-4 rounded-xl font-semibold ${side === "sell" ? "bg-destructive hover:bg-destructive/90 text-destructive-foreground" : ""}`}>

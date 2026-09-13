@@ -2,8 +2,9 @@ import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import PostList from "@/components/forum/PostList";
 import { usePosts } from "@/hooks/usePosts";
+import WalletTab from "@/components/profile/WalletTab";
 
-const TABS = [["posts", "Posts"], ["replies", "Replies"], ["likes", "Likes"]];
+const TABS = [["wallet", "Wallet"], ["posts", "Posts"], ["replies", "Replies"], ["likes", "Likes"]];
 
 export default function ProfileTabs({ userId }) {
   const [tab, setTab] = useState("posts");
@@ -33,7 +34,9 @@ export default function ProfileTabs({ userId }) {
           </button>
         ))}
       </div>
-      <PostList posts={list} empty={tab === "likes" ? "No likes yet." : tab === "replies" ? "No replies yet." : "No posts yet."} />
+      {tab === "wallet"
+        ? <WalletTab userId={userId} />
+        : <PostList posts={list} empty={tab === "likes" ? "No likes yet." : tab === "replies" ? "No replies yet." : "No posts yet."} />}
     </div>
   );
 }

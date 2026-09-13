@@ -8,7 +8,6 @@ import ProfileHeader from "@/components/profile/ProfileHeader";
 import ProfileEditDialog from "@/components/profile/ProfileEditDialog";
 import ProfileTabs from "@/components/profile/ProfileTabs";
 import TokenCard from "@/components/tokens/TokenCard";
-import PortfolioCard from "@/components/profile/PortfolioCard";
 
 export default function Profile() {
   const { userId } = useParams();
@@ -50,7 +49,6 @@ export default function Profile() {
   return (
     <div className="mx-auto max-w-2xl border-x border-border/60 min-h-screen">
       <ProfileHeader profile={profile} userId={targetId} isMe={isMe} onEdit={() => setEditing(true)} />
-      <PortfolioCard userId={targetId} />
       {tokens.length > 0 && (
         <section className="px-4 mt-6">
           <p className="text-xs uppercase tracking-wider text-muted-foreground mb-3">Launched · {tokens.length}</p>
