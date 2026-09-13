@@ -18,6 +18,22 @@
       "type": "number",
       "description": "In-app HOOD cash balance",
       "default": 100
+    },
+    "x_handle": {
+      "type": "string",
+      "description": "X (Twitter) username without @"
+    },
+    "github_handle": {
+      "type": "string",
+      "description": "GitHub username"
+    },
+    "tiktok_handle": {
+      "type": "string",
+      "description": "TikTok username without @"
+    },
+    "instagram_handle": {
+      "type": "string",
+      "description": "Instagram username without @"
     }
   },
   "required": [

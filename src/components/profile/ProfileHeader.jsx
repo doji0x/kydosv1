@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import Avatar from "@/components/social/Avatar";
 import FollowButton from "@/components/profile/FollowButton";
 import FollowStats from "@/components/profile/FollowStats";
+import SocialLinks from "@/components/profile/SocialLinks";
 
 export default function ProfileHeader({ profile, userId, isMe, onEdit }) {
   return (
@@ -20,6 +21,7 @@ export default function ProfileHeader({ profile, userId, isMe, onEdit }) {
         </div>
         <h1 className="font-display font-bold text-xl mt-3">@{profile?.handle || "anon"}</h1>
         {profile?.bio && <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap leading-relaxed">{profile.bio}</p>}
+        <SocialLinks profile={profile} />
         <div className="mt-3"><FollowStats userId={userId} /></div>
       </div>
     </div>
