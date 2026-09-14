@@ -3,6 +3,7 @@ import ChartHistoryLoader from "@/components/rh/chart/ChartHistoryLoader";
 import RhAwaitingIndex from "@/components/rh/RhAwaitingIndex";
 import ChartHeader from "@/components/rh/chart/ChartHeader";
 import TvChart from "@/components/rh/chart/TvChart";
+import ChartDataLog from "@/components/rh/chart/ChartDataLog";
 import useLiveCandles from "@/hooks/useLiveCandles";
 import { isClientInterval } from "@/lib/rollCandles";
 
@@ -41,6 +42,7 @@ export default function RhLiveChart({ address, derivedSupply = 0 }) {
                 ? "Pan back to load more history"
                 : "Start of available history"}
           </span>
+          <ChartDataLog bars={candles} timeframe={timeframe} />
         </>
       )}
     </div>

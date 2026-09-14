@@ -43,34 +43,59 @@ const transferLeg = (log, decimals) => ({
 });
 
 // Reconstructs Rialto fills from the transfer legs already present in the sweep.
+//
+// One transaction against one pool is ONE fill, however many transfer legs the router
+// splits it into. Both sides are therefore netted per transaction before a price is taken —
+// attributing a transaction's whole quote total to each individual base leg is what used to
+// mint phantom 10x prices on routed swaps.
 function rialtoTrades(pool, logs) {
-  const quoteByTx = new Map();
+  const byTx = new Map();
+  const at = (hash) => {
+    if (!byTx.has(hash)) byTx.set(hash, { base: 0, quote: 0, log_index: Infinity, block_number: 0, trader: "" });
+    return byTx.get(hash);
+  };
+
   for (const log of logs) {
-    if (log.address.toLowerCase() !== pool.quote_address) continue;
-    const leg = transferLeg(log, pool.quote_decimals);
-    if (leg.from !== pool.address && leg.to !== pool.address) continue;
-    quoteByTx.set(log.transactionHash, (quoteByTx.get(log.transactionHash) || 0) + leg.value);
+    const addr = log.address.toLowerCase();
+    const isBase = addr === pool.token_address;
+    const isQuote = addr === pool.quote_address;
+    if (!isBase && !isQuote) continue;
+
+    const leg = transferLeg(log, isBase ? pool.base_decimals : pool.quote_decimals);
+    const inbound = leg.to === pool.address;
+    const outbound = leg.from === pool.address;
+    if (inbound === outbound || !leg.value) continue;
+
+    const tx = at(log.transactionHash);
+    // Signed against the pool: positive = the pool received it.
+    const signed = inbound ? leg.value : -leg.value;
+    if (isBase) {
+      tx.base += signed;
+      if (toNum(log.logIndex) < tx.log_index) {
+        tx.log_index = toNum(log.logIndex);
+        tx.trader = outbound ? leg.to : leg.from;
+      }
+      tx.block_number = toNum(log.blockNumber);
+    } else {
+      tx.quote += signed;
+    }
   }
 
   const out = [];
-  for (const log of logs) {
-    if (log.address.toLowerCase() !== pool.token_address) continue;
-    const leg = transferLeg(log, pool.base_decimals);
-    const inbound = leg.to === pool.address;
-    const outbound = leg.from === pool.address;
-    if (inbound === outbound) continue;
-
-    const quoteAmount = quoteByTx.get(log.transactionHash) || 0;
-    if (!leg.value || !quoteAmount) continue;
-
+  for (const [hash, tx] of byTx) {
+    const token_amount = Math.abs(tx.base);
+    const quote_amount = Math.abs(tx.quote);
+    // A real fill moves both sides in opposite directions; anything else is a transfer,
+    // a liquidity change, or a leg whose counterpart fell outside this sweep.
+    if (!token_amount || !quote_amount || Math.sign(tx.base) === Math.sign(tx.quote)) continue;
     out.push({
-      side: outbound ? "buy" : "sell",
-      token_amount: leg.value,
-      quote_amount: quoteAmount,
-      trader: outbound ? leg.to : leg.from,
-      tx_hash: log.transactionHash,
-      log_index: toNum(log.logIndex),
-      block_number: toNum(log.blockNumber),
+      side: tx.base < 0 ? "buy" : "sell",
+      token_amount,
+      quote_amount,
+      trader: tx.trader,
+      tx_hash: hash,
+      log_index: tx.log_index === Infinity ? 0 : tx.log_index,
+      block_number: tx.block_number,
     });
   }
   return out;
