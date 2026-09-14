@@ -40,7 +40,7 @@ function paced() {
   return delay ? new Promise((resolve) => setTimeout(resolve, delay)) : Promise.resolve();
 }
 
-export async function rpc(method, params = []) {
+export async function rpc(method, params = [], jsonRetry = 0) {
   await paced();
   const primary = rpcUrl();
   let res = null;
@@ -71,6 +71,10 @@ export async function rpc(method, params = []) {
   if (json.error) {
     // Some providers signal a bad/missing key at the JSON-RPC layer with a 200.
     const msg = String(json.error.message || "");
+    if (/rate limit|too many requests|compute units/i.test(msg) && jsonRetry < 6) {
+      await new Promise((resolve) => setTimeout(resolve, 1000 * (jsonRetry + 1)));
+      return rpc(method, params, jsonRetry + 1);
+    }
     if (!primaryDisabled && primary !== PUBLIC_RPC && /authenticat|api key|unauthor/i.test(msg)) {
       primaryDisabled = true;
       return rpc(method, params);
