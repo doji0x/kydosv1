@@ -5,6 +5,7 @@
 // draws as a flat open==close line instead of a fat block.
 
 const MIN_BODY_W = 3; // a body never collapses into the wick, however far you zoom out
+const MAX_BODY_W = 14; // ...and never widens into a slab when bars are far apart
 const WICK_W = 1;
 const DOJI_PX = 1; // bodies thinner than this render as a single line
 
@@ -12,8 +13,8 @@ const DOJI_PX = 1; // bodies thinner than this render as a single line
 const snap = (n) => Math.round(n) + 0.5;
 
 function bodyWidth(barW) {
-  // Leave a gap between neighbours, but never below the readable minimum.
-  return Math.max(Math.round(barW * 0.7), MIN_BODY_W);
+  // Leave a gap between neighbours, but stay inside the readable band.
+  return Math.min(Math.max(Math.round(barW * 0.7), MIN_BODY_W), MAX_BODY_W);
 }
 
 function drawWick(ctx, cx, yHigh, yLow, color) {
