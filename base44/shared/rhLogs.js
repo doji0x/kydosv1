@@ -53,6 +53,7 @@ async function scanBlocks(fromBlock, toBlock, addresses, topic0s, maxReceipts) {
  * @param {string[]} [opts.addresses] contract addresses to keep (lowercase)
  * @param {string[]} [opts.topics] topic0 values to keep
  * @param {number} [opts.maxReceipts] receipt budget for the scanning fallback
+ * @param {number} [opts.span] blocks per eth_getLogs call (defaults to LOG_SPAN)
  * @returns {Promise<{logs: object[], times: object, source: string, scanned_to: number}>}
  */
 export async function rangeLogs({
@@ -61,6 +62,7 @@ export async function rangeLogs({
   addresses = null,
   topics = null,
   maxReceipts = 250,
+  span = LOG_SPAN,
 }) {
   const addrSet = addresses?.length ? new Set(addresses.map((a) => a.toLowerCase())) : null;
   const topicSet = topics?.length ? new Set(topics.map((t) => t.toLowerCase())) : null;
@@ -71,7 +73,7 @@ export async function rangeLogs({
     let cursor = fromBlock;
     try {
       while (cursor <= toBlock) {
-        const chunkTo = Math.min(cursor + LOG_SPAN - 1, toBlock);
+        const chunkTo = Math.min(cursor + span - 1, toBlock);
         const filter = { fromBlock: hex(cursor), toBlock: hex(chunkTo) };
         if (addresses?.length) filter.address = addresses.length === 1 ? addresses[0] : addresses;
         if (topics?.length) filter.topics = [topics.length === 1 ? topics[0] : topics];

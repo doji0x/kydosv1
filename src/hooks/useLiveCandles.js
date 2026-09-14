@@ -7,7 +7,8 @@ import { useEffect, useRef, useState } from "react";
 import { openRhStream } from "@/lib/rhStream";
 import { fetchRhCandles, fetchRhStream } from "@/lib/rhApi";
 
-const BOOTSTRAP_BLOCKS = 300; // ~30s of chain history for the sub-minute views
+// How far back each sub-minute view reads real swaps on first load (~10 blocks/sec).
+const BOOTSTRAP_BLOCKS = { "1s": 1800, "5s": 4500, "15s": 6000 };
 import { INTERVAL_MS, isClientInterval, applyTrade, fillIdle, seedSeries } from "@/lib/rollCandles";
 
 export default function useLiveCandles(address, timeframe) {
@@ -44,9 +45,9 @@ export default function useLiveCandles(address, timeframe) {
     let alive = true;
     setCandles(null);
     if (isClientInterval(timeframe)) {
-      // Bootstrap sub-minute bars from the last ~30s of real swaps so the chart opens
-      // with genuine price action rather than a flat placeholder.
-      fetchRhStream(address, 0, BOOTSTRAP_BLOCKS)
+      // Bootstrap sub-minute bars from real recent swaps so the chart opens with genuine
+      // history rather than a flat placeholder.
+      fetchRhStream(address, 0, BOOTSTRAP_BLOCKS[timeframe] || 1800)
         .then((d) => {
           if (!alive) return;
           let bars = [];
@@ -59,7 +60,17 @@ export default function useLiveCandles(address, timeframe) {
         });
     } else {
       fetchRhCandles(address, timeframe, 200)
-        .then((d) => alive && setCandles(d?.candles ? d.candles.map((c) => ({ ...c })) : []))
+        .then(async (d) => {
+          if (!alive) return;
+          const stored = d?.candles?.map((c) => ({ ...c })) || [];
+          if (stored.length) return setCandles(stored);
+          // Nothing persisted yet — build what history we can from recent on-chain swaps.
+          const live = await fetchRhStream(address, 0, 6000).catch(() => null);
+          if (!alive) return;
+          let bars = [];
+          for (const t of live?.trades || []) bars = applyTrade(bars, t, ms);
+          setCandles(bars);
+        })
         .catch(() => alive && setCandles([]));
     }
     return () => {

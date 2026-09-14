@@ -21,9 +21,10 @@ const SWAP_TOPIC = {
 // ~10 blocks/second on this chain, so a 1s poll only needs a short window. Capped so a
 // client returning after a long pause resyncs to the head instead of scanning forever.
 const MAX_WINDOW = 40;
-// A first-load bootstrap may reach further back so a 1s/5s/15s chart opens with real
-// bars instead of a flat seed. 300 blocks is ~30s of this chain.
-const MAX_BOOTSTRAP = 300;
+// A first-load bootstrap reaches much further back so a 1s/5s/15s chart opens with real
+// history. 6000 blocks is ~10 minutes of this chain, read in wide getLogs chunks.
+const MAX_BOOTSTRAP = 6000;
+const BOOTSTRAP_SPAN = 750;
 const BLOCK_MS = 100;
 
 function quoteUsdValue(symbol, ethUsd) {
@@ -84,6 +85,7 @@ export default async function (req: Request): Promise<Response> {
           addresses: pools.map((p) => p.address),
           topics: [...new Set(pools.map((p) => SWAP_TOPIC[p.venue]))],
           maxReceipts: 120,
+          span: sinceBlock ? undefined : BOOTSTRAP_SPAN,
         });
 
         for (const log of logs) {
@@ -124,8 +126,10 @@ export default async function (req: Request): Promise<Response> {
     let priceQuote = token.price_quote || 0;
     let priceUsd = token.price_usd || 0;
     let priceSource = "indexed";
-    if (trades.length) {
-      const last = trades[trades.length - 1];
+    const lastTrade = trades[trades.length - 1];
+    // A bootstrap can return trades minutes old — those are history, not the live price.
+    if (lastTrade && head - lastTrade.block_number <= MAX_WINDOW) {
+      const last = lastTrade;
       priceQuote = last.price_quote;
       priceUsd = last.price_usd;
       priceSource = "live_swap";
