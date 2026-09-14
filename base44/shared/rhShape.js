@@ -1,0 +1,83 @@
+// Public response shapes for the Kydos market-data API. One definition per resource so
+// the UI and third parties always see identical field names.
+
+export const tokenShape = (t) => ({
+  chain_id: 4663,
+  address: t.address,
+  name: t.name || null,
+  symbol: t.symbol || null,
+  decimals: t.decimals ?? 18,
+  total_supply: t.total_supply || 0,
+  icon_url: t.icon_url || null,
+  website: t.website || null,
+  twitter: t.twitter || null,
+  telegram: t.telegram || null,
+  price_usd: t.price_usd || 0,
+  price_quote: t.price_quote || 0,
+  market_cap: t.market_cap || 0,
+  fdv: t.fdv || 0,
+  volume_24h: t.volume_24h || 0,
+  liquidity_usd: t.liquidity_usd || 0,
+  change_1h: t.change_1h || 0,
+  change_6h: t.change_6h || 0,
+  change_24h: t.change_24h || 0,
+  buys_24h: t.buys_24h || 0,
+  sells_24h: t.sells_24h || 0,
+  trades_24h: t.trades_24h || 0,
+  holder_count: t.holder_count || 0,
+  pool_count: t.pool_count || 0,
+  last_indexed_block: t.last_indexed_block || 0,
+  stats_updated_at: t.stats_updated_at || null,
+});
+
+export const poolShape = (p) => ({
+  address: p.address,
+  venue: p.venue,
+  quote_symbol: p.quote_symbol || null,
+  quote_address: p.quote_address || null,
+  fee: p.fee || null,
+  reserve_base: p.reserve_base || 0,
+  reserve_quote: p.reserve_quote || 0,
+  liquidity_usd: p.liquidity_usd || 0,
+});
+
+export const tradeShape = (t) => ({
+  chain_id: t.chain_id || 4663,
+  token: t.token_address,
+  symbol: t.symbol || null,
+  venue: t.venue,
+  pool: t.pool || null,
+  trader: t.trader || null,
+  side: t.side,
+  token_amount: t.token_amount || 0,
+  quote_amount: t.quote_amount || 0,
+  price_quote: t.price_quote || 0,
+  price_usd: t.price_usd || 0,
+  volume_usd: t.volume_usd || 0,
+  block_number: t.block_number || 0,
+  timestamp: t.block_time || 0,
+  tx_hash: t.tx_hash || null,
+  log_index: t.log_index ?? null,
+});
+
+// Curve tokens live in the app's own Token entity, not the on-chain directory.
+export const curveTokenShape = (t, stats) => ({
+  id: t.id,
+  name: t.name,
+  symbol: t.ticker,
+  description: t.description || null,
+  image_url: t.image_url || null,
+  creator: t.creator || null,
+  creator_handle: t.creator_handle || null,
+  status: t.status,
+  venue: "kydos_curve",
+  total_supply: t.total_supply || 0,
+  reserve: t.reserve || 0,
+  tokens_sold: t.tokens_sold || 0,
+  market_cap_quote: t.market_cap || 0,
+  graduation_target: t.graduation_target || 0,
+  trade_count: t.trade_count || 0,
+  holder_count: t.holder_count || 0,
+  created_at: t.created_date,
+  market: stats ? tokenShape(stats) : null,
+});

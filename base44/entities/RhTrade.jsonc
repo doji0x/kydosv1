@@ -1,7 +1,7 @@
 {
   "name": "RhTrade",
   "type": "object",
-  "description": "A normalized swap on Robinhood Chain, parsed from on-chain logs by a venue adapter.",
+  "description": "A normalized swap on Robinhood Chain, parsed from on-chain logs by a venue adapter, or a Kydos bonding-curve fill.",
   "properties": {
     "uid": {
       "type": "string",
@@ -22,7 +22,8 @@
       "enum": [
         "uniswap_v2",
         "uniswap_v3",
-        "rialto"
+        "rialto",
+        "kydos_curve"
       ]
     },
     "pool": {

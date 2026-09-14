@@ -1,8 +1,7 @@
-// Read API: recent normalized trades for a tracked token.
+// Public API: the full tracked-token directory with canonical market stats.
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
-import { listBounded } from "../../shared/rhStore.js";
 import { assertApiCaller } from "../../shared/rhApiKey.js";
-import { tradeShape } from "../../shared/rhShape.js";
+import { tokenShape } from "../../shared/rhShape.js";
 
 export default async function (req: Request): Promise<Response> {
   try {
@@ -11,16 +10,14 @@ export default async function (req: Request): Promise<Response> {
     if (denied) return denied;
     const db = base44.asServiceRole;
     const body = await req.json().catch(() => ({}));
-    const address = String(body.address || "").toLowerCase();
-    if (!/^0x[0-9a-f]{40}$/.test(address)) {
-      return Response.json({ error: "A valid token address is required" }, { status: 400 });
-    }
-    const limit = Math.min(Math.max(Number(body.limit) || 50, 1), 200);
 
-    const trades = await listBounded(db, "RhTrade", { token_address: address }, "-block_time", limit);
+    const limit = Math.min(Math.max(Number(body.limit) || 100, 1), 500);
+    const tokens = await db.entities.RhToken.filter({ tracked: true }, "-volume_24h", limit);
 
     return Response.json({
-      trades: trades.map(tradeShape),
+      chain_id: 4663,
+      count: tokens.length,
+      tokens: tokens.map(tokenShape),
       source: "kydos-indexer",
     });
   } catch (error) {

@@ -4,6 +4,7 @@ import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { isStable } from "../../shared/rhConstants.js";
 import { v2Reserves, erc20BalanceOf } from "../../shared/rhErc20.js";
 import { computeStats } from "../../shared/rhMarket.js";
+import { canonicalPrice } from "../../shared/rhCanonical.js";
 import { spotPriceQuote } from "../../shared/rhSpot.js";
 import { listBounded, upsertToken, getRefPrice } from "../../shared/rhStore.js";
 import { assertEngineCaller } from "../../shared/rhAuth.js";
@@ -56,35 +57,43 @@ export default async function (req: Request): Promise<Response> {
 
       const pools = await db.entities.RhPool.filter({ token_address: token.address, active: true });
 
-      // Live pool state gives a price even with no indexed swaps yet. The deepest
-      // pool wins, measured by its quote-side reserve in USD.
-      let spotQuote = 0;
-      let spotUsd = 0;
-      let spotDepth = -1;
+      // Live pool state gives a price even with no indexed swaps yet. Every pool that
+      // quotes in a valued asset contributes a candidate price.
+      const quotes = [];
       for (const pool of pools) {
         const price = await spotPriceQuote(pool).catch(() => null);
         if (!price || !isFinite(price) || price <= 0) continue;
         const quoteUsd = quoteUsdValue(pool.quote_symbol, ethUsd);
         if (!quoteUsd) continue;
-        const depth = (pool.reserve_quote || 0) * quoteUsd;
-        if (depth > spotDepth) {
-          spotDepth = depth;
-          spotQuote = price;
-          spotUsd = price * quoteUsd;
-        }
+        quotes.push({
+          pool: pool.address,
+          price_quote: price,
+          price_usd: price * quoteUsd,
+          liquidity_usd: (pool.reserve_quote || 0) * quoteUsd,
+        });
       }
 
-      const priceUsdForLiquidity = latestPrice || spotUsd;
+      // First pass uses last cycle's reserves so pools can be valued at all.
+      const seed = canonicalPrice(quotes);
+      const priceUsdForLiquidity = seed?.price_usd || latestPrice;
       let liquidity = 0;
+      const liquidityByPool = new Map();
       for (const pool of pools) {
         const info = await poolLiquidityUsd(pool, ethUsd, priceUsdForLiquidity);
         liquidity += info.liquidity;
+        liquidityByPool.set(pool.address, info.liquidity);
         await db.entities.RhPool.update(pool.id, {
           reserve_base: info.reserveBase,
           reserve_quote: info.reserveQuote,
           liquidity_usd: info.liquidity,
         });
       }
+
+      // Second pass re-weights on the liquidity just measured, so the canonical price
+      // is dominated by the deepest honest market and thin/spoofed pools are dropped.
+      const canonical = canonicalPrice(
+        quotes.map((q) => ({ ...q, liquidity_usd: liquidityByPool.get(q.pool) ?? q.liquidity_usd }))
+      );
 
       const holders = await db.entities.RhBalance.filter({ token_address: token.address, is_pool: false });
       const holderCount = holders.filter((h) => (h.balance || 0) > 0).length;
@@ -95,11 +104,12 @@ export default async function (req: Request): Promise<Response> {
         refPriceUsd: ethUsd,
       });
 
-      // No swaps indexed for this token yet — publish the live pool price instead.
-      if (!stats.price_usd && spotUsd) {
-        stats.price_usd = spotUsd;
-        stats.price_quote = spotQuote;
-        stats.fdv = token.total_supply ? spotUsd * token.total_supply : 0;
+      // The canonical pool-weighted price is what Kydos publishes; the last fill is only
+      // a fallback for tokens with no qualifying pool.
+      if (canonical) {
+        stats.price_usd = canonical.price_usd;
+        stats.price_quote = canonical.price_quote;
+        stats.fdv = token.total_supply ? canonical.price_usd * token.total_supply : 0;
         stats.market_cap = stats.fdv;
       }
 
@@ -130,6 +140,10 @@ export default async function (req: Request): Promise<Response> {
         liquidity_usd: stats.liquidity_usd,
         holders: holderCount,
         trades_considered: trades.length,
+        price_source: canonical ? "canonical_pools" : latestPrice ? "last_trade" : "none",
+        pools_used: canonical?.pools_used || 0,
+        pools_rejected: canonical?.pools_rejected || 0,
+        low_liquidity_only: canonical?.low_liquidity_only || false,
       });
     }
 

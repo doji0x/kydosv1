@@ -1,10 +1,13 @@
 // Read API: holder count and top holders for a tracked token, from indexed balances.
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { getTokenRecord } from "../../shared/rhStore.js";
+import { assertApiCaller } from "../../shared/rhApiKey.js";
 
 export default async function (req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
+    const denied = await assertApiCaller(base44, req);
+    if (denied) return denied;
     const db = base44.asServiceRole;
     const body = await req.json().catch(() => ({}));
     const address = String(body.address || "").toLowerCase();

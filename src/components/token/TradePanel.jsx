@@ -9,6 +9,7 @@ import { getWallet } from "@/lib/wallet";
 import { useMe } from "@/lib/MeContext";
 import { useSignInGate } from "@/lib/SignInGate";
 import { cashOf, adjustBalance } from "@/lib/balance";
+import { recordCurveTrade } from "@/lib/curveVenue";
 
 const PRESETS = [0.1, 0.5, 1, 5];
 
@@ -41,10 +42,11 @@ export default function TradePanel({ token, onTraded, initialSide = "buy" }) {
     const next = { ...token, reserve, tokens_sold };
     const cap = marketCap(next);
     const target = token.graduation_target || GRADUATION_TARGET;
-    await base44.entities.Trade.create({
+    const tradeRecord = await base44.entities.Trade.create({
       token_id: token.id, ticker: token.ticker, side, hood_amount, token_amount,
       price: currentPrice(next), market_cap: cap, trader: getWallet(), trader_id: me?.id,
     });
+    await recordCurveTrade({ token, trade: tradeRecord });
     await base44.entities.Token.update(token.id, {
       reserve, tokens_sold, market_cap: cap,
       trade_count: (token.trade_count || 0) + 1,
