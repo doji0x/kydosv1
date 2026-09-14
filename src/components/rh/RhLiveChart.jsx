@@ -34,9 +34,11 @@ export default function RhLiveChart({ address, derivedSupply = 0 }) {
       ) : rows.length === 0 ? (
         <RhAwaitingIndex
           label={
-            isClientInterval(timeframe)
-              ? "Waiting for the first live swap"
-              : "No price history indexed yet at this interval"
+            loadingOlder
+              ? "Reading price history from the chain…"
+              : isClientInterval(timeframe)
+                ? "Waiting for the first live swap"
+                : "No price history indexed yet at this interval"
           }
         />
       ) : (

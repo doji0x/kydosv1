@@ -3,14 +3,18 @@
 // One stream runs per token and survives interval switches: sub-minute bars are rolled
 // entirely from streamed swaps, while minute+ bars load from the persisted store and then
 // keep updating from the same stream.
+//
+// History arrives on a slow path (an on-chain log scan can take 20s), so the series is
+// never blocked on it: the chart draws as soon as a price tick lands, and the scanned
+// history is merged in underneath the live bars once it resolves.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { openRhStream } from "@/lib/rhStream";
 import { fetchRhCandles, fetchRhStream, fetchRhStreamBefore } from "@/lib/rhApi";
-
-// How far back each sub-minute view reads real swaps on first load (~10 blocks/sec).
-const BOOTSTRAP_BLOCKS = { "1s": 1800, "5s": 4500, "15s": 6000 };
 import { INTERVAL_MS, isClientInterval, applyTrade, fillIdle, seedSeries } from "@/lib/rollCandles";
 import { prependBars } from "@/lib/chart/mergeBars";
+
+// The stream endpoint scans at most 1000 blocks per request (~100s of chain time).
+const BOOTSTRAP_BLOCKS = 1000;
 
 export default function useLiveCandles(address, timeframe) {
   const ms = INTERVAL_MS[timeframe];
@@ -51,49 +55,55 @@ export default function useLiveCandles(address, timeframe) {
     let alive = true;
     setCandles(null);
     setHasOlder(true);
+    setLoadingOlder(true);
     oldestBlock.current = 0;
     storedLimit.current = 200;
     busy.current = false;
+
+    // Merges a scanned window of real swaps under whatever the live stream has already drawn.
+    const foldHistory = (data) => {
+      if (!alive || !data) return;
+      oldestBlock.current = data.scanned_from || 0;
+      let scanned = [];
+      for (const t of data.trades || []) scanned = applyTrade(scanned, t, ms);
+      setCandles((prev) => {
+        if (!prev?.length) return scanned.length ? fillIdle(scanned, ms) : prev || [];
+        // Bars the stream already owns win; the scan only fills what came before them.
+        return prependBars(scanned, prev);
+      });
+    };
+
+    const settle = () => {
+      if (!alive) return;
+      setLoadingOlder(false);
+      // Never leave the chart on a skeleton: fall back to the last known price.
+      setCandles((prev) => prev ?? (priceRef.current ? seedSeries(priceRef.current, ms) : []));
+    };
+
     if (isClientInterval(timeframe)) {
-      // Bootstrap sub-minute bars from real recent swaps so the chart opens with genuine
-      // history rather than a flat placeholder.
-      fetchRhStream(address, 0, BOOTSTRAP_BLOCKS[timeframe] || 1800)
-        .then((d) => {
-          if (!alive) return;
-          oldestBlock.current = d?.scanned_from || 0;
-          let bars = [];
-          for (const t of d?.trades || []) bars = applyTrade(bars, t, ms);
-          if (!bars.length) bars = seedSeries(d?.price_usd || priceRef.current, ms, 20);
-          setCandles(bars.length ? fillIdle(bars, ms) : bars);
-        })
-        .catch(() => {
-          if (alive) setCandles(priceRef.current ? seedSeries(priceRef.current, ms) : null);
-        });
+      fetchRhStream(address, 0, BOOTSTRAP_BLOCKS).then(foldHistory).catch(() => {}).finally(settle);
     } else {
       fetchRhCandles(address, timeframe, 200)
-        .then(async (d) => {
-          if (!alive) return;
+        .then((d) => {
+          if (!alive) return null;
           const stored = d?.candles?.map((c) => ({ ...c })) || [];
-          // Indexed bars can lag well behind the head, so always continue the series with
-          // real swaps read straight from the chain — no hole between history and live.
-          const live = await fetchRhStream(address, 0, 1000).catch(() => null);
-          if (!alive) return;
-          oldestBlock.current = live?.scanned_from || 0;
-          let bars = stored;
-          for (const t of live?.trades || []) bars = applyTrade(bars, t, ms);
-          setCandles(bars);
+          if (stored.length) setCandles((prev) => prependBars(stored, prev));
+          // Indexed bars lag the head, so continue the series with swaps read from chain.
+          return fetchRhStream(address, 0, BOOTSTRAP_BLOCKS).catch(() => null);
         })
-        .catch(() => alive && setCandles([]));
+        .then(foldHistory)
+        .catch(() => {})
+        .finally(settle);
     }
     return () => {
       alive = false;
     };
   }, [address, timeframe, ms]);
 
-  // A sub-minute view opened before the first tick seeds as soon as a price arrives.
+  // Draw immediately from the first price tick rather than waiting on the history scan.
   useEffect(() => {
-    if (!isClientInterval(timeframe) || candles !== null || !price) return;
-    setCandles(seedSeries(price, ms));
+    if (candles !== null || !price) return;
+    setCandles(seedSeries(price, ms, isClientInterval(timeframe) ? 40 : 20));
   }, [timeframe, candles, price, ms]);
 
   // Fold newly streamed swaps into the series.
@@ -128,7 +138,7 @@ export default function useLiveCandles(address, timeframe) {
         if (!oldestBlock.current) return; // bootstrap hasn't landed yet
         const to = oldestBlock.current - 1;
         if (to <= 0) return setHasOlder(false);
-        const d = await fetchRhStreamBefore(address, to, 1000).catch(() => null);
+        const d = await fetchRhStreamBefore(address, to, BOOTSTRAP_BLOCKS).catch(() => null);
         if (!d) return setHasOlder(false);
         oldestBlock.current = d.scanned_from || 0;
         let older = [];
