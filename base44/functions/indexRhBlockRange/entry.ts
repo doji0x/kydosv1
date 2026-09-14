@@ -16,7 +16,7 @@ import {
   CHAIN_ID,
 } from "../../shared/rhRpc.js";
 import { rangeLogs } from "../../shared/rhLogs.js";
-import { TOPIC, isStable } from "../../shared/rhConstants.js";
+import { TOPIC, isStable, LOG_SPAN } from "../../shared/rhConstants.js";
 import { parseSwapLog, SWAP_TOPIC_BY_VENUE } from "../../shared/rhVenues.js";
 import {
   getCursor,
@@ -85,7 +85,17 @@ export default async function (req: Request): Promise<Response> {
 
     const body = await req.json().catch(() => ({}));
     const initialLookback = Math.min(Number(body.initial_lookback) || 300, 5000);
-    const maxSpan = Math.min(Number(body.max_span) || 400, 2000);
+    const maxSpan = Math.min(Number(body.max_span) || 2000, 2000);
+    // The chain produces blocks faster than one window covers, so a single invocation keeps
+    // sweeping windows until it reaches the head or runs out of time.
+    const budgetMs = Math.min(Number(body.budget_ms) || 50_000, 110_000);
+    // The public RPC hard-caps eth_getLogs at a very narrow range; asking for more makes it
+    // refuse logs entirely and fall back to block scanning, which is far slower.
+    const logSpan = Math.min(Number(body.log_span) || LOG_SPAN, 500);
+    // A cursor this far behind can never be replayed at the RPC's log throughput, so live
+    // indexing jumps to the head instead of grinding forever in the past.
+    const maxLag = Math.min(Number(body.max_lag) || 20_000, 500_000);
+    const startedAt = Date.now();
 
     const head = await blockNumber();
     const ethUsd = await getRefPrice(db, "ETH");
@@ -98,17 +108,59 @@ export default async function (req: Request): Promise<Response> {
       const cursor = await getCursor(db, `swaps:${pool.address}`);
       starts.push(cursor ? cursor.last_block + 1 : Math.max(head - initialLookback, 0));
     }
-    const fromBlock = Math.min(...starts);
+    let fromBlock = Math.min(...starts);
+    if (head - fromBlock > maxLag) fromBlock = Math.max(head - initialLookback, 0);
     if (fromBlock > head) {
       return Response.json({ head_block: head, pools: pools.length, up_to_date: true, summary: [] });
     }
-    const targetBlock = Math.min(head, fromBlock + maxSpan - 1);
 
+    const firstFrom = fromBlock;
+    let scannedTo = fromBlock - 1;
+    let windows = 0;
+    let logsSeen = 0;
+    let summary = [];
+
+    while (fromBlock <= head && Date.now() - startedAt < budgetMs) {
+      const window = await indexWindow(fromBlock, Math.min(head, fromBlock + maxSpan - 1));
+      scannedTo = window.scannedTo;
+      logsSeen += window.logsSeen;
+      summary = window.summary;
+      windows += 1;
+      fromBlock = window.scannedTo + 1;
+    }
+
+    return Response.json({
+      head_block: head,
+      from_block: firstFrom,
+      to_block: scannedTo,
+      behind: head - scannedTo,
+      windows,
+      logs_seen: logsSeen,
+      eth_usd: ethUsd,
+      pools: pools.length,
+      summary,
+    });
+
+    async function indexWindow(fromBlock: number, targetBlock: number) {
     const hasRialto = pools.some((p) => p.venue === "rialto");
+    // Ask the node only for the contracts we care about — pools, plus the token/quote
+    // contracts whose Transfer legs reconstruct Rialto fills. Without this the sweep drags
+    // back every swap on the chain and can never keep pace with the head.
+    const addresses = [
+      ...new Set(
+        pools.flatMap((p) =>
+          p.venue === "rialto" ? [p.address, p.token_address, p.quote_address] : [p.address]
+        ).filter(Boolean).map((a) => String(a).toLowerCase())
+      ),
+    ];
     const sweep = await rangeLogs({
       fromBlock,
       toBlock: targetBlock,
+      addresses,
       topics: hasRialto ? [...SWAP_TOPICS, TOPIC.TRANSFER] : SWAP_TOPICS,
+      // With an address filter the response is small, so the node tolerates a far wider
+      // range per call than the unfiltered 10-block crawl.
+      span: logSpan,
     });
     const scannedTo = sweep.scanned_to;
 
@@ -179,17 +231,8 @@ export default async function (req: Request): Promise<Response> {
       });
     }
 
-    return Response.json({
-      head_block: head,
-      from_block: fromBlock,
-      to_block: scannedTo,
-      behind: head - scannedTo,
-      log_source: sweep.source,
-      logs_seen: sweep.logs.length,
-      eth_usd: ethUsd,
-      pools: pools.length,
-      summary,
-    });
+      return { scannedTo, logsSeen: sweep.logs.length, summary };
+    }
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
