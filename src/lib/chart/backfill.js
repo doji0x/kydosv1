@@ -19,6 +19,7 @@ export async function backfillSwaps({
   minBlock = 0,
   alive = () => true,
   onProgress,
+  onBatch,
 }) {
   const trades = [];
   const startedAt = Date.now();
