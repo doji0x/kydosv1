@@ -8,6 +8,9 @@ export const fetchRhToken = (address) => call("getRhToken", { address });
 export const fetchRhCandles = (address, interval = "5m", limit = 120) =>
   call("getRhCandles", { address, interval, limit });
 export const fetchRhTrades = (address, limit = 50) => call("getRhTrades", { address, limit });
+export const fetchRhPoolTrades = (address, beforeBlock) => call("getRhTrades", {
+  address, source: "onchain", ...(beforeBlock !== undefined ? { before_block: beforeBlock } : {}),
+});
 export const fetchRhStream = (address, sinceBlock = 0, windowBlocks = 0) =>
   call("getRhStream", { address, since_block: sinceBlock, window_blocks: windowBlocks });
 export const fetchRhHolders = (address, limit = 20) => call("getRhHolders", { address, limit });

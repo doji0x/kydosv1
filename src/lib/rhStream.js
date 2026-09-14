@@ -59,8 +59,8 @@ function startTransport(address, onTick, onStatus) {
       if (data?.error) throw new Error(data.error);
 
       cursor = data.scanned_to ?? data.head_block ?? cursor;
-      delay = BASE_MS;
-      onStatus?.("live");
+      delay = data.blocks_behind > 0 ? 50 : BASE_MS;
+      onStatus?.(!data.pool_count ? "unavailable" : data.blocks_behind > 0 ? "syncing" : "live");
       onTick(data);
     } catch {
       if (stopped) return;

@@ -3,6 +3,10 @@ import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { listBounded } from "../../shared/rhStore.js";
 import { assertApiCaller } from "../../shared/rhApiKey.js";
 import { tradeShape } from "../../shared/rhShape.js";
+import { blockNumber } from "../../shared/rhRpc.js";
+import { getRefPrice, getTokenRecord } from "../../shared/rhStore.js";
+import { loadSwapPools } from "../../shared/rhSwapPools.js";
+import { readPoolSwaps } from "../../shared/rhPoolSwaps.js";
 
 export default async function (req: Request): Promise<Response> {
   try {
@@ -14,6 +18,22 @@ export default async function (req: Request): Promise<Response> {
     const address = String(body.address || "").toLowerCase();
     if (!/^0x[0-9a-f]{40}$/.test(address)) {
       return Response.json({ error: "A valid token address is required" }, { status: 400 });
+    }
+    if (body.source === "onchain") {
+      const before = body.before_block;
+      if (before !== undefined && (!Number.isSafeInteger(before) || before < 0)) {
+        return Response.json({ error: "before_block must be a non-negative integer" }, { status: 400 });
+      }
+      const token = await getTokenRecord(db, address);
+      if (!token) return Response.json({ error: "Token is not tracked" }, { status: 404 });
+      const head = await blockNumber();
+      const to = before === undefined ? head : Math.min(head, before - 1);
+      const from = Math.max(0, to - 999);
+      const pools = await loadSwapPools(db, address, await getRefPrice(db, "ETH"));
+      const trades = await readPoolSwaps(pools, from, to);
+      return Response.json({ trades: trades.reverse(), source: "onchain-pools", pool_count: pools.length,
+        scanned_from: from, scanned_to: to, head_block: head,
+        next_before_block: from > 0 && pools.length ? from : null });
     }
     const limit = Math.min(Math.max(Number(body.limit) || 50, 1), 200);
 

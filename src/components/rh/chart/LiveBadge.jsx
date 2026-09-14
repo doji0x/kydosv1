@@ -4,6 +4,8 @@ const COPY = {
   live: { text: "LIVE", tone: "text-chart-2", dot: "bg-chart-2" },
   connecting: { text: "CONNECTING", tone: "text-muted-foreground", dot: "bg-muted-foreground" },
   retrying: { text: "RECONNECTING", tone: "text-chart-3", dot: "bg-chart-3" },
+  syncing: { text: "CATCHING UP", tone: "text-primary", dot: "bg-primary" },
+  unavailable: { text: "NO SUPPORTED POOLS", tone: "text-muted-foreground", dot: "bg-muted-foreground" },
 };
 
 export default function LiveBadge({ status }) {
