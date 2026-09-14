@@ -74,12 +74,12 @@ export default function useLiveCandles(address, timeframe) {
         .then(async (d) => {
           if (!alive) return;
           const stored = d?.candles?.map((c) => ({ ...c })) || [];
-          if (stored.length) return setCandles(stored);
-          // Nothing persisted yet — build what history we can from recent on-chain swaps.
+          // Indexed bars can lag well behind the head, so always continue the series with
+          // real swaps read straight from the chain — no hole between history and live.
           const live = await fetchRhStream(address, 0, 1000).catch(() => null);
           if (!alive) return;
           oldestBlock.current = live?.scanned_from || 0;
-          let bars = [];
+          let bars = stored;
           for (const t of live?.trades || []) bars = applyTrade(bars, t, ms);
           setCandles(bars);
         })
@@ -139,14 +139,9 @@ export default function useLiveCandles(address, timeframe) {
         const next = storedLimit.current + 200;
         const d = await fetchRhCandles(address, timeframe, next).catch(() => null);
         const stored = d?.candles?.map((c) => ({ ...c })) || [];
-        setCandles((prev) => {
-          if (stored.length <= (prev?.length || 0)) {
-            setHasOlder(false);
-            return prev;
-          }
-          storedLimit.current = next;
-          return stored;
-        });
+        if (!stored.length || stored.length < next) setHasOlder(false);
+        storedLimit.current = next;
+        setCandles((prev) => prependBars(stored, prev));
       }
     } finally {
       busy.current = false;
