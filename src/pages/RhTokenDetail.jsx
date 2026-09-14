@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import useGoBack from "@/lib/useGoBack";
 import { ArrowLeft } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Image } from "@/components/ui/image";
@@ -15,7 +16,7 @@ const TABS = ["Trades", "Holders"];
 
 export default function RhTokenDetail() {
   const { address } = useParams();
-  const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [tab, setTab] = useState("Trades");
@@ -54,7 +55,7 @@ export default function RhTokenDetail() {
   return (
     <div className="mx-auto max-w-2xl px-4 pb-8 space-y-4">
       <div className="flex items-center gap-3 pt-3">
-        <button onClick={() => navigate(-1)} className="h-9 w-9 rounded-full border border-border flex items-center justify-center text-muted-foreground">
+        <button onClick={goBack} className="h-9 w-9 rounded-full border border-border flex items-center justify-center text-muted-foreground">
           <ArrowLeft className="h-4 w-4" />
         </button>
         {t.icon_url ? (

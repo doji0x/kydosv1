@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
+import useGoBack from "@/lib/useGoBack";
 import { ArrowLeft } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -10,7 +11,7 @@ import { usePosts } from "@/hooks/usePosts";
 
 export default function Thread() {
   const { id } = useParams();
-  const navigate = useNavigate();
+  const goBack = useGoBack("/forum");
   const [post, setPost] = useState(undefined);
   const [replies] = usePosts({ reply_to: id }, id);
 
@@ -23,7 +24,7 @@ export default function Thread() {
   return (
     <div className="mx-auto max-w-2xl border-x border-border/60 min-h-screen">
       <div className="sticky top-14 z-30 px-2 h-12 flex items-center gap-2 bg-background/80 backdrop-blur-xl border-b border-border/60">
-        <button onClick={() => navigate(-1)} className="h-9 w-9 rounded-full flex items-center justify-center hover:bg-card"><ArrowLeft className="h-5 w-5" /></button>
+        <button onClick={goBack} className="h-9 w-9 rounded-full flex items-center justify-center hover:bg-card"><ArrowLeft className="h-5 w-5" /></button>
         <h1 className="font-display font-semibold">Thread</h1>
       </div>
       {post === undefined && <Skeleton className="h-32 m-4 rounded-2xl" />}

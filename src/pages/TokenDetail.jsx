@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { ArrowLeft, Share2 } from "lucide-react";
 import { toast } from "sonner";
@@ -9,10 +9,11 @@ import PriceChart from "@/components/token/PriceChart";
 import CurveProgress from "@/components/token/CurveProgress";
 import ActivityFeed from "@/components/token/ActivityFeed";
 import TradeSheet from "@/components/token/TradeSheet";
+import useGoBack from "@/lib/useGoBack";
 
 export default function TokenDetail() {
   const { id } = useParams();
-  const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [token, setToken] = useState(null);
   const [trades, setTrades] = useState([]);
   const [posts, setPosts] = useState([]);
@@ -53,7 +54,7 @@ export default function TokenDetail() {
     <div className="min-h-screen pb-28">
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-xl">
         <div className="mx-auto max-w-2xl px-2 h-14 flex items-center gap-2">
-          <button onClick={() => navigate(-1)} className="h-10 w-10 rounded-full flex items-center justify-center hover:bg-card"><ArrowLeft className="h-5 w-5" /></button>
+          <button onClick={goBack} className="h-10 w-10 rounded-full flex items-center justify-center hover:bg-card"><ArrowLeft className="h-5 w-5" /></button>
           <div className="flex-1 min-w-0 flex items-baseline gap-2">
             <span className="font-display font-semibold truncate">{token?.name}</span>
             {token && <span className="font-mono text-xs text-primary">${token.ticker}</span>}

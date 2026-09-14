@@ -11,6 +11,7 @@ import { useMe } from "@/lib/MeContext";
 import { TOTAL_SUPPLY, GRADUATION_TARGET } from "@/lib/curve";
 import LaunchPreview from "@/components/launch/LaunchPreview";
 import MediaUploadField from "@/components/media/MediaUploadField";
+import useGoBack from "@/lib/useGoBack";
 
 const empty = { name: "", ticker: "", description: "", image_url: "", website: "", twitter: "", telegram: "" };
 
@@ -18,6 +19,7 @@ export default function Launch() {
   const [form, setForm] = useState(empty);
   const [saving, setSaving] = useState(false);
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { me } = useMe();
   const set = (k) => (e) => setForm({ ...form, [k]: k === "ticker" ? e.target.value.toUpperCase().slice(0, 8) : e.target.value });
 
@@ -40,7 +42,7 @@ export default function Launch() {
     <div className="min-h-screen">
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-xl">
         <div className="mx-auto max-w-5xl px-2 h-14 flex items-center gap-2">
-          <button type="button" onClick={() => navigate(-1)} aria-label="Close" className="h-10 w-10 rounded-full flex items-center justify-center hover:bg-card"><X className="h-5 w-5" /></button>
+          <button type="button" onClick={goBack} aria-label="Close" className="h-10 w-10 rounded-full flex items-center justify-center hover:bg-card"><X className="h-5 w-5" /></button>
           <div>
             <p className="font-mono text-[10px] tracking-[0.3em] text-primary leading-none">NEW LAUNCH</p>
             <h1 className="font-display font-semibold leading-tight">Create your token</h1>
