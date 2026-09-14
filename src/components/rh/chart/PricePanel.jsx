@@ -3,13 +3,18 @@ import { ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } 
 import CandleShape from "@/components/rh/chart/CandleShape";
 import CandleTooltip from "@/components/rh/chart/CandleTooltip";
 
-export default function PricePanel({ rows, active, height = 220, forming = true }) {
+export default function PricePanel({ rows, active, height = 220, forming = true, yZoom = 1, yShift = 0 }) {
   const lows = rows.map((r) => r.low);
   const highs = rows.map((r) => r.high);
   const min = Math.min(...lows);
   const max = Math.max(...highs);
   const pad = (max - min || max * 0.01 || 1) * 0.08;
   const formingIndex = forming ? rows.length - 1 : -1;
+
+  // Auto price window, then the user's vertical zoom/pan applied on top of it.
+  const span = (max + pad - (min - pad)) / (yZoom || 1);
+  const center = (min + max) / 2 + yShift * span;
+  const domain = [center - span / 2, center + span / 2];
 
   return (
     <div className="rounded-2xl border border-border bg-card p-2" style={{ height }}>
@@ -18,7 +23,7 @@ export default function PricePanel({ rows, active, height = 220, forming = true 
           <XAxis dataKey="t" hide />
           <YAxis
             hide
-            domain={[min - pad, max + pad]}
+            domain={domain}
             allowDataOverflow
           />
           {/* `active` is reserved by recharts on tooltip content, so indicators pass under their own name. */}

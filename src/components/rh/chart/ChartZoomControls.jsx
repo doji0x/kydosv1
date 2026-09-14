@@ -23,8 +23,8 @@ export default function ChartZoomControls({ view, barCount }) {
       <Btn onClick={view.zoomIn} disabled={!view.canZoomIn} label="Zoom in">
         <ZoomIn className="w-3.5 h-3.5" />
       </Btn>
-      <Btn onClick={view.reset} disabled={view.live && !view.canZoomIn} label="Reset to live">
-        <Crosshair className={`w-3.5 h-3.5 ${view.live ? "" : "text-primary"}`} />
+      <Btn onClick={view.reset} disabled={view.live && !view.zoomed} label="Reset to live">
+        <Crosshair className={`w-3.5 h-3.5 ${view.live && !view.zoomed ? "" : "text-primary"}`} />
       </Btn>
     </div>
   );

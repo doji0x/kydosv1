@@ -44,8 +44,18 @@ export default function RhLiveChart({ address }) {
       ) : (
         <>
           {/* Drag to pan, pinch or scroll to zoom — the y-axis rescales to what's in view. */}
-          <div ref={view.ref} className="space-y-2 select-none" style={{ touchAction: "pan-y" }}>
-            <PricePanel rows={view.rows} active={active} forming={view.live} />
+          <div
+            ref={view.ref}
+            className={`space-y-2 select-none ${view.dragging ? "cursor-grabbing" : "cursor-grab"}`}
+            style={{ touchAction: "none" }}
+          >
+            <PricePanel
+              rows={view.rows}
+              active={active}
+              forming={view.live}
+              yZoom={view.yZoom}
+              yShift={view.yShift}
+            />
             <OscillatorPanels rows={view.rows} active={active} />
           </div>
           <div className="flex items-center justify-end">
