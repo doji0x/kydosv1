@@ -5,7 +5,9 @@ import ChartPills from "@/components/rh/chart/ChartPills";
 import LiveBadge from "@/components/rh/chart/LiveBadge";
 import PricePanel from "@/components/rh/chart/PricePanel";
 import OscillatorPanels from "@/components/rh/chart/OscillatorPanels";
+import ChartZoomControls from "@/components/rh/chart/ChartZoomControls";
 import useLiveCandles from "@/hooks/useLiveCandles";
+import useChartViewport from "@/hooks/useChartViewport";
 import { INTERVAL_KEYS, isClientInterval } from "@/lib/rollCandles";
 import { buildRows, INDICATORS } from "@/lib/indicators";
 import { fmtUsdPrice } from "@/lib/format";
@@ -16,6 +18,7 @@ export default function RhLiveChart({ address }) {
   const { candles, status, price } = useLiveCandles(address, timeframe);
 
   const rows = useMemo(() => (candles?.length ? buildRows(candles, active) : []), [candles, active]);
+  const view = useChartViewport(rows);
   const toggle = (key) => setActive((a) => ({ ...a, [key]: !a[key] }));
 
   return (
@@ -40,8 +43,14 @@ export default function RhLiveChart({ address }) {
         />
       ) : (
         <>
-          <PricePanel rows={rows} active={active} />
-          <OscillatorPanels rows={rows} active={active} />
+          {/* Drag to pan, pinch or scroll to zoom — the y-axis rescales to what's in view. */}
+          <div ref={view.ref} className="space-y-2 select-none" style={{ touchAction: "pan-y" }}>
+            <PricePanel rows={view.rows} active={active} forming={view.live} />
+            <OscillatorPanels rows={view.rows} active={active} />
+          </div>
+          <div className="flex items-center justify-end">
+            <ChartZoomControls view={view} barCount={view.rows.length} />
+          </div>
         </>
       )}
 

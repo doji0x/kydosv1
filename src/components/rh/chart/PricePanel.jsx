@@ -3,13 +3,13 @@ import { ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } 
 import CandleShape from "@/components/rh/chart/CandleShape";
 import CandleTooltip from "@/components/rh/chart/CandleTooltip";
 
-export default function PricePanel({ rows, active, height = 220 }) {
+export default function PricePanel({ rows, active, height = 220, forming = true }) {
   const lows = rows.map((r) => r.low);
   const highs = rows.map((r) => r.high);
   const min = Math.min(...lows);
   const max = Math.max(...highs);
   const pad = (max - min || max * 0.01 || 1) * 0.08;
-  const formingIndex = rows.length - 1;
+  const formingIndex = forming ? rows.length - 1 : -1;
 
   return (
     <div className="rounded-2xl border border-border bg-card p-2" style={{ height }}>
