@@ -29,30 +29,29 @@ export default async function (req: Request): Promise<Response> {
       const cursor = await getCursor(db, scope);
       const fromBlock = cursor ? cursor.last_block + 1 : Math.max(head - initialLookback, 0);
       if (fromBlock > head) continue;
-      const targetBlock = Math.min(head, fromBlock + MAX_CATCHUP_SPAN - 1);
+      const targetBlock = Math.min(head, fromBlock + maxSpan - 1);
 
       const pools = await db.entities.RhPool.filter({ token_address: token.address });
       const poolSet = new Set(pools.map((p) => p.address));
       const decimals = token.decimals ?? 18;
       const deltas = new Map();
 
-      for (let start = fromBlock; start <= targetBlock; start += MAX_BLOCK_SPAN) {
-        const end = Math.min(start + MAX_BLOCK_SPAN - 1, targetBlock);
-        const logs = await getLogs({
-          address: token.address,
-          topics: [TOPIC.TRANSFER],
-          fromBlock: hex(start),
-          toBlock: hex(end),
-        });
-        for (const log of logs) {
-          const from = addrFromWord(log.topics[1] || "");
-          const to = addrFromWord(log.topics[2] || "");
-          const value = scaled(toBig(words(log.data)[0] || "0x0"), decimals);
-          if (!value) continue;
-          if (from && from !== ZERO) deltas.set(from, (deltas.get(from) || 0) - value);
-          if (to && to !== ZERO) deltas.set(to, (deltas.get(to) || 0) + value);
-        }
+      const sweep = await rangeLogs({
+        address: token.address,
+        topics: [TOPIC.TRANSFER],
+        fromBlock,
+        toBlock: targetBlock,
+      });
+      for (const log of sweep.logs) {
+        if (log.address.toLowerCase() !== token.address) continue;
+        const from = addrFromWord(log.topics[1] || "");
+        const to = addrFromWord(log.topics[2] || "");
+        const value = scaled(toBig(words(log.data)[0] || "0x0"), decimals);
+        if (!value) continue;
+        if (from && from !== ZERO) deltas.set(from, (deltas.get(from) || 0) - value);
+        if (to && to !== ZERO) deltas.set(to, (deltas.get(to) || 0) + value);
       }
+      const scannedTo = sweep.scanned_to;
 
       const wallets = [...deltas.keys()];
       let created = 0;
@@ -72,7 +71,7 @@ export default async function (req: Request): Promise<Response> {
           if (row) {
             await db.entities.RhBalance.update(row.id, {
               balance: Math.max((row.balance || 0) + delta, 0),
-              updated_block: targetBlock,
+              updated_block: scannedTo,
             });
             updated += 1;
           } else {
@@ -82,7 +81,7 @@ export default async function (req: Request): Promise<Response> {
               wallet,
               balance: Math.max(delta, 0),
               is_pool: poolSet.has(wallet),
-              updated_block: targetBlock,
+              updated_block: scannedTo,
             });
           }
         }
@@ -92,15 +91,15 @@ export default async function (req: Request): Promise<Response> {
         }
       }
 
-      await setCursor(db, scope, targetBlock);
+      await setCursor(db, scope, scannedTo);
       summary.push({
         symbol: token.symbol,
         from: fromBlock,
-        to: targetBlock,
+        to: scannedTo,
         wallets_touched: wallets.length,
         created,
         updated,
-        behind: head - targetBlock,
+        behind: head - scannedTo,
       });
     }
 

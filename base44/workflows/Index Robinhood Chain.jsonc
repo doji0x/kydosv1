@@ -1,0 +1,105 @@
+{
+  "name": "Index Robinhood Chain",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "*/5 * * * *",
+      "one_time_date": null,
+      "timezone": "America/Los_Angeles",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "index_robinhood_chain",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "refresh_ref_price": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "refreshRhRefPrice",
+            "args": {}
+          },
+          "then": "index_trades",
+          "x-base44": {
+            "title": "Refresh ETH price",
+            "description": "USD reference"
+          }
+        }
+      },
+      {
+        "index_trades": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "indexRhBlockRange",
+            "args": {
+              "max_span": 3000
+            }
+          },
+          "then": "build_candles",
+          "x-base44": {
+            "title": "Index swaps",
+            "description": "Catch up to head"
+          }
+        }
+      },
+      {
+        "build_candles": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "buildRhCandles",
+            "args": {}
+          },
+          "then": "index_holders",
+          "x-base44": {
+            "title": "Roll candles",
+            "description": "OHLCV bars"
+          }
+        }
+      },
+      {
+        "index_holders": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "indexRhHolders",
+            "args": {
+              "max_span": 3000
+            }
+          },
+          "then": "compute_stats",
+          "x-base44": {
+            "title": "Index holders",
+            "description": "Wallet balances"
+          }
+        }
+      },
+      {
+        "compute_stats": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "computeRhTokenStats",
+            "args": {}
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Publish stats",
+            "description": "Price, volume, liquidity"
+          }
+        }
+      }
+    ]
+  },
+  "description": "Every 5 minutes: catch up swap logs, roll candles, refresh holders and market stats for tracked Robinhood Chain tokens."
+}
