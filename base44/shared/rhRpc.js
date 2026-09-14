@@ -29,8 +29,11 @@ async function post(url, method, params) {
 
 // Serializes calls with a minimum gap so the shared public endpoint doesn't throttle us.
 let gate = Promise.resolve();
+let gapMs = 0; // adaptive: grows when the endpoint throttles, decays as calls succeed
+
 function paced() {
-  const wait = primaryDisabled ? 150 : 0;
+  const floor = primaryDisabled ? 120 : 0;
+  const wait = Math.max(floor, gapMs);
   const turn = gate.then(() => new Promise((r) => setTimeout(r, wait)));
   gate = turn;
   return turn;
@@ -54,15 +57,25 @@ export async function rpc(method, params = []) {
   if (!res) res = await post(PUBLIC_RPC, method, params);
 
   // The public endpoint throttles aggressively — back off and retry before giving up.
-  for (let attempt = 0; attempt < 5 && res.status === 429; attempt++) {
-    await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+  for (let attempt = 0; attempt < 6 && res.status === 429; attempt++) {
+    gapMs = Math.min(Math.max(gapMs * 2, 400), 2500);
+    await new Promise((r) => setTimeout(r, 600 * (attempt + 1)));
     res = await post(primaryDisabled ? PUBLIC_RPC : primary, method, params);
   }
 
+  if (res.ok) gapMs = Math.max(0, gapMs * 0.85);
   if (!res.ok) throw new Error(`RPC ${method} HTTP ${res.status}`);
 
   const json = await res.json();
-  if (json.error) throw new Error(`RPC ${method}: ${json.error.message}`);
+  if (json.error) {
+    // Some providers signal a bad/missing key at the JSON-RPC layer with a 200.
+    const msg = String(json.error.message || "");
+    if (!primaryDisabled && primary !== PUBLIC_RPC && /authenticat|api key|unauthor/i.test(msg)) {
+      primaryDisabled = true;
+      return rpc(method, params);
+    }
+    throw new Error(`RPC ${method}: ${msg}`);
+  }
   return json.result;
 }
 

@@ -1,8 +1,12 @@
-// Discovers the pools trading each tracked token, purely from on-chain data:
-// tallies the busiest Transfer counterparties, then probes each for a DEX pool interface.
+// Discovers the pools trading each tracked token, purely from on-chain data.
+//
+// A single log sweep over recent blocks yields two kinds of candidate: any contract
+// that emitted a DEX Swap event, and the busiest counterparties of a tracked token's
+// Transfer events. Each candidate is then probed with eth_call for a pool interface.
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
-import { blockNumber, getLogs, hex, addrFromWord, usingFallback } from "../../shared/rhRpc.js";
-import { TOPIC, TRACKED_TOKENS, MAX_BLOCK_SPAN, FALLBACK_BLOCK_SPAN } from "../../shared/rhConstants.js";
+import { blockNumber, addrFromWord, usingFallback } from "../../shared/rhRpc.js";
+import { rangeLogs, logsUnavailable } from "../../shared/rhLogs.js";
+import { TOPIC, TRACKED_TOKENS } from "../../shared/rhConstants.js";
 import {
   inspectPool,
   erc20Decimals,
@@ -14,6 +18,7 @@ import { upsertToken } from "../../shared/rhStore.js";
 import { assertEngineCaller } from "../../shared/rhAuth.js";
 
 const ZERO = "0x" + "0".repeat(40);
+const SWAP_TOPICS = [TOPIC.UNIV2_SWAP, TOPIC.UNIV3_SWAP];
 
 export default async function (req: Request): Promise<Response> {
   try {
@@ -23,13 +28,33 @@ export default async function (req: Request): Promise<Response> {
     const db = base44.asServiceRole;
 
     const body = await req.json().catch(() => ({}));
-    const lookback = Math.min(Number(body.lookback_blocks) || 3000, 20000);
-    const maxCandidates = Math.min(Number(body.max_candidates) || 15, 40);
-
+    const maxCandidates = Math.min(Number(body.max_candidates) || 12, 40);
+    const maxReceipts = Math.min(Number(body.max_receipts) || 120, 400);
     const head = await blockNumber();
-    const span = usingFallback() ? FALLBACK_BLOCK_SPAN : MAX_BLOCK_SPAN;
+
+    // eth_getLogs can cover a wide window cheaply; block scanning cannot.
+    const lookback = Number(body.lookback_blocks) || (logsUnavailable() ? 12 : 1200);
+    const fromBlock = Math.max(head - lookback, 0);
+
     const only = body.token ? String(body.token).toLowerCase() : null;
     const seeds = only ? TRACKED_TOKENS.filter((t) => t.address === only) : TRACKED_TOKENS;
+    const tracked = new Set(seeds.map((s) => s.address));
+
+    // One sweep serves every tracked token.
+    const sweep = await rangeLogs({
+      fromBlock,
+      toBlock: head,
+      topics: [...SWAP_TOPICS, TOPIC.TRANSFER],
+      maxReceipts,
+    });
+
+    // Contracts that emitted a Swap event are pools by definition.
+    const swapEmitters = new Set(
+      sweep.logs
+        .filter((l) => SWAP_TOPICS.includes((l.topics?.[0] || "").toLowerCase()))
+        .map((l) => l.address.toLowerCase()),
+    );
+
     const results = [];
 
     for (const seed of seeds) {
@@ -49,33 +74,27 @@ export default async function (req: Request): Promise<Response> {
         tracked: true,
       });
 
-      // Tally Transfer counterparties — pools are by far the busiest.
+      // Tally this token's Transfer counterparties — pools are by far the busiest.
       const counts = new Map();
-      for (let from = Math.max(head - lookback, 0); from <= head; from += span) {
-        const to = Math.min(from + span - 1, head);
-        const logs = await getLogs({
-          address: token,
-          topics: [TOPIC.TRANSFER],
-          fromBlock: hex(from),
-          toBlock: hex(to),
-        });
-        for (const log of logs) {
-          for (const topic of [log.topics[1], log.topics[2]]) {
-            if (!topic) continue;
-            const addr = addrFromWord(topic);
-            if (addr === ZERO) continue;
-            counts.set(addr, (counts.get(addr) || 0) + 1);
-          }
+      for (const log of sweep.logs) {
+        if (log.address.toLowerCase() !== token) continue;
+        if ((log.topics?.[0] || "").toLowerCase() !== TOPIC.TRANSFER) continue;
+        for (const topic of [log.topics[1], log.topics[2]]) {
+          if (!topic) continue;
+          const addr = addrFromWord(topic);
+          if (addr === ZERO || tracked.has(addr)) continue;
+          counts.set(addr, (counts.get(addr) || 0) + 1);
         }
       }
 
       const existing = await db.entities.RhPool.filter({ token_address: token });
       const known = new Set(existing.map((p) => p.address));
-      const candidates = [...counts.entries()]
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, maxCandidates)
-        .map(([addr]) => addr)
-        .filter((addr) => !known.has(addr));
+
+      // Swap emitters first — they are certain pools — then busy counterparties.
+      const ranked = [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([addr]) => addr);
+      const candidates = [...new Set([...ranked.filter((a) => swapEmitters.has(a)), ...ranked])]
+        .filter((addr) => !known.has(addr))
+        .slice(0, maxCandidates);
 
       const discovered = [];
       for (const candidate of candidates) {
@@ -114,13 +133,22 @@ export default async function (req: Request): Promise<Response> {
       results.push({
         token,
         symbol: symbol || seed.symbol,
+        transfers_seen: counts.size,
         candidates_probed: candidates.length,
         discovered,
         pool_count: pools.length,
       });
     }
 
-    return Response.json({ head_block: head, using_public_fallback: usingFallback(), results });
+    return Response.json({
+      head_block: head,
+      scanned_from: fromBlock,
+      scanned_to: sweep.scanned_to,
+      log_source: sweep.source,
+      logs_seen: sweep.logs.length,
+      using_public_fallback: usingFallback(),
+      results,
+    });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
