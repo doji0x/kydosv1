@@ -3,23 +3,21 @@ import React, { useEffect, useRef } from "react";
 import { createChart } from "lightweight-charts";
 
 const toSeries = (bars, multiplier) => {
-  const out = [];
-  let prev = 0;
+  const byTime = new Map();
   for (const b of bars) {
     const time = Math.floor(b.t / 1000);
-    if (time <= prev) continue; // lightweight-charts requires strictly ascending time
-    prev = time;
-    out.push({
+    byTime.set(time, {
       time,
       open: b.open * multiplier,
       high: b.high * multiplier,
       low: b.low * multiplier,
       close: b.close * multiplier,
       volume: b.volume_usd || 0,
+      trades: b.trades || 0,
       up: b.close >= b.open,
     });
   }
-  return out;
+  return [...byTime.values()].sort((a, b) => a.time - b.time);
 };
 
 export default function TvChart({ bars, multiplier = 1, height = 420, onNeedHistory }) {
@@ -108,7 +106,7 @@ export default function TvChart({ bars, multiplier = 1, height = 420, onNeedHist
     const previousRange = timeScale.getVisibleRange();
     const prepended = firstTimeRef.current !== null && data[0]?.time < firstTimeRef.current;
     firstTimeRef.current = data[0]?.time ?? null;
-    candleRef.current.setData(data.map(({ up, volume, ...c }) => c));
+    candleRef.current.setData(data.map(({ up, volume, trades, ...c }) => c));
     volRef.current.setData(
       data.map((c) => ({
         time: c.time,
@@ -121,12 +119,11 @@ export default function TvChart({ bars, multiplier = 1, height = 420, onNeedHist
     // user pans/zooms, rather than locking the viewport to a temporary seeded series.
     if (data.length && (!framedRef.current || !interactedRef.current)) {
       framedRef.current = true;
-      let lastActive = bars.length - 1;
-      while (lastActive > 0 && !bars[lastActive].trades) lastActive -= 1;
-      const lastTime = Math.floor(bars[lastActive].t / 1000);
-      const end = Math.max(0, data.findIndex((c) => c.time === lastTime));
+      let end = data.length - 1;
+      while (end > 0 && !data[end].trades) end -= 1;
       const span = Math.min(end + 1, 160);
       timeScale.setVisibleLogicalRange({ from: end - span + 1, to: end + 4 });
+      chartRef.current.priceScale("right").applyOptions({ autoScale: true });
     } else if (prepended && previousRange) {
       // Prepending older bars must not move the period the user is inspecting.
       timeScale.setVisibleRange(previousRange);
