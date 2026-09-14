@@ -3,8 +3,15 @@ import { base44 } from "@/api/base44Client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Github } from "lucide-react";
 import ReleaseCard from "@/components/releases/ReleaseCard";
+import PullRequestList from "@/components/releases/PullRequestList";
+
+const TABS = [
+  { key: "pulls", label: "Pull requests" },
+  { key: "deploys", label: "Deployments" },
+];
 
 export default function Releases() {
+  const [tab, setTab] = useState("pulls");
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
 
@@ -17,13 +24,24 @@ export default function Releases() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-4">
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-2 mb-3">
         <Github className="h-5 w-5 text-primary" />
-        <h1 className="font-display font-semibold tracking-wide">Deployments</h1>
+        <h1 className="font-display font-semibold tracking-wide">Team dashboard</h1>
         {data?.repo && <span className="text-[11px] font-mono text-muted-foreground">{data.repo}</span>}
       </div>
 
-      {error ? (
+      <div className="flex gap-2 mb-4">
+        {TABS.map((t) => (
+          <button key={t.key} onClick={() => setTab(t.key)}
+            className={`h-9 px-4 rounded-full text-sm transition-all ${tab === t.key ? "bg-primary text-primary-foreground font-semibold" : "bg-card border border-border text-muted-foreground hover:text-foreground"}`}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "pulls" ? (
+        <PullRequestList />
+      ) : error ? (
         <div className="rounded-2xl border border-destructive/40 bg-card p-6 text-sm text-muted-foreground">
           Couldn't load releases: {error}
         </div>
