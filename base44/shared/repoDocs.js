@@ -508,4 +508,9 @@ export const FILES = [
     content: FEATURE_TEMPLATE,
     message: "chore: add feature request template",
   },
+  {
+    path: ".github/workflows/ci.yml",
+    content: CI_WORKFLOW,
+    message: "ci: lint and build on push and pull request",
+  },
 ];
