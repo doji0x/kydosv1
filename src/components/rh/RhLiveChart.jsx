@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
+import ChartHistoryLoader from "@/components/rh/chart/ChartHistoryLoader";
 import RhAwaitingIndex from "@/components/rh/RhAwaitingIndex";
 import ChartPills from "@/components/rh/chart/ChartPills";
 import ChartHeader from "@/components/rh/chart/ChartHeader";
@@ -18,7 +18,7 @@ export default function RhLiveChart({ address, derivedSupply = 0 }) {
   const multiplier = displayMode === "mcap" ? derivedSupply : 1;
   const [timeframe, setTimeframe] = useState("5s");
   const [active, setActive] = useState({ ema: true, bb: false, vwap: false, rsi: false, macd: false });
-  const { candles, status, price, loadOlder, loadingOlder, hasOlder } = useLiveCandles(address, timeframe);
+  const { candles, status, price, progress, loadOlder, loadingOlder, hasOlder } = useLiveCandles(address, timeframe);
 
   const rows = useMemo(() => (candles?.length ? buildRows(candles, active) : []), [candles, active]);
   const view = useChartViewport(rows, { onNeedHistory: loadOlder });
@@ -30,7 +30,7 @@ export default function RhLiveChart({ address, derivedSupply = 0 }) {
         canMarketCap={canMarketCap} status={status} value={price * multiplier} />
 
       {!candles ? (
-        <Skeleton className="h-[220px] rounded-2xl" />
+        <ChartHistoryLoader progress={progress} capped={isClientInterval(timeframe)} />
       ) : rows.length === 0 ? (
         <RhAwaitingIndex
           label={
@@ -61,7 +61,11 @@ export default function RhLiveChart({ address, derivedSupply = 0 }) {
           </div>
           <div className="flex items-center justify-between">
             <span className="font-mono text-[10px] text-muted-foreground">
-              {loadingOlder ? "Loading earlier history…" : hasOlder ? "" : "Start of available history"}
+              {loadingOlder
+                ? `Loading earlier history… ${progress?.trades ? `${progress.trades} swaps` : ""}`
+                : hasOlder
+                  ? "Pan back to load more history"
+                  : "Start of available history"}
             </span>
             <ChartZoomControls view={view} barCount={view.rows.length} />
           </div>

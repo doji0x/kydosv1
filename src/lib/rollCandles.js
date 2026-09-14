@@ -31,7 +31,7 @@ function emptyBar(t, price) {
  * Folds one trade into a bar series, returning a new array (the last bar is the one
  * still forming). Trades landing in an older bucket than the tail are ignored.
  */
-export function applyTrade(bars, trade, ms, maxBars = 240) {
+export function applyTrade(bars, trade, ms, maxBars = 5000) {
   const price = trade.price_usd;
   if (!price || !isFinite(price)) return bars;
   const t = bucketStart(trade.block_time || Date.now(), ms);
@@ -66,13 +66,13 @@ export function applyTrade(bars, trade, ms, maxBars = 240) {
 /**
  * Advances the series to `now` so an idle market still draws flat bars instead of a gap.
  */
-export function fillIdle(bars, ms, now = Date.now(), maxBars = 240) {
+export function fillIdle(bars, ms, now = Date.now(), maxBars = 5000) {
   if (!bars.length) return bars;
   const target = bucketStart(now, ms);
   const tail = bars[bars.length - 1];
   if (target <= tail.t) return bars;
   // Long idle stretches are capped so we never build thousands of flat bars at once.
-  const gaps = Math.min((target - tail.t) / ms, maxBars);
+  const gaps = Math.min((target - tail.t) / ms, 240);
   const next = bars.slice();
   for (let i = 1; i <= gaps; i++) {
     const t = tail.t + i * ms;
