@@ -5,12 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Search, X } from "lucide-react";
 import TokenCard from "@/components/tokens/TokenCard";
+import RhBoard from "@/components/rh/RhBoard";
 import { progress } from "@/lib/curve";
 
 const TABS = [
   { key: "new", label: "New" },
   { key: "trending", label: "Trending" },
   { key: "graduating", label: "Near graduation" },
+  { key: "chain", label: "Robinhood chain" },
 ];
 const PAGE = 8;
 
@@ -70,7 +72,9 @@ export default function Home() {
         </button>
       </div>
 
-      {!list ? (
+      {tab === "chain" ? (
+        <RhBoard />
+      ) : !list ? (
         <div className="columns-1 sm:columns-2 gap-4 mt-2">
           {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-96 rounded-3xl mb-4 break-inside-avoid" />)}
         </div>

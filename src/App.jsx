@@ -11,6 +11,7 @@ import Layout from '@/components/Layout';
 import Home from '@/pages/Home';
 import Launch from '@/pages/Launch';
 import TokenDetail from '@/pages/TokenDetail';
+import RhTokenDetail from '@/pages/RhTokenDetail';
 import Forum from '@/pages/Forum';
 import Thread from '@/pages/Thread';
 import Profile from '@/pages/Profile';
@@ -48,6 +49,7 @@ const AuthenticatedApp = () => {
         <Route path="/" element={<Home />} />
         <Route path="/launch" element={<Launch />} />
         <Route path="/token/:id" element={<TokenDetail />} />
+        <Route path="/rh/:address" element={<RhTokenDetail />} />
         <Route path="/forum" element={<Forum />} />
         <Route path="/post/:id" element={<Thread />} />
         <Route path="/search" element={<Search />} />

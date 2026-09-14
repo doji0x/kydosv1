@@ -133,7 +133,11 @@ export function decodeAbiString(ret) {
     return raw.length ? String.fromCharCode(...raw) : null;
   }
   const len = Number(BigInt(w[1]));
-  const bytes = w.slice(2).join("").slice(2 * 0, len * 2);
+  const bytes = w
+    .slice(2)
+    .map((x) => x.slice(2))
+    .join("")
+    .slice(0, len * 2);
   const chars = (bytes.match(/.{2}/g) || []).map((b) => parseInt(b, 16));
   return String.fromCharCode(...chars.filter((c) => c > 0));
 }
