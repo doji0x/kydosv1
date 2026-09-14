@@ -5,9 +5,9 @@ import { base44 } from "@/api/base44Client";
 export function usePosts(query, key) {
   const [posts, setPosts] = useState(null);
   const load = useCallback(
+    // `query` is intentionally read fresh on each call and keyed by `key`.
     () => base44.entities.Post.filter(query, "-created_date", 200).then(setPosts),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [key]
+    [key] // eslint-disable-line
   );
   useEffect(() => {
     load();

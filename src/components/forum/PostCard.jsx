@@ -2,7 +2,6 @@ import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Heart, MessageCircle, Repeat2 } from "lucide-react";
 import { toast } from "sonner";
-import { base44 } from "@/api/base44Client";
 import { Image } from "@/components/ui/image";
 import Avatar from "@/components/social/Avatar";
 import { isVideo } from "@/components/media/MediaUploadField";
