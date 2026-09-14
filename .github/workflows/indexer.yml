@@ -1,9 +1,9 @@
 name: Index Robinhood Chain
 
 # Keeps Kydos market data fresh without relying on the in-app scheduler.
-# Requires two repository secrets:
-#   KYDOS_CYCLE_URL  - the runRhCycle function endpoint
-#   KYDOS_CRON_SECRET - must match the app's RH_CRON_SECRET
+# Requires one repository secret holding the shared cron secret, under either name:
+#   KYDOS_CRON_SECRET  or  RH_CRON_SECRET  - must match the app's RH_CRON_SECRET
+# Optional: KYDOS_CYCLE_URL overrides the endpoint below (e.g. a custom domain).
 
 on:
   schedule:
@@ -21,13 +21,20 @@ jobs:
     steps:
       - name: Trigger indexing cycle
         run: |
+          cron_secret="${KYDOS_CRON_SECRET:-$RH_CRON_SECRET}"
+          if [ -z "$cron_secret" ]; then
+            echo "::error::No cron secret found. Add a repository secret named KYDOS_CRON_SECRET (or RH_CRON_SECRET) matching the app's RH_CRON_SECRET."
+            exit 1
+          fi
+          echo "POST $KYDOS_CYCLE_URL"
           response=$(curl --silent --show-error --fail-with-body \
             --max-time 300 \
             --request POST "$KYDOS_CYCLE_URL" \
             --header "content-type: application/json" \
-            --header "x-kydos-cron: $KYDOS_CRON_SECRET" \
+            --header "x-kydos-cron: $cron_secret" \
             --data '{}')
           echo "$response"
         env:
-          KYDOS_CYCLE_URL: ${{ secrets.KYDOS_CYCLE_URL }}
+          KYDOS_CYCLE_URL: ${{ secrets.KYDOS_CYCLE_URL || 'https://kydos-launch-pad.base44.app/functions/runRhCycle' }}
           KYDOS_CRON_SECRET: ${{ secrets.KYDOS_CRON_SECRET }}
+          RH_CRON_SECRET: ${{ secrets.RH_CRON_SECRET }}
