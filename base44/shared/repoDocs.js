@@ -487,6 +487,41 @@ jobs:
       - run: npm run build
 `;
 
+export const INDEXER_WORKFLOW = `name: Index Robinhood Chain
+
+# Keeps Kydos market data fresh without relying on the in-app scheduler.
+# Requires two repository secrets:
+#   KYDOS_CYCLE_URL  - the runRhCycle function endpoint
+#   KYDOS_CRON_SECRET - must match the app's RH_CRON_SECRET
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: kydos-indexer
+  cancel-in-progress: false
+
+jobs:
+  index:
+    name: Run one market-data cycle
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger indexing cycle
+        run: |
+          response=$(curl --silent --show-error --fail-with-body \\
+            --max-time 300 \\
+            --request POST "\$KYDOS_CYCLE_URL" \\
+            --header "content-type: application/json" \\
+            --header "x-kydos-cron: \$KYDOS_CRON_SECRET" \\
+            --data '{}')
+          echo "\$response"
+        env:
+          KYDOS_CYCLE_URL: \${{ secrets.KYDOS_CYCLE_URL }}
+          KYDOS_CRON_SECRET: \${{ secrets.KYDOS_CRON_SECRET }}
+`;
+
 export const FILES = [
   { path: "README.md", content: README, message: "docs: expand project README" },
   { path: "LICENSE", content: LICENSE, message: "chore: add MIT license" },
@@ -512,5 +547,10 @@ export const FILES = [
     path: ".github/workflows/ci.yml",
     content: CI_WORKFLOW,
     message: "ci: lint and build on push and pull request",
+  },
+  {
+    path: ".github/workflows/indexer.yml",
+    content: INDEXER_WORKFLOW,
+    message: "ci: run the market-data indexing cycle every five minutes",
   },
 ];
