@@ -1,26 +1,19 @@
-import React from "react";
-import { ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import React, { useMemo } from "react";
+import { ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import CandleShape from "@/components/rh/chart/CandleShape";
 import CandleTooltip from "@/components/rh/chart/CandleTooltip";
-import { fmtUsdPrice } from "@/lib/format";
+import { chartDomain, scaleChartRows, formatChartValue, TRILLION } from "@/components/rh/chart/chartScale";
 
-export default function PricePanel({ rows, active, height = 250, forming = true, yZoom = 1, yShift = 0, timeframe = "5s" }) {
-  const lows = rows.map((r) => r.low);
-  const highs = rows.map((r) => r.high);
-  const min = Math.min(...lows);
-  const max = Math.max(...highs);
-  const pad = (max - min || max * 0.01 || 1) * 0.08;
+export default function PricePanel({ rows, active, height = 250, forming = true, yZoom = 1, yShift = 0, timeframe = "5s", mode = "price", multiplier = 1, zoomDepth = 0 }) {
+  const displayRows = useMemo(() => scaleChartRows(rows, multiplier), [rows, multiplier]);
   const formingIndex = forming ? rows.length - 1 : -1;
-
-  // Auto price window, then the user's vertical zoom/pan applied on top of it.
-  const span = (max + pad - (min - pad)) / (yZoom || 1);
-  const center = (min + max) / 2 + yShift * span;
-  const domain = [center - span / 2, center + span / 2];
+  const domain = chartDomain(displayRows, zoomDepth, yZoom, yShift);
+  const ticks = zoomDepth > 0 ? Array.from({ length: 5 }, (_, i) => domain[0] + (domain[1] - domain[0]) * i / 4) : undefined;
 
   return (
     <div className="rounded-2xl border border-border bg-card p-2" style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={rows} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+        <ComposedChart data={displayRows} margin={{ top: 10, right: 4, bottom: 0, left: 0 }}>
           <XAxis dataKey="t" height={26} minTickGap={28} tickMargin={8}
             tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }}
             stroke="hsl(var(--border))" tickLine={false}
@@ -30,10 +23,11 @@ export default function PricePanel({ rows, active, height = 250, forming = true,
           <YAxis orientation="right" width={82} tickCount={5} tickMargin={6}
             tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }}
             stroke="hsl(var(--border))" tickLine={false}
-            tickFormatter={(value) => value === 0 ? "$0" : fmtUsdPrice(value)}
-            domain={domain} allowDataOverflow />
+            tickFormatter={(value) => formatChartValue(value, mode)}
+            ticks={ticks} domain={domain} allowDataOverflow />
+          {zoomDepth === 1 && domain[1] === TRILLION && <ReferenceLine y={TRILLION} stroke="hsl(var(--primary))" strokeDasharray="4 4" />}
           {/* `active` is reserved by recharts on tooltip content, so indicators pass under their own name. */}
-          <Tooltip content={<CandleTooltip indicators={active} />} cursor={{ stroke: "hsl(var(--border))" }} />
+          <Tooltip content={<CandleTooltip indicators={active} mode={mode} />} cursor={{ stroke: "hsl(var(--border))" }} />
 
           {active.bb && (
             <>

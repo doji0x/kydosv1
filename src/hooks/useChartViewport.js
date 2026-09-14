@@ -162,6 +162,7 @@ export default function useChartViewport(rows) {
     dragging,
     yZoom,
     yShift,
+    zoomDepth: total > DEFAULT_BARS ? clamp((count - DEFAULT_BARS) / (total - DEFAULT_BARS), 0, 1) : 0,
     live: offset === 0,
     zoomed: count !== DEFAULT_BARS || yZoom !== 1 || yShift !== 0,
     canZoomOut: count < total,

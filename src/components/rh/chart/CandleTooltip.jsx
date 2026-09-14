@@ -1,5 +1,5 @@
 import React from "react";
-import { fmtUsdPrice } from "@/lib/format";
+import { formatChartValue } from "@/components/rh/chart/chartScale";
 
 const Row = ({ label, value, tone = "text-foreground" }) => (
   <div className="flex justify-between gap-4">
@@ -8,14 +8,15 @@ const Row = ({ label, value, tone = "text-foreground" }) => (
   </div>
 );
 
-export default function CandleTooltip({ payload, indicators }) {
+export default function CandleTooltip({ payload, indicators, mode = "price" }) {
+  const fmtUsdPrice = (value) => formatChartValue(value, mode);
   const bar = payload?.[0]?.payload;
   if (!bar) return null;
   const up = bar.close >= bar.open;
 
   return (
     <div className="rounded-xl border border-border bg-popover/95 backdrop-blur px-3 py-2 font-mono text-[11px] space-y-0.5">
-      <p className="text-muted-foreground mb-1">{new Date(bar.t).toLocaleTimeString()}</p>
+      <p className="text-muted-foreground mb-1">{new Date(bar.t).toLocaleTimeString()} · {mode === "mcap" ? "Market cap" : "Price"}</p>
       <Row label="O" value={fmtUsdPrice(bar.open)} />
       <Row label="H" value={fmtUsdPrice(bar.high)} />
       <Row label="L" value={fmtUsdPrice(bar.low)} />

@@ -2,17 +2,20 @@ import React, { useMemo, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import RhAwaitingIndex from "@/components/rh/RhAwaitingIndex";
 import ChartPills from "@/components/rh/chart/ChartPills";
-import LiveBadge from "@/components/rh/chart/LiveBadge";
+import ChartHeader from "@/components/rh/chart/ChartHeader";
 import PricePanel from "@/components/rh/chart/PricePanel";
 import OscillatorPanels from "@/components/rh/chart/OscillatorPanels";
 import ChartZoomControls from "@/components/rh/chart/ChartZoomControls";
 import useLiveCandles from "@/hooks/useLiveCandles";
 import useChartViewport from "@/hooks/useChartViewport";
-import { INTERVAL_KEYS, isClientInterval } from "@/lib/rollCandles";
+import { isClientInterval } from "@/lib/rollCandles";
 import { buildRows, INDICATORS } from "@/lib/indicators";
-import { fmtUsdPrice } from "@/lib/format";
 
-export default function RhLiveChart({ address }) {
+export default function RhLiveChart({ address, derivedSupply = 0 }) {
+  const [mode, setMode] = useState("price");
+  const canMarketCap = Number.isFinite(derivedSupply) && derivedSupply > 0;
+  const displayMode = canMarketCap ? mode : "price";
+  const multiplier = displayMode === "mcap" ? derivedSupply : 1;
   const [timeframe, setTimeframe] = useState("5s");
   const [active, setActive] = useState({ ema: true, bb: false, vwap: false, rsi: false, macd: false });
   const { candles, status, price } = useLiveCandles(address, timeframe);
@@ -23,13 +26,8 @@ export default function RhLiveChart({ address }) {
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between gap-2">
-        <ChartPills options={INTERVAL_KEYS} isActive={(k) => k === timeframe} onSelect={setTimeframe} />
-        <div className="flex flex-col items-end shrink-0">
-          <LiveBadge status={status} />
-          {price ? <span className="font-mono text-[11px] text-muted-foreground">{fmtUsdPrice(price)}</span> : null}
-        </div>
-      </div>
+      <ChartHeader timeframe={timeframe} setTimeframe={setTimeframe} mode={displayMode} setMode={setMode}
+        canMarketCap={canMarketCap} status={status} value={price * multiplier} />
 
       {!candles ? (
         <Skeleton className="h-[220px] rounded-2xl" />
@@ -55,6 +53,9 @@ export default function RhLiveChart({ address }) {
               forming={view.live}
               yZoom={view.yZoom}
               yShift={view.yShift}
+              zoomDepth={view.zoomDepth}
+              mode={displayMode}
+              multiplier={multiplier}
               timeframe={timeframe}
             />
             <OscillatorPanels rows={view.rows} active={active} />

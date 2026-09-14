@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,6 +19,11 @@ export default function RhTokenDetail() {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [tab, setTab] = useState("Trades");
+  const derivedSupply = useMemo(() => {
+    const token = data?.token;
+    const ratio = token?.price_usd > 0 ? token.market_cap / token.price_usd : 0;
+    return Number.isFinite(ratio) && ratio > 0 ? ratio : 0;
+  }, [data]);
 
   useEffect(() => {
     fetchRhToken(address)
@@ -73,7 +78,7 @@ export default function RhTokenDetail() {
         <p className={`font-mono text-sm ${pctTone(t.change_24h)}`}>{fmtPct(t.change_24h)} 24h</p>
       </div>
 
-      <RhLiveChart address={t.address} />
+      <RhLiveChart key={t.address} address={t.address} derivedSupply={derivedSupply} />
       <RhStatGrid token={t} />
 
       <div className="flex gap-2">
