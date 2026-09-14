@@ -1,11 +1,10 @@
 {
   "name": "RhToken",
   "type": "object",
-  "description": "Canonical Kydos-owned market stats for a tracked Robinhood Chain token. Written only by the indexer/market-engine backend functions.",
+  "description": "Canonical market stats and publication health for a tracked token.",
   "properties": {
     "address": {
-      "type": "string",
-      "description": "Lowercase contract address"
+      "type": "string"
     },
     "name": {
       "type": "string"
@@ -18,8 +17,7 @@
       "default": 18
     },
     "total_supply": {
-      "type": "number",
-      "description": "Human-scaled total supply"
+      "type": "number"
     },
     "icon_url": {
       "type": "string"
@@ -38,8 +36,7 @@
       "default": true
     },
     "price_quote": {
-      "type": "number",
-      "description": "Price in the pool's quote token"
+      "type": "number"
     },
     "price_usd": {
       "type": "number"
@@ -51,8 +48,7 @@
       "type": "number"
     },
     "volume_24h": {
-      "type": "number",
-      "description": "USD volume over trailing 24h"
+      "type": "number"
     },
     "liquidity_usd": {
       "type": "number"
@@ -91,12 +87,22 @@
       "default": 0
     },
     "stats_updated_at": {
-      "type": "number",
-      "description": "Epoch ms of the last market-engine refresh"
+      "type": "number"
     },
     "pools_synced_at": {
-      "type": "number",
-      "description": "Epoch ms of the last pool discovery run"
+      "type": "number"
+    },
+    "market_status": {
+      "type": "string",
+      "enum": [
+        "OK",
+        "DEGRADED",
+        "UNAVAILABLE"
+      ],
+      "default": "OK"
+    },
+    "market_status_reason": {
+      "type": "string"
     }
   },
   "required": [

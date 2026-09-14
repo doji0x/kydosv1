@@ -2,6 +2,7 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { INTERVALS } from "../../shared/rhConstants.js";
 import { listBounded } from "../../shared/rhStore.js";
+import { isTrusted } from "../../shared/rhAudit.js";
 import { assertApiCaller } from "../../shared/rhApiKey.js";
 
 export default async function (req: Request): Promise<Response> {
@@ -27,13 +28,8 @@ export default async function (req: Request): Promise<Response> {
     const query = { token_address: address, interval };
     if (beforeTime) query.bucket_start = { $lt: beforeTime };
 
-    const rows = await listBounded(
-      db,
-      "RhCandle",
-      query,
-      "-bucket_start",
-      limit
-    );
+    const scanned = await listBounded(db, "RhCandle", query, "-bucket_start", Math.min(limit * 3, 1500));
+    const rows = scanned.filter(isTrusted).slice(0, limit);
 
     return Response.json({
       interval,
@@ -46,9 +42,10 @@ export default async function (req: Request): Promise<Response> {
           close: c.close,
           volume_usd: c.volume_usd || 0,
           trades: c.trades || 0,
+          revision: c.revision || 1,
         }))
         .sort((a, b) => a.t - b.t),
-      next_before_time: rows.length === limit ? rows[rows.length - 1]?.bucket_start || null : null,
+      next_before_time: scanned.length >= limit ? scanned[scanned.length - 1]?.bucket_start || null : null,
       source: "kydos-indexer",
     });
   } catch (error) {

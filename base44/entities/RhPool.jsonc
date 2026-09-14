@@ -1,15 +1,13 @@
 {
   "name": "RhPool",
   "type": "object",
-  "description": "A liquidity pool trading a tracked Robinhood Chain token, discovered on-chain.",
+  "description": "A discovered liquidity pool with canonical trust controls.",
   "properties": {
     "address": {
-      "type": "string",
-      "description": "Lowercase pool address"
+      "type": "string"
     },
     "token_address": {
-      "type": "string",
-      "description": "The tracked token this pool trades"
+      "type": "string"
     },
     "venue": {
       "type": "string",
@@ -17,8 +15,7 @@
         "uniswap_v2",
         "uniswap_v3",
         "rialto"
-      ],
-      "description": "Which adapter parses this pool's events"
+      ]
     },
     "token0": {
       "type": "string"
@@ -27,8 +24,7 @@
       "type": "string"
     },
     "base_is_token0": {
-      "type": "boolean",
-      "description": "True when the tracked token is token0"
+      "type": "boolean"
     },
     "quote_address": {
       "type": "string"
@@ -45,8 +41,7 @@
       "default": 18
     },
     "fee": {
-      "type": "number",
-      "description": "Fee tier in hundredths of a bip (Uniswap V3)"
+      "type": "number"
     },
     "reserve_base": {
       "type": "number"
@@ -63,6 +58,21 @@
     },
     "discovered_at": {
       "type": "number"
+    },
+    "trust_status": {
+      "type": "string",
+      "enum": [
+        "TRUSTED",
+        "PROBATION",
+        "SUSPENDED"
+      ],
+      "default": "TRUSTED"
+    },
+    "suspended_until": {
+      "type": "number"
+    },
+    "suspension_reason": {
+      "type": "string"
     }
   },
   "required": [

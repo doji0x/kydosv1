@@ -1,6 +1,7 @@
 // Read API: recent normalized trades for a tracked token.
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { listBounded } from "../../shared/rhStore.js";
+import { isTrusted } from "../../shared/rhAudit.js";
 import { assertApiCaller } from "../../shared/rhApiKey.js";
 import { tradeShape } from "../../shared/rhShape.js";
 import { blockNumber } from "../../shared/rhRpc.js";
@@ -39,12 +40,15 @@ export default async function (req: Request): Promise<Response> {
     const beforeBlock = Math.max(0, Math.floor(Number(body.before_block) || 0));
     const query = { token_address: address };
     if (beforeBlock) query.block_number = { $lt: beforeBlock };
-    const trades = await listBounded(db, "RhTrade", query, "-block_number", limit);
-    const oldest = trades[trades.length - 1]?.block_number || 0;
+    const scanned = await listBounded(db, "RhTrade", query, "-block_number", Math.min(limit * 3, 3000));
+    const pools = await db.entities.RhPool.filter({ token_address: address, active: true });
+    const blockedPools = new Set(pools.filter((p) => p.trust_status === "SUSPENDED" || p.trust_status === "PROBATION").map((p) => p.address));
+    const trades = scanned.filter((trade) => isTrusted(trade) && !blockedPools.has(trade.pool)).slice(0, limit);
+    const oldest = scanned[scanned.length - 1]?.block_number || 0;
 
     return Response.json({
       trades: trades.map(tradeShape),
-      next_before_block: trades.length === limit && oldest > 0 ? oldest : null,
+      next_before_block: scanned.length >= limit && oldest > 0 ? oldest : null,
       source: "kydos-indexer",
     });
   } catch (error) {

@@ -4,6 +4,7 @@ import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { isStable } from "../../shared/rhConstants.js";
 import { v2Reserves, erc20BalanceOf } from "../../shared/rhErc20.js";
 import { computeStats } from "../../shared/rhMarket.js";
+import { isTrusted } from "../../shared/rhAudit.js";
 import { canonicalPrice } from "../../shared/rhCanonical.js";
 import { spotPriceQuote } from "../../shared/rhSpot.js";
 import { listBounded, upsertToken, getRefPrice } from "../../shared/rhStore.js";
@@ -52,10 +53,12 @@ export default async function (req: Request): Promise<Response> {
     const out = [];
 
     for (const token of tokens) {
-      const trades = await listBounded(db, "RhTrade", { token_address: token.address }, "-block_time", 3000);
+      const allTrades = await listBounded(db, "RhTrade", { token_address: token.address }, "-block_time", 3000);
+      const allPools = await db.entities.RhPool.filter({ token_address: token.address, active: true });
+      const pools = allPools.filter((pool) => !pool.trust_status || pool.trust_status === "TRUSTED");
+      const trustedPoolAddresses = new Set(pools.map((pool) => pool.address));
+      const trades = allTrades.filter((trade) => isTrusted(trade) && trustedPoolAddresses.has(trade.pool));
       const latestPrice = trades[0]?.price_usd || 0;
-
-      const pools = await db.entities.RhPool.filter({ token_address: token.address, active: true });
 
       // Live pool state gives a price even with no indexed swaps yet. Every pool that
       // quotes in a valued asset contributes a candidate price.

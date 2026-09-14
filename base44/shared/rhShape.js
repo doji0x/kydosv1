@@ -28,6 +28,8 @@ export const tokenShape = (t) => ({
   pool_count: t.pool_count || 0,
   last_indexed_block: t.last_indexed_block || 0,
   stats_updated_at: t.stats_updated_at || null,
+  market_status: t.market_status || "OK",
+  market_status_reason: t.market_status_reason || null,
 });
 
 export const poolShape = (p) => ({

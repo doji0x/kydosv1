@@ -1,11 +1,11 @@
 {
   "name": "RhCandle",
   "type": "object",
-  "description": "OHLCV bar for a tracked token at one interval, rolled up from RhTrade records.",
+  "description": "OHLCV bar rolled up from trusted RhTrade records.",
   "properties": {
     "uid": {
       "type": "string",
-      "description": "Dedupe key: <token>-<interval>-<bucket_start>"
+      "description": "<token>-<interval>-<bucket_start>"
     },
     "token_address": {
       "type": "string"
@@ -21,8 +21,7 @@
       ]
     },
     "bucket_start": {
-      "type": "number",
-      "description": "Epoch ms of the bar's opening boundary"
+      "type": "number"
     },
     "open": {
       "type": "number"
@@ -43,6 +42,24 @@
     "trades": {
       "type": "number",
       "default": 0
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "VERIFIED",
+        "SUSPECT",
+        "QUARANTINED",
+        "REPAIRED",
+        "INVALID"
+      ],
+      "default": "VERIFIED"
+    },
+    "revision": {
+      "type": "number",
+      "default": 1
+    },
+    "verification_method": {
+      "type": "string"
     }
   },
   "required": [

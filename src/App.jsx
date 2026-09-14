@@ -18,6 +18,7 @@ import Profile from '@/pages/Profile';
 import Search from '@/pages/Search';
 import Notifications from '@/pages/Notifications';
 import Releases from '@/pages/Releases';
+import MarketAudits from '@/pages/MarketAudits';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -56,6 +57,7 @@ const AuthenticatedApp = () => {
         <Route path="/search" element={<Search />} />
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/releases" element={<Releases />} />
+        <Route path="/market-audits" element={<MarketAudits />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/profile/:userId" element={<Profile />} />
       </Route>

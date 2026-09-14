@@ -1,7 +1,7 @@
 {
   "name": "RhTrade",
   "type": "object",
-  "description": "A normalized swap on Robinhood Chain, parsed from on-chain logs by a venue adapter, or a Kydos bonding-curve fill.",
+  "description": "A normalized swap on Robinhood Chain with canonical verification status.",
   "properties": {
     "uid": {
       "type": "string",
@@ -40,16 +40,13 @@
       ]
     },
     "token_amount": {
-      "type": "number",
-      "description": "Human-scaled tracked-token amount"
+      "type": "number"
     },
     "quote_amount": {
-      "type": "number",
-      "description": "Human-scaled quote-token amount"
+      "type": "number"
     },
     "price_quote": {
-      "type": "number",
-      "description": "Quote per token for this fill"
+      "type": "number"
     },
     "price_usd": {
       "type": "number"
@@ -69,6 +66,26 @@
     },
     "log_index": {
       "type": "number"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "VERIFIED",
+        "SUSPECT",
+        "QUARANTINED",
+        "REPAIRED",
+        "INVALID"
+      ],
+      "default": "VERIFIED"
+    },
+    "repair_of": {
+      "type": "string"
+    },
+    "repair_reason": {
+      "type": "string"
+    },
+    "verification_method": {
+      "type": "string"
     }
   },
   "required": [

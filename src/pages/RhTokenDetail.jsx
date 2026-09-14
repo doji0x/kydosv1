@@ -75,8 +75,13 @@ export default function RhTokenDetail() {
       </div>
 
       <div>
-        <p className="font-display text-3xl font-bold">{fmtUsdPrice(t.price_usd)}</p>
-        <p className={`font-mono text-sm ${pctTone(t.change_24h)}`}>{fmtPct(t.change_24h)} 24h</p>
+        <div className="flex items-center gap-2">
+          <p className="font-display text-3xl font-bold">{t.market_status === "UNAVAILABLE" ? "Unavailable" : fmtUsdPrice(t.price_usd)}</p>
+          {t.market_status && t.market_status !== "OK" && <span className="rounded-full border border-border bg-muted px-2 py-1 font-mono text-[10px] text-muted-foreground">{t.market_status}</span>}
+        </div>
+        {t.market_status === "UNAVAILABLE"
+          ? <p className="text-sm text-muted-foreground">{t.market_status_reason || "Insufficient trusted data"}</p>
+          : <p className={`font-mono text-sm ${pctTone(t.change_24h)}`}>{fmtPct(t.change_24h)} 24h</p>}
       </div>
 
       <RhLiveChart key={t.address} address={t.address} derivedSupply={derivedSupply} />

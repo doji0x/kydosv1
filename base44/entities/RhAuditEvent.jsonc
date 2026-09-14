@@ -1,0 +1,126 @@
+{
+  "name": "RhAuditEvent",
+  "type": "object",
+  "description": "Immutable provenance for deterministic and model-assisted market-data review.",
+  "properties": {
+    "uid": {
+      "type": "string"
+    },
+    "scope": {
+      "type": "string",
+      "enum": [
+        "trade",
+        "candle",
+        "pool",
+        "market"
+      ]
+    },
+    "target": {
+      "type": "string"
+    },
+    "token_address": {
+      "type": "string"
+    },
+    "source_address": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "OPEN",
+        "IGNORED",
+        "QUARANTINED",
+        "REPAIRED",
+        "INVALID",
+        "ESCALATED"
+      ]
+    },
+    "verification_method": {
+      "type": "string",
+      "enum": [
+        "deterministic",
+        "gpt-4o-mini",
+        "gpt-4o"
+      ]
+    },
+    "anomaly_reason": {
+      "type": "string"
+    },
+    "original_value": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "corrected_value": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "repair_source": {
+      "type": "string"
+    },
+    "model_confidence": {
+      "type": "number"
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "SEV-1",
+        "SEV-2",
+        "SEV-3",
+        "SEV-4",
+        "SEV-5"
+      ]
+    },
+    "recommended_action": {
+      "type": "string",
+      "enum": [
+        "IGNORE",
+        "QUARANTINE",
+        "REFETCH",
+        "REBUILD",
+        "EXCLUDE_SOURCE"
+      ]
+    },
+    "model_reason": {
+      "type": "string"
+    },
+    "affected_from": {
+      "type": "number"
+    },
+    "affected_to": {
+      "type": "number"
+    },
+    "audited_at": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "uid",
+    "scope",
+    "target",
+    "status",
+    "severity",
+    "audited_at"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -7,6 +7,7 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { INTERVALS } from "../../shared/rhConstants.js";
 import { rollCandles } from "../../shared/rhMarket.js";
+import { isTrusted } from "../../shared/rhAudit.js";
 import { listBounded, upsertByUid } from "../../shared/rhStore.js";
 import { assertEngineCaller } from "../../shared/rhAuth.js";
 
@@ -25,7 +26,9 @@ export default async function (req: Request): Promise<Response> {
     // Bars older than this many per interval are sealed and never rewritten.
     const tailBars = Math.min(Number(body.tail_bars) || 200, 2000);
 
-    const tokens = await db.entities.RhToken.filter({ tracked: true });
+    const tokens = body.token_address
+      ? await db.entities.RhToken.filter({ address: String(body.token_address).toLowerCase() })
+      : await db.entities.RhToken.filter({ tracked: true });
     const summary = [];
 
     for (const token of tokens) {
@@ -38,17 +41,23 @@ export default async function (req: Request): Promise<Response> {
         "-block_time",
         maxTrades
       );
-      if (!trades.length) {
+      const pools = await db.entities.RhPool.filter({ token_address: token.address, active: true });
+      const blockedPools = new Set(pools.filter((p) => p.trust_status === "SUSPENDED" || p.trust_status === "PROBATION").map((p) => p.address));
+      const trustedTrades = trades.filter((trade) => isTrusted(trade) && !blockedPools.has(trade.pool));
+      if (!trustedTrades.length) {
         summary.push({ symbol: token.symbol, trades: 0, bars_written: 0 });
         continue;
       }
 
       let written = 0;
       for (const [interval, ms] of Object.entries(INTERVALS)) {
-        const bars = rollCandles(trades, ms);
+        const bars = rollCandles(trustedTrades, ms);
         // Only the tail of each interval can still change; older bars are already sealed.
         for (const bar of bars.slice(-tailBars)) {
-          await upsertByUid(db, "RhCandle", `${token.address}-${interval}-${bar.bucket_start}`, {
+          const uid = `${token.address}-${interval}-${bar.bucket_start}`;
+          const prior = (await db.entities.RhCandle.filter({ uid }))[0];
+          const changed = prior && ["open", "high", "low", "close", "volume_usd", "trades"].some((key) => prior[key] !== bar[key]);
+          await upsertByUid(db, "RhCandle", uid, {
             token_address: token.address,
             interval,
             bucket_start: bar.bucket_start,
@@ -58,6 +67,9 @@ export default async function (req: Request): Promise<Response> {
             close: bar.close,
             volume_usd: bar.volume_usd,
             trades: bar.trades,
+            status: changed || ["SUSPECT", "QUARANTINED", "INVALID"].includes(prior?.status) ? "REPAIRED" : (prior?.status || "VERIFIED"),
+            revision: changed ? (prior.revision || 1) + 1 : (prior?.revision || 1),
+            verification_method: "deterministic",
           });
           written += 1;
         }
@@ -65,8 +77,8 @@ export default async function (req: Request): Promise<Response> {
 
       summary.push({
         symbol: token.symbol,
-        trades: trades.length,
-        oldest_trade: trades[trades.length - 1]?.block_time || null,
+        trades: trustedTrades.length,
+        oldest_trade: trustedTrades[trustedTrades.length - 1]?.block_time || null,
         bars_written: written,
       });
     }

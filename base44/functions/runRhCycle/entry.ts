@@ -41,6 +41,13 @@ export default async function (req: Request): Promise<Response> {
         results.push({ step: step.name, ok: false, ms: Date.now() - t0, error: error.message });
       }
     }
+    const auditStarted = Date.now();
+    try {
+      const audit = await base44.asServiceRole.functions.invoke("runRhAudit", { max_reviews: 3, secret: expected });
+      results.push({ step: "runRhAudit", ok: true, ms: Date.now() - auditStarted, data: audit?.data ?? null });
+    } catch (error) {
+      results.push({ step: "runRhAudit", ok: false, ms: Date.now() - auditStarted, error: error.message });
+    }
 
     return Response.json({
       ok: results.every((r) => r.ok),
