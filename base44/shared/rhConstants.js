@@ -38,6 +38,7 @@ export const TRACKED_TOKENS = [
   { address: "0x1cdb289befdfac8af945a288bcdccc382cb34d32", symbol: "XL", name: "X Link" },
 ];
 
+export const LOG_SPAN = 10; // max block range per eth_getLogs call (Alchemy free tier)
 export const MAX_BLOCK_SPAN = 500; // per eth_getLogs call (dedicated provider)
 export const FALLBACK_BLOCK_SPAN = 100; // per call on the throttled public endpoint
 export const MAX_CATCHUP_SPAN = 5000; // per indexer cycle

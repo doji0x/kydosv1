@@ -5,6 +5,7 @@
 // blocks plus their transaction receipts — both of which the endpoint does allow.
 // Callers get the same log shape either way, plus block timestamps for free.
 import { rpc, hex, toNum, getLogs } from "./rhRpc.js";
+import { LOG_SPAN } from "./rhConstants.js";
 
 let logsBanned = false;
 export const logsUnavailable = () => logsBanned;
@@ -65,17 +66,20 @@ export async function rangeLogs({
   const topicSet = topics?.length ? new Set(topics.map((t) => t.toLowerCase())) : null;
 
   if (!logsBanned) {
-    const filter = { fromBlock: hex(fromBlock), toBlock: hex(toBlock) };
-    if (addresses?.length === 1) filter.address = addresses[0];
-    if (topics?.length === 1) filter.topics = [topics[0]];
+    // Providers cap the range per eth_getLogs call, so walk the window in chunks.
+    const collected = [];
+    let cursor = fromBlock;
     try {
-      const raw = await getLogs(filter);
-      return {
-        logs: raw.filter((log) => matches(log, addrSet, topicSet)),
-        times: {},
-        source: "eth_getLogs",
-        scanned_to: toBlock,
-      };
+      while (cursor <= toBlock) {
+        const chunkTo = Math.min(cursor + LOG_SPAN - 1, toBlock);
+        const filter = { fromBlock: hex(cursor), toBlock: hex(chunkTo) };
+        if (addresses?.length) filter.address = addresses.length === 1 ? addresses[0] : addresses;
+        if (topics?.length) filter.topics = [topics.length === 1 ? topics[0] : topics];
+        const raw = await getLogs(filter);
+        for (const log of raw) if (matches(log, addrSet, topicSet)) collected.push(log);
+        cursor = chunkTo + 1;
+      }
+      return { logs: collected, times: {}, source: "eth_getLogs", scanned_to: toBlock };
     } catch {
       // Endpoint won't serve logs to us — switch to scanning for the rest of this isolate.
       logsBanned = true;

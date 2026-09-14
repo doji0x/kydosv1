@@ -1,8 +1,9 @@
 // Holder index: walks Transfer logs since its cursor and accumulates per-wallet balances
 // into RhBalance, so holder counts and top holders come from Kydos-owned data.
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
-import { blockNumber, getLogs, hex, toNum, toBig, words, addrFromWord, scaled } from "../../shared/rhRpc.js";
-import { TOPIC, MAX_BLOCK_SPAN, MAX_CATCHUP_SPAN } from "../../shared/rhConstants.js";
+import { blockNumber, toBig, words, addrFromWord, scaled } from "../../shared/rhRpc.js";
+import { rangeLogs } from "../../shared/rhLogs.js";
+import { TOPIC } from "../../shared/rhConstants.js";
 import { getCursor, setCursor } from "../../shared/rhStore.js";
 import { assertEngineCaller } from "../../shared/rhAuth.js";
 
@@ -16,7 +17,8 @@ export default async function (req: Request): Promise<Response> {
     const db = base44.asServiceRole;
 
     const body = await req.json().catch(() => ({}));
-    const initialLookback = Math.min(Number(body.initial_lookback) || 1500, 20000);
+    const initialLookback = Math.min(Number(body.initial_lookback) || 300, 20000);
+    const maxSpan = Math.min(Number(body.max_span) || 400, 3000);
 
     const head = await blockNumber();
     const tokens = await db.entities.RhToken.filter({ tracked: true });

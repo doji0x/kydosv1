@@ -4,11 +4,19 @@ import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { isStable } from "../../shared/rhConstants.js";
 import { v2Reserves, erc20BalanceOf } from "../../shared/rhErc20.js";
 import { computeStats } from "../../shared/rhMarket.js";
+import { spotPriceQuote } from "../../shared/rhSpot.js";
 import { listBounded, upsertToken, getRefPrice } from "../../shared/rhStore.js";
 import { assertEngineCaller } from "../../shared/rhAuth.js";
 
+// USD value of one quote token. Stables are 1:1, ETH uses the reference price, and
+// any other quote asset (a memecoin-paired pool) is left unvalued rather than guessed.
+function quoteUsdValue(symbol, ethUsd) {
+  if (isStable(symbol)) return 1;
+  return /^(WETH|ETH)$/i.test(symbol || "") ? ethUsd : 0;
+}
+
 async function poolLiquidityUsd(pool, ethUsd, tokenPriceUsd) {
-  const quoteUsd = isStable(pool.quote_symbol) ? 1 : ethUsd;
+  const quoteUsd = quoteUsdValue(pool.quote_symbol, ethUsd);
   let reserveBase = null;
   let reserveQuote = null;
 
@@ -47,9 +55,29 @@ export default async function (req: Request): Promise<Response> {
       const latestPrice = trades[0]?.price_usd || 0;
 
       const pools = await db.entities.RhPool.filter({ token_address: token.address, active: true });
+
+      // Live pool state gives a price even with no indexed swaps yet. The deepest
+      // pool wins, measured by its quote-side reserve in USD.
+      let spotQuote = 0;
+      let spotUsd = 0;
+      let spotDepth = -1;
+      for (const pool of pools) {
+        const price = await spotPriceQuote(pool).catch(() => null);
+        if (!price || !isFinite(price) || price <= 0) continue;
+        const quoteUsd = quoteUsdValue(pool.quote_symbol, ethUsd);
+        if (!quoteUsd) continue;
+        const depth = (pool.reserve_quote || 0) * quoteUsd;
+        if (depth > spotDepth) {
+          spotDepth = depth;
+          spotQuote = price;
+          spotUsd = price * quoteUsd;
+        }
+      }
+
+      const priceUsdForLiquidity = latestPrice || spotUsd;
       let liquidity = 0;
       for (const pool of pools) {
-        const info = await poolLiquidityUsd(pool, ethUsd, latestPrice);
+        const info = await poolLiquidityUsd(pool, ethUsd, priceUsdForLiquidity);
         liquidity += info.liquidity;
         await db.entities.RhPool.update(pool.id, {
           reserve_base: info.reserveBase,
@@ -66,6 +94,14 @@ export default async function (req: Request): Promise<Response> {
         liquidityUsd: liquidity,
         refPriceUsd: ethUsd,
       });
+
+      // No swaps indexed for this token yet — publish the live pool price instead.
+      if (!stats.price_usd && spotUsd) {
+        stats.price_usd = spotUsd;
+        stats.price_quote = spotQuote;
+        stats.fdv = token.total_supply ? spotUsd * token.total_supply : 0;
+        stats.market_cap = stats.fdv;
+      }
 
       await upsertToken(db, token.address, {
         price_usd: stats.price_usd,
