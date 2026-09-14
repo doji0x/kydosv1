@@ -44,7 +44,16 @@ export default async function (req: Request): Promise<Response> {
 
     const body = await req.json().catch(() => ({}));
     if (body.mode === "history") {
-      return Response.json(await backfillRhHistory(db, Number(body.page_size) || 50, String(body.token || "")));
+      const pages = Math.min(Math.max(Number(body.pages) || 1, 1), 25);
+      const runs = [];
+      for (let i = 0; i < pages; i++) {
+        const run = await backfillRhHistory(db, Number(body.page_size) || 50, String(body.token || ""));
+        runs.push(run);
+        if (run.summary.length && run.summary.every((item) => item.complete)) break;
+      }
+      return Response.json({ source: "alchemy-indexed-transfers", pages: runs.length,
+        summary: runs[runs.length - 1]?.summary || [],
+        indexed: runs.reduce((sum, run) => sum + run.summary.reduce((n, item) => n + (item.indexed || 0), 0), 0) });
     }
     const initialLookback = Math.min(Number(body.initial_lookback) || 300, 5000);
     const maxSpan = Math.min(Number(body.max_span) || 2000, 2000);
