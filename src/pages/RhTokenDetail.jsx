@@ -4,7 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Image } from "@/components/ui/image";
 import RhStatGrid from "@/components/rh/RhStatGrid";
-import RhCandleChart from "@/components/rh/RhCandleChart";
+import RhLiveChart from "@/components/rh/RhLiveChart";
 import RhTradeList from "@/components/rh/RhTradeList";
 import RhHolderList from "@/components/rh/RhHolderList";
 import { fetchRhToken } from "@/lib/rhApi";
@@ -73,7 +73,7 @@ export default function RhTokenDetail() {
         <p className={`font-mono text-sm ${pctTone(t.change_24h)}`}>{fmtPct(t.change_24h)} 24h</p>
       </div>
 
-      <RhCandleChart address={t.address} />
+      <RhLiveChart address={t.address} />
       <RhStatGrid token={t} />
 
       <div className="flex gap-2">
