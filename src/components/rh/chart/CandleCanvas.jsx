@@ -7,7 +7,7 @@ import { clamp, makeScales } from "@/lib/chart/geometry";
 export default function CandleCanvas({ view, rows, active, mode, multiplier, timeframe, height = 300 }) {
   const canvasRef = useRef(null);
   const [pointer, setPointer] = useState(null);
-  const [axisHover, setAxisHover] = useState(false);
+  const [zone, setZone] = useState("plot");
   const { width, first, last, endIndex, barW, yZoom, yShift, live } = view;
 
   const displayRows = useMemo(() => scaleChartRows(rows, multiplier), [rows, multiplier]);
@@ -32,15 +32,18 @@ export default function CandleCanvas({ view, rows, active, mode, multiplier, tim
   const onMove = (e) => {
     const r = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - r.left;
-    setAxisHover(x >= scales.plotW);
-    setPointer(x < scales.plotW ? { x, y: e.clientY - r.top } : null);
+    const y = e.clientY - r.top;
+    setZone(x >= scales.plotW ? "y" : y >= scales.plotH ? "x" : "plot");
+    setPointer(x < scales.plotW && y < scales.plotH ? { x, y } : null);
   };
+
+  const cursor = zone === "y" ? "cursor-ns-resize" : zone === "x" ? "cursor-ew-resize" : "";
 
   return (
     <div className="relative rounded-2xl border border-border bg-card overflow-hidden" style={{ height }}>
-      <canvas ref={canvasRef} className={`font-mono block ${axisHover ? "cursor-ns-resize" : ""}`}
+      <canvas ref={canvasRef} className={`font-mono block ${cursor}`}
         style={{ width: "100%", height }}
-        onPointerMove={onMove} onPointerLeave={() => { setPointer(null); setAxisHover(false); }} />
+        onPointerMove={onMove} onPointerLeave={() => { setPointer(null); setZone("plot"); }} />
       {hoverBar && !view.dragging && (
         <div className="absolute top-2 pointer-events-none" style={hover.x < scales.plotW / 2 ? { left: hover.x + 14 } : { right: width - hover.x + 14 }}>
           <CandleTooltip payload={[{ payload: hoverBar }]} indicators={active} mode={mode} />

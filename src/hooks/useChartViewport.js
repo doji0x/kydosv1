@@ -3,7 +3,7 @@
 // it, or scroll over the axis to stretch/compress it. Panning back past the loaded bars asks
 // for older history. Native listeners are used so gestures can preventDefault.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AXIS_W, RIGHT_PAD_BARS, clamp } from "@/lib/chart/geometry";
+import { AXIS_W, TIME_H, RIGHT_PAD_BARS, clamp } from "@/lib/chart/geometry";
 
 const MIN_BAR_W = 2;
 const MAX_BAR_W = 48;
@@ -66,6 +66,7 @@ export default function useChartViewport(rows, { onNeedHistory } = {}) {
       return { x: e.clientX - r.left, y: e.clientY - r.top, h: r.height };
     };
     const onAxis = (x) => x >= st.current.plotW;
+    const zoneAt = (p) => (p.x >= st.current.plotW ? "y" : p.y >= p.h - TIME_H ? "x" : "plot");
     const drag = { active: null };
     const pinch = { active: null };
 
@@ -94,7 +95,11 @@ export default function useChartViewport(rows, { onNeedHistory } = {}) {
     const onPointerDown = (e) => {
       if (pinch.active || e.button > 0) return;
       const p = local(e);
-      drag.active = { x: e.clientX, y: e.clientY, h: p.h, axis: onAxis(p.x), shift: st.current.shift, yShift: st.current.yShift };
+      drag.active = {
+        x: e.clientX, y: e.clientY, h: p.h, zone: zoneAt(p),
+        shift: st.current.shift, yShift: st.current.yShift,
+        barW: st.current.barW, yZoom: st.current.yZoom,
+      };
       setDragging(true);
     };
     const onPointerMove = (e) => {
@@ -102,10 +107,15 @@ export default function useChartViewport(rows, { onNeedHistory } = {}) {
       if (e.cancelable) e.preventDefault();
       const s = st.current;
       const d = drag.active;
-      // One full drag across the chart height moves the price scale by one full span.
-      setYShift(d.yShift + (e.clientY - d.y) / Math.max(d.h, 1));
-      if (d.axis) return;
-      setShift(clamp(d.shift + (e.clientX - d.x) / s.barW, 0, Math.max(s.total - 1, 0)));
+      const dx = e.clientX - d.x;
+      const dy = e.clientY - d.y;
+      // Price axis: drag up/down to stretch or compress the price scale.
+      if (d.zone === "y") return setYZoom(clamp(d.yZoom * Math.exp(-dy / 180), MIN_Y_ZOOM, MAX_Y_ZOOM));
+      // Time axis: drag left/right to zoom time in or out, holding the right edge.
+      if (d.zone === "x") return setBarW(clamp(d.barW * Math.exp(dx / 180), MIN_BAR_W, MAX_BAR_W));
+      // Plot: pan through history and price together.
+      setYShift(d.yShift + dy / Math.max(d.h, 1));
+      setShift(clamp(d.shift + dx / s.barW, 0, Math.max(s.total - 1, 0)));
     };
     const onPointerUp = () => { drag.active = null; setDragging(false); };
 
