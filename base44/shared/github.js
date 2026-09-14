@@ -1,11 +1,12 @@
 // Shared GitHub API helper for the deployment-release log.
 import { secrets } from "base44:runtime";
 
-const DEFAULT_REPO = "doji0x/Kydos";
+const DEFAULT_REPO = "doji0x/kydosv1";
 
 export function repoSlug() {
   try {
-    return secrets.get("GH_REPO") || DEFAULT_REPO;
+    const configured = secrets.get("GH_REPO");
+    return configured && configured.includes("/") ? configured : DEFAULT_REPO;
   } catch {
     return DEFAULT_REPO;
   }
