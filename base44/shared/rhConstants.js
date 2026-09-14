@@ -51,4 +51,6 @@ export const INTERVALS = {
   "1d": 86_400_000,
 };
 
+export const CHAIN_ID_DEFAULT = 4663;
+
 export const isStable = (symbol) => !!symbol && STABLES.includes(symbol.toUpperCase());

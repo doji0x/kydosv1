@@ -17,3 +17,6 @@ export const fetchRhStream = (address, sinceBlock = 0, windowBlocks = 0) =>
 export const fetchRhStreamBefore = (address, toBlock, windowBlocks = 1000) =>
   call("getRhStream", { address, to_block: toBlock, window_blocks: windowBlocks });
 export const fetchRhHolders = (address, limit = 20) => call("getRhHolders", { address, limit });
+// Write-back: hands a completed client scan to the store so it is indexed once, not per view.
+export const persistRhBackfill = (address, trades, candles) =>
+  call("persistRhBackfill", { address, trades, candles });
