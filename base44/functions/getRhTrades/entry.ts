@@ -35,7 +35,7 @@ export default async function (req: Request): Promise<Response> {
         scanned_from: from, scanned_to: to, head_block: head,
         next_before_block: from > 0 && pools.length ? from : null });
     }
-    const limit = Math.min(Math.max(Number(body.limit) || 50, 1), 200);
+    const limit = Math.min(Math.max(Number(body.limit) || 50, 1), 1000);
 
     const trades = await listBounded(db, "RhTrade", { token_address: address }, "-block_time", limit);
 

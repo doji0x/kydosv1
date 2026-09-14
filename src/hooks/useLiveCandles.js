@@ -17,7 +17,7 @@ import { backfillSwaps } from "@/lib/chart/backfill";
 import { persistScan } from "@/lib/chart/persistBackfill";
 
 const STORED_LIMIT = 500;
-const STORED_TRADES = 400;
+const STORED_TRADES = 1000;
 const SUB_MINUTE_MAX_AGE_MS = 30 * 60 * 1000;
 const HISTORY_BUDGET_MS = 45_000;
 
