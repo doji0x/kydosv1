@@ -22,18 +22,13 @@ export function scaleChartRows(rows, multiplier) {
   });
 }
 
-export function chartDomain(rows, depth, yZoom, yShift) {
+// Fits the visible bars, then applies the manual price-scale zoom/offset from the y-axis drag.
+export function chartDomain(rows, yZoom = 1, yShift = 0) {
   if (!rows.length) return [0, 1];
   const min = Math.min(...rows.map((r) => r.low));
   const max = Math.max(...rows.map((r) => r.high));
   const pad = (max - min || max * 0.01 || 1) * 0.08;
-  const progress = Math.max(0, Math.min(1, depth));
-  const fitTop = Math.min(TRILLION, Math.max(Number.MIN_VALUE, max + pad));
-  // Interpolate in orders of magnitude so early zoom steps remain readable.
-  const top = progress === 1 ? TRILLION : Math.exp(Math.log(fitTop) + progress * (Math.log(TRILLION) - Math.log(fitTop)));
-  const bottom = Math.max(0, min - pad) * (1 - progress);
-  const span = Math.min(TRILLION, (top - bottom) / (yZoom || 1));
-  const center = (bottom + top) / 2 + yShift * span;
-  const low = Math.max(0, Math.min(TRILLION - span, center - span / 2));
-  return [low, low + span];
+  const span = Math.min(TRILLION, (max - min + pad * 2) / (yZoom || 1));
+  const center = (min + max) / 2 + yShift * span;
+  return [center - span / 2, center + span / 2];
 }

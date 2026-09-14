@@ -18,10 +18,10 @@ export default function RhLiveChart({ address, derivedSupply = 0 }) {
   const multiplier = displayMode === "mcap" ? derivedSupply : 1;
   const [timeframe, setTimeframe] = useState("5s");
   const [active, setActive] = useState({ ema: true, bb: false, vwap: false, rsi: false, macd: false });
-  const { candles, status, price } = useLiveCandles(address, timeframe);
+  const { candles, status, price, loadOlder, loadingOlder, hasOlder } = useLiveCandles(address, timeframe);
 
   const rows = useMemo(() => (candles?.length ? buildRows(candles, active) : []), [candles, active]);
-  const view = useChartViewport(rows);
+  const view = useChartViewport(rows, { onNeedHistory: loadOlder });
   const toggle = (key) => setActive((a) => ({ ...a, [key]: !a[key] }));
 
   return (
@@ -57,7 +57,10 @@ export default function RhLiveChart({ address, derivedSupply = 0 }) {
             />
             <OscillatorPanels rows={view.rows} active={active} />
           </div>
-          <div className="flex items-center justify-end">
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[10px] text-muted-foreground">
+              {loadingOlder ? "Loading earlier history…" : hasOlder ? "" : "Start of available history"}
+            </span>
             <ChartZoomControls view={view} barCount={view.rows.length} />
           </div>
         </>

@@ -1,29 +1,28 @@
 // Trading-chart viewport: pixels-per-bar zoom anchored at the cursor, drag/scroll to pan,
-// empty space when zoomed past the data, and — once everything fits — further zoom-out
-// opens the price scale toward $1T (depth 0→1). Native listeners are used so gestures can
-// preventDefault (React's are passive).
+// and a price scale you grab directly — press and hold on the y-axis and drag up/down to move
+// it, or scroll over the axis to stretch/compress it. Panning back past the loaded bars asks
+// for older history. Native listeners are used so gestures can preventDefault.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AXIS_W, RIGHT_PAD_BARS, clamp } from "@/lib/chart/geometry";
 
 const MIN_BAR_W = 2;
 const MAX_BAR_W = 48;
 const DEFAULT_BAR_W = 9;
-const MIN_Y_ZOOM = 0.25;
-const MAX_Y_ZOOM = 8;
-const DEPTH_STEP = 0.2;
+const MIN_Y_ZOOM = 0.05;
+const MAX_Y_ZOOM = 20;
 
-export default function useChartViewport(rows) {
+export default function useChartViewport(rows, { onNeedHistory } = {}) {
   const total = rows.length;
   const [barW, setBarW] = useState(DEFAULT_BAR_W);
   const [shift, setShift] = useState(0); // bars scrolled back from live
-  const [depth, setDepth] = useState(0);
   const [yZoom, setYZoom] = useState(1);
+  const [yShift, setYShift] = useState(0);
   const [width, setWidth] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [el, setEl] = useState(null); // callback ref: the wrapper mounts only once there are rows
   const st = useRef({});
   const plotW = Math.max(width - AXIS_W, 1);
-  st.current = { barW, shift, total, depth, plotW };
+  st.current = { barW, shift, total, plotW, yZoom, yShift };
 
   useEffect(() => {
     if (!el) return;
@@ -41,9 +40,6 @@ export default function useChartViewport(rows) {
   // factor > 1 zooms out. `x` is the plot pixel to hold still.
   const zoomAt = useCallback((factor, x) => {
     const s = st.current;
-    const fitsAll = s.plotW / s.barW >= s.total + RIGHT_PAD_BARS || s.barW <= MIN_BAR_W;
-    if (factor > 1 && fitsAll) return setDepth((d) => clamp(d + DEPTH_STEP, 0, 1));
-    if (factor < 1 && s.depth > 0) return setDepth((d) => clamp(d - DEPTH_STEP, 0, 1));
     const nextW = clamp(s.barW / factor, MIN_BAR_W, MAX_BAR_W);
     if (nextW === s.barW) return;
     const anchor = x ?? s.plotW;
@@ -54,24 +50,31 @@ export default function useChartViewport(rows) {
     setShift(clamp(s.total - 1 + RIGHT_PAD_BARS - nextEnd, 0, Math.max(s.total - 1, 0)));
   }, []);
 
+  const zoomY = useCallback((factor) => setYZoom((z) => clamp(z * factor, MIN_Y_ZOOM, MAX_Y_ZOOM)), []);
+
   const reset = useCallback(() => {
     setBarW(DEFAULT_BAR_W);
     setShift(0);
-    setDepth(0);
     setYZoom(1);
+    setYShift(0);
   }, []);
 
   useEffect(() => {
     if (!el) return;
-    const localX = (clientX) => clientX - el.getBoundingClientRect().left;
+    const local = (e) => {
+      const r = el.getBoundingClientRect();
+      return { x: e.clientX - r.left, y: e.clientY - r.top, h: r.height };
+    };
+    const onAxis = (x) => x >= st.current.plotW;
     const drag = { active: null };
     const pinch = { active: null };
 
     const onWheel = (e) => {
       e.preventDefault();
-      if (e.shiftKey) return setYZoom((z) => clamp(z * (e.deltaY > 0 ? 1 / 1.15 : 1.15), MIN_Y_ZOOM, MAX_Y_ZOOM));
+      const p = local(e);
+      if (onAxis(p.x) || e.shiftKey) return zoomY(e.deltaY > 0 ? 1 / 1.15 : 1.15);
       if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return pan(-e.deltaX / st.current.barW);
-      zoomAt(e.deltaY > 0 ? 1.15 : 1 / 1.15, localX(e.clientX));
+      zoomAt(e.deltaY > 0 ? 1.15 : 1 / 1.15, p.x);
     };
     const onTouchStart = (e) => {
       if (e.touches.length !== 2) return;
@@ -83,20 +86,28 @@ export default function useChartViewport(rows) {
       if (!pinch.active || e.touches.length !== 2) return;
       e.preventDefault();
       const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-      if (d > 0 && pinch.active.d > 0) zoomAt(pinch.active.d / d, localX((e.touches[0].clientX + e.touches[1].clientX) / 2));
+      const r = el.getBoundingClientRect();
+      if (d > 0 && pinch.active.d > 0) zoomAt(pinch.active.d / d, (e.touches[0].clientX + e.touches[1].clientX) / 2 - r.left);
       pinch.active.d = d;
     };
     const endPinch = () => { pinch.active = null; };
     const onPointerDown = (e) => {
       if (pinch.active || e.button > 0) return;
-      drag.active = { x: e.clientX, shift: st.current.shift };
+      const p = local(e);
+      drag.active = { x: e.clientX, y: e.clientY, h: p.h, axis: onAxis(p.x), shift: st.current.shift, yShift: st.current.yShift };
       setDragging(true);
     };
     const onPointerMove = (e) => {
       if (!drag.active || pinch.active) return;
       if (e.cancelable) e.preventDefault();
       const s = st.current;
-      setShift(clamp(drag.active.shift + (e.clientX - drag.active.x) / s.barW, 0, Math.max(s.total - 1, 0)));
+      const d = drag.active;
+      if (d.axis) {
+        // One full drag across the chart height moves the price scale by one full span.
+        setYShift(d.yShift + (e.clientY - d.y) / Math.max(d.h, 1));
+        return;
+      }
+      setShift(clamp(d.shift + (e.clientX - d.x) / s.barW, 0, Math.max(s.total - 1, 0)));
     };
     const onPointerUp = () => { drag.active = null; setDragging(false); };
 
@@ -120,7 +131,7 @@ export default function useChartViewport(rows) {
       window.removeEventListener("pointerup", onPointerUp);
       window.removeEventListener("pointercancel", onPointerUp);
     };
-  }, [el, pan, zoomAt]);
+  }, [el, pan, zoomAt, zoomY]);
 
   const endIndex = total - 1 + RIGHT_PAD_BARS - shift;
   const maxIdx = Math.max(total - 1, 0);
@@ -128,12 +139,17 @@ export default function useChartViewport(rows) {
   const last = clamp(Math.ceil(endIndex), 0, maxIdx);
   const visible = useMemo(() => rows.slice(first, last + 1), [rows, first, last]);
 
+  // Reaching the oldest loaded bar pulls in more history.
+  useEffect(() => {
+    if (total && first <= 1) onNeedHistory?.();
+  }, [first, total, onNeedHistory]);
+
   return {
-    ref: setEl, width, rows: visible, first, last, endIndex, barW, depth, yZoom, dragging,
+    ref: setEl, width, rows: visible, first, last, endIndex, barW, yZoom, yShift, dragging,
     live: shift === 0,
-    zoomed: barW !== DEFAULT_BAR_W || shift !== 0 || depth !== 0 || yZoom !== 1,
-    canZoomOut: depth < 1,
-    canZoomIn: barW < MAX_BAR_W || depth > 0,
+    zoomed: barW !== DEFAULT_BAR_W || shift !== 0 || yZoom !== 1 || yShift !== 0,
+    canZoomOut: barW > MIN_BAR_W,
+    canZoomIn: barW < MAX_BAR_W,
     zoomIn: () => zoomAt(1 / 1.4),
     zoomOut: () => zoomAt(1.4),
     reset,

@@ -13,4 +13,7 @@ export const fetchRhPoolTrades = (address, beforeBlock) => call("getRhTrades", {
 });
 export const fetchRhStream = (address, sinceBlock = 0, windowBlocks = 0) =>
   call("getRhStream", { address, since_block: sinceBlock, window_blocks: windowBlocks });
+// Older history: scans the window ending at `toBlock`.
+export const fetchRhStreamBefore = (address, toBlock, windowBlocks = 1000) =>
+  call("getRhStream", { address, to_block: toBlock, window_blocks: windowBlocks });
 export const fetchRhHolders = (address, limit = 20) => call("getRhHolders", { address, limit });

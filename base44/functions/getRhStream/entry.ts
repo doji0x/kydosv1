@@ -30,6 +30,8 @@ export default async function (req: Request): Promise<Response> {
     }
     const sinceBlock = Math.max(0, Math.floor(Number(body.since_block) || 0));
     const windowBlocks = Math.min(Math.max(Math.floor(Number(body.window_blocks) || 0), 0), MAX_BOOTSTRAP);
+    // Backward paging: scan a window that ENDS at to_block, for pulling older chart history.
+    const toBlock = Math.max(0, Math.floor(Number(body.to_block) || 0));
 
     const [token] = await db.entities.RhToken.filter({ address });
     if (!token) return Response.json({ error: "Token is not tracked" }, { status: 404 });
@@ -41,9 +43,14 @@ export default async function (req: Request): Promise<Response> {
     let scannedFrom = head;
     let scannedTo = head;
     let trades = [];
-    if ((sinceBlock || windowBlocks) && pools.length) {
-      scannedFrom = sinceBlock ? Math.min(sinceBlock, head) + 1 : Math.max(0, head - windowBlocks + 1);
-      scannedTo = sinceBlock ? Math.min(head, scannedFrom + MAX_WINDOW - 1) : head;
+    if ((sinceBlock || windowBlocks || toBlock) && pools.length) {
+      if (toBlock) {
+        scannedTo = Math.min(toBlock, head);
+        scannedFrom = Math.max(0, scannedTo - (windowBlocks || MAX_BOOTSTRAP) + 1);
+      } else {
+        scannedFrom = sinceBlock ? Math.min(sinceBlock, head) + 1 : Math.max(0, head - windowBlocks + 1);
+        scannedTo = sinceBlock ? Math.min(head, scannedFrom + MAX_WINDOW - 1) : head;
+      }
       trades = await readPoolSwaps(pools, scannedFrom, scannedTo);
     }
 

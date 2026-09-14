@@ -7,12 +7,13 @@ import { clamp, makeScales } from "@/lib/chart/geometry";
 export default function CandleCanvas({ view, rows, active, mode, multiplier, timeframe, height = 300 }) {
   const canvasRef = useRef(null);
   const [pointer, setPointer] = useState(null);
-  const { width, first, last, endIndex, barW, depth, yZoom, live } = view;
+  const [axisHover, setAxisHover] = useState(false);
+  const { width, first, last, endIndex, barW, yZoom, yShift, live } = view;
 
   const displayRows = useMemo(() => scaleChartRows(rows, multiplier), [rows, multiplier]);
   const domain = useMemo(
-    () => chartDomain(displayRows.slice(first, last + 1), depth, yZoom, 0),
-    [displayRows, first, last, depth, yZoom]
+    () => chartDomain(displayRows.slice(first, last + 1), yZoom, yShift),
+    [displayRows, first, last, yZoom, yShift]
   );
   const scales = makeScales({ width, height, endIndex, barW, domain });
   const hover = pointer && displayRows.length
@@ -31,13 +32,15 @@ export default function CandleCanvas({ view, rows, active, mode, multiplier, tim
   const onMove = (e) => {
     const r = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - r.left;
+    setAxisHover(x >= scales.plotW);
     setPointer(x < scales.plotW ? { x, y: e.clientY - r.top } : null);
   };
 
   return (
     <div className="relative rounded-2xl border border-border bg-card overflow-hidden" style={{ height }}>
-      <canvas ref={canvasRef} className="font-mono block" style={{ width: "100%", height }}
-        onPointerMove={onMove} onPointerLeave={() => setPointer(null)} />
+      <canvas ref={canvasRef} className={`font-mono block ${axisHover ? "cursor-ns-resize" : ""}`}
+        style={{ width: "100%", height }}
+        onPointerMove={onMove} onPointerLeave={() => { setPointer(null); setAxisHover(false); }} />
       {hoverBar && !view.dragging && (
         <div className="absolute top-2 pointer-events-none" style={hover.x < scales.plotW / 2 ? { left: hover.x + 14 } : { right: width - hover.x + 14 }}>
           <CandleTooltip payload={[{ payload: hoverBar }]} indicators={active} mode={mode} />
