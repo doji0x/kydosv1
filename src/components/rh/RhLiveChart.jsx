@@ -33,7 +33,7 @@ export default function RhLiveChart({ address, derivedSupply = 0 }) {
         />
       ) : (
         <>
-          <TvChart bars={candles} multiplier={multiplier} onNeedHistory={loadOlder} />
+          <TvChart key={timeframe} bars={candles} multiplier={multiplier} onNeedHistory={loadOlder} />
           <span className="font-mono text-[10px] text-muted-foreground">
             {loadingOlder
               ? `Loading earlier history… ${progress?.trades ? `${progress.trades} swaps` : ""}`

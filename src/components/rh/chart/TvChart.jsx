@@ -27,6 +27,7 @@ export default function TvChart({ bars, multiplier = 1, height = 420, onNeedHist
   const chartRef = useRef(null);
   const candleRef = useRef(null);
   const volRef = useRef(null);
+  const framedRef = useRef(false);
   const historyRef = useRef(onNeedHistory);
   historyRef.current = onNeedHistory;
 
@@ -45,7 +46,15 @@ export default function TvChart({ bars, multiplier = 1, height = 420, onNeedHist
         horzLines: { color: "rgba(250, 204, 21, 0.05)" },
       },
       rightPriceScale: { borderColor: "#212121", scaleMargins: { top: 0.08, bottom: 0.26 } },
-      timeScale: { borderColor: "#212121", timeVisible: true, secondsVisible: true, rightOffset: 4 },
+      timeScale: {
+        borderColor: "#212121",
+        timeVisible: true,
+        secondsVisible: true,
+        rightOffset: 4,
+        // Bars keep a readable width instead of collapsing into hairlines.
+        barSpacing: 8,
+        minBarSpacing: 2,
+      },
       crosshair: {
         mode: 0,
         vertLine: { color: "#6b6b6b", width: 1, style: 3, labelBackgroundColor: "#1a1a1a" },
@@ -101,6 +110,16 @@ export default function TvChart({ bars, multiplier = 1, height = 420, onNeedHist
         color: c.up ? "rgba(34,197,94,0.35)" : "rgba(239,68,68,0.35)",
       }))
     );
+
+    // Open on the recent action at full candle width rather than squeezing the whole history in.
+    if (!framedRef.current && data.length) {
+      framedRef.current = true;
+      const span = Math.min(data.length, 160);
+      chartRef.current.timeScale().setVisibleLogicalRange({
+        from: data.length - span,
+        to: data.length + 4,
+      });
+    }
   }, [bars, multiplier]);
 
   return (
