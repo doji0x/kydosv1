@@ -2,6 +2,7 @@
 // bottom, right-hand price gutter, crosshair with axis tags, and an in-plot OHLC legend.
 import { formatChartValue } from "@/components/rh/chart/chartScale";
 import { AXIS_W, TIME_H, VOL_FRAC, clamp, fmtTime, makeScales, niceTicks, palette } from "@/lib/chart/geometry";
+import { drawCandles } from "@/lib/chart/drawCandles";
 
 const LEGEND_H = 18;
 
@@ -73,30 +74,6 @@ function drawVolume(ctx, s, rows, first, last, barW, colors) {
     ctx.fillRect(Math.round(s.x(i)) - bodyW / 2, s.plotH - bh, bodyW, bh);
   }
   ctx.globalAlpha = 1;
-}
-
-function drawCandles(ctx, s, rows, first, last, barW, colors, formingIndex) {
-  const bodyW = Math.max(Math.floor(barW * 0.68), 1);
-  ctx.lineWidth = 1;
-  for (let i = first; i <= last; i++) {
-    const r = rows[i];
-    const c = r.close >= r.open ? colors.up : colors.down;
-    const cx = Math.round(s.x(i));
-    ctx.strokeStyle = c;
-    ctx.fillStyle = c;
-    ctx.beginPath();
-    ctx.moveTo(cx + 0.5, s.y(r.high));
-    ctx.lineTo(cx + 0.5, s.y(r.low));
-    ctx.stroke();
-    const top = s.y(Math.max(r.open, r.close));
-    const bot = s.y(Math.min(r.open, r.close));
-    ctx.fillRect(cx - bodyW / 2, top, bodyW, Math.max(bot - top, 1));
-    if (i === formingIndex) {
-      ctx.beginPath();
-      ctx.arc(cx, s.y(r.close), 2.5, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
 }
 
 function drawLine(ctx, s, rows, first, last, key, color, dash = []) {
@@ -196,7 +173,7 @@ function drawLegend(ctx, s, row, colors, mode) {
   }
 }
 
-export function renderChart(canvas, { width, height, rows, first, last, endIndex, barW, domain, active, mode, timeframe, formingIndex, hover }) {
+export function renderChart(canvas, { width, height, rows, first, last, endIndex, barW, domain, active, mode, timeframe, hover }) {
   const dpr = window.devicePixelRatio || 1;
   canvas.width = width * dpr;
   canvas.height = height * dpr;
@@ -212,7 +189,7 @@ export function renderChart(canvas, { width, height, rows, first, last, endIndex
     drawTimeAxis(ctx, s, rows, first, last, barW, colors, timeframe);
     drawVolume(ctx, s, rows, first, last, barW, colors);
     if (active.bb) drawBand(ctx, s, rows, first, last, colors);
-    drawCandles(ctx, s, rows, first, last, barW, colors, formingIndex);
+    drawCandles(ctx, s, rows, first, last, barW, colors);
     if (active.ema) {
       drawLine(ctx, s, rows, first, last, "ema9", colors.primary);
       drawLine(ctx, s, rows, first, last, "ema21", colors.c5);
