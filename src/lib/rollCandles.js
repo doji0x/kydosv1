@@ -37,7 +37,9 @@ function emptyBar(t, price) {
  */
 export function applyTrade(bars, trade, ms, maxBars = 5000) {
   const price = trade.price_usd;
-  if (!price || !isFinite(price)) return bars;
+  const volume = Number(trade.volume_usd);
+  // Ignore sub-cent dust fills: their ratio is not a meaningful executable market price.
+  if (!price || !isFinite(price) || !isFinite(volume) || volume < 0.01) return bars;
   const t = bucketStart(tradeTime(trade) || Date.now(), ms);
   const next = bars.slice();
   const tail = next[next.length - 1];

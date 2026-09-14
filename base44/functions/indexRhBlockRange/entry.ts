@@ -18,6 +18,7 @@ import {
 import { rangeLogs } from "../../shared/rhLogs.js";
 import { TOPIC, isStable, LOG_SPAN } from "../../shared/rhConstants.js";
 import { parseSwapLog, SWAP_TOPIC_BY_VENUE } from "../../shared/rhVenues.js";
+import { isUsableTrade } from "../../shared/rhMarket.js";
 import {
   getCursor,
   setCursor,
@@ -241,7 +242,8 @@ export default async function (req: Request): Promise<Response> {
             tx_hash: t.tx_hash,
             log_index: t.log_index,
           };
-        });
+        })
+        .filter(isUsableTrade);
 
       const inserted = await insertNewByUid(db, "RhTrade", records);
       await setCursor(db, `swaps:${pool.address}`, scannedTo);

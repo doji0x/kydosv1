@@ -51,12 +51,28 @@ export function bucketStart(ts, intervalMs) {
   return Math.floor(ts / intervalMs) * intervalMs;
 }
 
-// Rolls trades (any order) into OHLCV buckets keyed by bucket start.
+// Dust transfers have meaningless execution prices and must never move a public chart.
+export function isUsableTrade(t) {
+  return Number.isFinite(t?.price_usd) && t.price_usd > 0
+    && Number.isFinite(t?.volume_usd) && t.volume_usd >= 0.01
+    && Number.isFinite(t?.token_amount) && t.token_amount > 0
+    && Number.isFinite(t?.block_time) && t.block_time > 0;
+}
+
+// Rolls verified, transaction-deduplicated trades into OHLCV buckets.
 export function rollCandles(trades, intervalMs) {
   const byBucket = new Map();
-  const sorted = [...trades].sort((a, b) => (a.block_time || 0) - (b.block_time || 0));
+  const seen = new Set();
+  const sorted = [...trades].sort((a, b) =>
+    (a.block_time || 0) - (b.block_time || 0)
+    || (a.block_number || 0) - (b.block_number || 0)
+    || (a.log_index || 0) - (b.log_index || 0)
+  );
   for (const t of sorted) {
-    if (!t.price_usd || !t.block_time) continue;
+    if (!isUsableTrade(t)) continue;
+    const keyId = t.uid || `${t.tx_hash || ""}-${t.log_index ?? ""}`;
+    if (keyId && seen.has(keyId)) continue;
+    if (keyId) seen.add(keyId);
     const key = bucketStart(t.block_time, intervalMs);
     const bar = byBucket.get(key);
     if (!bar) {

@@ -2,6 +2,7 @@ import { getLogs, hex, blockTimes } from "./rhRpc.js";
 import { LOG_SPAN } from "./rhConstants.js";
 import { parseSwapLog } from "./rhVenues.js";
 import { swapTopic } from "./rhSwapPools.js";
+import { isUsableTrade } from "./rhMarket.js";
 
 // Always respect the provider's 10-block cap. A failure is retried by the caller:
 // never silently switch a live feed to a slower, incomplete receipt scan.
@@ -34,5 +35,5 @@ export async function readPoolSwaps(pools, from, to) {
       block_number: bn, block_time: times[bn], tx_hash: log.transactionHash,
       log_index: Number(BigInt(log.logIndex)),
     };
-  }).filter(Boolean).sort((a, b) => a.block_number - b.block_number || a.log_index - b.log_index);
+  }).filter(isUsableTrade).sort((a, b) => a.block_number - b.block_number || a.log_index - b.log_index);
 }

@@ -31,7 +31,10 @@ export function backfillTradeRecords(input, address, symbol) {
     if (!Number.isFinite(priceQuote) || priceQuote <= 0) continue;
 
     const blockTime = num(t.block_time);
+    const priceUsd = num(t.price_usd);
+    const volumeUsd = num(t.volume_usd);
     if (blockTime <= 0 || blockTime > Date.now() + 60_000) continue;
+    if (priceUsd <= 0 || volumeUsd < 0.01) continue;
 
     seen.add(uid);
     out.push({
@@ -46,8 +49,8 @@ export function backfillTradeRecords(input, address, symbol) {
       token_amount: tokenAmount,
       quote_amount: quoteAmount,
       price_quote: priceQuote,
-      price_usd: num(t.price_usd),
-      volume_usd: num(t.volume_usd),
+      price_usd: priceUsd,
+      volume_usd: volumeUsd,
       block_number: num(t.block_number),
       block_time: blockTime,
       tx_hash: t.tx_hash.toLowerCase(),
