@@ -3,7 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import RhAwaitingIndex from "@/components/rh/RhAwaitingIndex";
 import ChartPills from "@/components/rh/chart/ChartPills";
 import ChartHeader from "@/components/rh/chart/ChartHeader";
-import PricePanel from "@/components/rh/chart/PricePanel";
+import CandleCanvas from "@/components/rh/chart/CandleCanvas";
 import OscillatorPanels from "@/components/rh/chart/OscillatorPanels";
 import ChartZoomControls from "@/components/rh/chart/ChartZoomControls";
 import useLiveCandles from "@/hooks/useLiveCandles";
@@ -41,19 +41,16 @@ export default function RhLiveChart({ address, derivedSupply = 0 }) {
         />
       ) : (
         <>
-          {/* Drag to pan, pinch or scroll to zoom — the y-axis rescales to what's in view. */}
+          {/* Scroll/pinch to zoom around the cursor, drag to pan; keep zooming out to open the $1T scale. */}
           <div
             ref={view.ref}
-            className={`space-y-2 select-none ${view.dragging ? "cursor-grabbing" : "cursor-grab"}`}
+            className={`space-y-2 select-none ${view.dragging ? "cursor-grabbing" : "cursor-crosshair"}`}
             style={{ touchAction: "none" }}
           >
-            <PricePanel
-              rows={view.rows}
+            <CandleCanvas
+              view={view}
+              rows={rows}
               active={active}
-              forming={view.live}
-              yZoom={view.yZoom}
-              yShift={view.yShift}
-              zoomDepth={view.zoomDepth}
               mode={displayMode}
               multiplier={multiplier}
               timeframe={timeframe}

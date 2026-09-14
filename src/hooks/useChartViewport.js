@@ -1,138 +1,110 @@
-// Pan/zoom viewport over a candle series — trading-chart style.
-//
-// Horizontal: a window of `count` bars ending `offset` bars from the newest one, so the
-// chart stays pinned to live while offset is 0 and holds still once dragged back.
-// Vertical: `yZoom`/`yShift` adjust the auto price domain so the user can squeeze or
-// slide the price axis instead of being locked to the visible high/low.
-// Gestures use native pointer/wheel listeners because they need preventDefault, which
-// React's passive listeners cannot do. Grab-drag works with a mouse and a finger alike.
+// Trading-chart viewport: pixels-per-bar zoom anchored at the cursor, drag/scroll to pan,
+// empty space when zoomed past the data, and — once everything fits — further zoom-out
+// opens the price scale toward $1T (depth 0→1). Native listeners are used so gestures can
+// preventDefault (React's are passive).
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AXIS_W, RIGHT_PAD_BARS, clamp } from "@/lib/chart/geometry";
 
-const MIN_BARS = 12;
-const DEFAULT_BARS = 60;
+const MIN_BAR_W = 2;
+const MAX_BAR_W = 48;
+const DEFAULT_BAR_W = 9;
 const MIN_Y_ZOOM = 0.25;
 const MAX_Y_ZOOM = 8;
-
-const clamp = (n, lo, hi) => Math.max(lo, Math.min(n, hi));
+const DEPTH_STEP = 0.2;
 
 export default function useChartViewport(rows) {
   const total = rows.length;
-  const [count, setCount] = useState(DEFAULT_BARS);
-  const [offset, setOffset] = useState(0);
+  const [barW, setBarW] = useState(DEFAULT_BAR_W);
+  const [shift, setShift] = useState(0); // bars scrolled back from live
+  const [depth, setDepth] = useState(0);
   const [yZoom, setYZoom] = useState(1);
-  const [yShift, setYShift] = useState(0);
+  const [width, setWidth] = useState(0);
   const [dragging, setDragging] = useState(false);
-  const ref = useRef(null);
-  const drag = useRef(null);
-  const pinch = useRef(null);
+  const [el, setEl] = useState(null); // callback ref: the wrapper mounts only once there are rows
+  const st = useRef({});
+  const plotW = Math.max(width - AXIS_W, 1);
+  st.current = { barW, shift, total, depth, plotW };
 
-  const clampCount = useCallback(
-    (n) => clamp(Math.round(n) || MIN_BARS, MIN_BARS, Math.max(total, MIN_BARS)),
-    [total]
-  );
-  const clampOffset = useCallback(
-    (o, c) => clamp(Math.round(o) || 0, 0, Math.max(total - c, 0)),
-    [total]
-  );
+  useEffect(() => {
+    if (!el) return;
+    setWidth(el.clientWidth);
+    const ro = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [el]);
 
-  const applyCount = useCallback(
-    (n) => {
-      const next = clampCount(n);
-      setCount(next);
-      setOffset((o) => clampOffset(o, next));
-    },
-    [clampCount, clampOffset]
-  );
+  const pan = useCallback((deltaBars) => {
+    const s = st.current;
+    setShift(clamp(s.shift + deltaBars, 0, Math.max(s.total - 1, 0)));
+  }, []);
 
-  const zoomBy = useCallback((f) => applyCount(count * f), [applyCount, count]);
+  // factor > 1 zooms out. `x` is the plot pixel to hold still.
+  const zoomAt = useCallback((factor, x) => {
+    const s = st.current;
+    const fitsAll = s.plotW / s.barW >= s.total + RIGHT_PAD_BARS || s.barW <= MIN_BAR_W;
+    if (factor > 1 && fitsAll) return setDepth((d) => clamp(d + DEPTH_STEP, 0, 1));
+    if (factor < 1 && s.depth > 0) return setDepth((d) => clamp(d - DEPTH_STEP, 0, 1));
+    const nextW = clamp(s.barW / factor, MIN_BAR_W, MAX_BAR_W);
+    if (nextW === s.barW) return;
+    const anchor = x ?? s.plotW;
+    const end = s.total - 1 + RIGHT_PAD_BARS - s.shift;
+    const idx = end - (s.plotW - anchor) / s.barW;
+    const nextEnd = idx + (s.plotW - anchor) / nextW;
+    setBarW(nextW);
+    setShift(clamp(s.total - 1 + RIGHT_PAD_BARS - nextEnd, 0, Math.max(s.total - 1, 0)));
+  }, []);
+
   const reset = useCallback(() => {
-    setCount(DEFAULT_BARS);
-    setOffset(0);
+    setBarW(DEFAULT_BAR_W);
+    setShift(0);
+    setDepth(0);
     setYZoom(1);
-    setYShift(0);
   }, []);
 
   useEffect(() => {
-    const el = ref.current;
     if (!el) return;
-
-    const barWidth = () => Math.max(el.clientWidth / Math.max(count, 1), 1);
-    const spread = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+    const localX = (clientX) => clientX - el.getBoundingClientRect().left;
+    const drag = { active: null };
+    const pinch = { active: null };
 
     const onWheel = (e) => {
       e.preventDefault();
-      if (e.shiftKey) {
-        setYZoom((z) => clamp(z * (e.deltaY > 0 ? 1 / 1.15 : 1.15), MIN_Y_ZOOM, MAX_Y_ZOOM));
-        return;
-      }
-      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
-        setOffset((o) => clampOffset(o - (e.deltaX / barWidth()) * 4, count));
-        return;
-      }
-      zoomBy(e.deltaY > 0 ? 1.2 : 1 / 1.2);
+      if (e.shiftKey) return setYZoom((z) => clamp(z * (e.deltaY > 0 ? 1 / 1.15 : 1.15), MIN_Y_ZOOM, MAX_Y_ZOOM));
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return pan(-e.deltaX / st.current.barW);
+      zoomAt(e.deltaY > 0 ? 1.15 : 1 / 1.15, localX(e.clientX));
     };
-
-    // Two-finger pinch: horizontal spread zooms time, vertical spread scales price.
     const onTouchStart = (e) => {
       if (e.touches.length !== 2) return;
-      drag.current = null;
+      drag.active = null;
       setDragging(false);
-      pinch.current = {
-        dx: Math.abs(e.touches[0].clientX - e.touches[1].clientX),
-        dy: Math.abs(e.touches[0].clientY - e.touches[1].clientY),
-        d: spread(e.touches),
-        count,
-        yZoom,
-      };
+      pinch.active = { d: Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY) };
     };
-
     const onTouchMove = (e) => {
-      const p = pinch.current;
-      if (!p || e.touches.length !== 2) return;
+      if (!pinch.active || e.touches.length !== 2) return;
       e.preventDefault();
-      const dx = Math.abs(e.touches[0].clientX - e.touches[1].clientX);
-      const dy = Math.abs(e.touches[0].clientY - e.touches[1].clientY);
-      if (dy > dx && p.dy > 4) {
-        setYZoom(clamp(p.yZoom * (dy / p.dy), MIN_Y_ZOOM, MAX_Y_ZOOM));
-      } else if (p.d > 0) {
-        const now = spread(e.touches);
-        if (now > 0) applyCount(p.count * (p.d / now));
-      }
+      const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      if (d > 0 && pinch.active.d > 0) zoomAt(pinch.active.d / d, localX((e.touches[0].clientX + e.touches[1].clientX) / 2));
+      pinch.active.d = d;
     };
-
-    const clearPinch = () => {
-      if (!pinch.current) return;
-      pinch.current = null;
-    };
-
+    const endPinch = () => { pinch.active = null; };
     const onPointerDown = (e) => {
-      if (pinch.current || e.button > 0) return;
-      drag.current = { x: e.clientX, y: e.clientY, offset, yShift, moved: false };
+      if (pinch.active || e.button > 0) return;
+      drag.active = { x: e.clientX, shift: st.current.shift };
       setDragging(true);
     };
-
     const onPointerMove = (e) => {
-      const d = drag.current;
-      if (!d || pinch.current) return;
-      const dx = e.clientX - d.x;
-      const dy = e.clientY - d.y;
-      if (!d.moved && Math.abs(dx) < 3 && Math.abs(dy) < 3) return;
-      d.moved = true;
+      if (!drag.active || pinch.active) return;
       if (e.cancelable) e.preventDefault();
-      setOffset(clampOffset(d.offset + dx / barWidth(), count));
-      setYShift(clamp(d.yShift + dy / Math.max(el.clientHeight, 1), -3, 3));
+      const s = st.current;
+      setShift(clamp(drag.active.shift + (e.clientX - drag.active.x) / s.barW, 0, Math.max(s.total - 1, 0)));
     };
-
-    const onPointerUp = () => {
-      drag.current = null;
-      setDragging(false);
-    };
+    const onPointerUp = () => { drag.active = null; setDragging(false); };
 
     el.addEventListener("wheel", onWheel, { passive: false });
     el.addEventListener("touchstart", onTouchStart, { passive: true });
     el.addEventListener("touchmove", onTouchMove, { passive: false });
-    el.addEventListener("touchend", clearPinch, { passive: true });
-    el.addEventListener("touchcancel", clearPinch, { passive: true });
+    el.addEventListener("touchend", endPinch);
+    el.addEventListener("touchcancel", endPinch);
     el.addEventListener("pointerdown", onPointerDown);
     window.addEventListener("pointermove", onPointerMove, { passive: false });
     window.addEventListener("pointerup", onPointerUp);
@@ -141,34 +113,29 @@ export default function useChartViewport(rows) {
       el.removeEventListener("wheel", onWheel);
       el.removeEventListener("touchstart", onTouchStart);
       el.removeEventListener("touchmove", onTouchMove);
-      el.removeEventListener("touchend", clearPinch);
-      el.removeEventListener("touchcancel", clearPinch);
+      el.removeEventListener("touchend", endPinch);
+      el.removeEventListener("touchcancel", endPinch);
       el.removeEventListener("pointerdown", onPointerDown);
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerup", onPointerUp);
       window.removeEventListener("pointercancel", onPointerUp);
     };
-  }, [count, offset, yZoom, yShift, applyCount, clampOffset, zoomBy]);
+  }, [el, pan, zoomAt]);
 
-  const visible = useMemo(() => {
-    if (!total) return rows;
-    const end = total - Math.min(offset, Math.max(total - MIN_BARS, 0));
-    return rows.slice(Math.max(end - count, 0), end);
-  }, [rows, total, count, offset]);
+  const endIndex = total - 1 + RIGHT_PAD_BARS - shift;
+  const maxIdx = Math.max(total - 1, 0);
+  const first = clamp(Math.floor(endIndex - plotW / barW), 0, maxIdx);
+  const last = clamp(Math.ceil(endIndex), 0, maxIdx);
+  const visible = useMemo(() => rows.slice(first, last + 1), [rows, first, last]);
 
   return {
-    ref,
-    rows: visible,
-    dragging,
-    yZoom,
-    yShift,
-    zoomDepth: total > DEFAULT_BARS ? clamp((count - DEFAULT_BARS) / (total - DEFAULT_BARS), 0, 1) : 0,
-    live: offset === 0,
-    zoomed: count !== DEFAULT_BARS || yZoom !== 1 || yShift !== 0,
-    canZoomOut: count < total,
-    canZoomIn: count > MIN_BARS,
-    zoomIn: () => zoomBy(1 / 1.4),
-    zoomOut: () => zoomBy(1.4),
+    ref: setEl, width, rows: visible, first, last, endIndex, barW, depth, yZoom, dragging,
+    live: shift === 0,
+    zoomed: barW !== DEFAULT_BAR_W || shift !== 0 || depth !== 0 || yZoom !== 1,
+    canZoomOut: depth < 1,
+    canZoomIn: barW < MAX_BAR_W || depth > 0,
+    zoomIn: () => zoomAt(1 / 1.4),
+    zoomOut: () => zoomAt(1.4),
     reset,
   };
 }
