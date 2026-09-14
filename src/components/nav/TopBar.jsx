@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Wallet, Search } from "lucide-react";
+import { Wallet, Search, Github } from "lucide-react";
 import { LOGO_URL } from "@/lib/brand";
 import { useMe } from "@/lib/MeContext";
 import { cashOf } from "@/lib/balance";
@@ -19,6 +19,9 @@ export default function TopBar() {
         <div className="flex items-center gap-2">
         <Link to="/search" aria-label="Search" className="h-8 w-8 flex items-center justify-center rounded-full border border-border bg-card text-muted-foreground hover:text-foreground hover:border-primary/50 transition">
           <Search className="h-4 w-4" />
+        </Link>
+        <Link to="/releases" aria-label="Deployments" className="h-8 w-8 flex items-center justify-center rounded-full border border-border bg-card text-muted-foreground hover:text-foreground hover:border-primary/50 transition">
+          <Github className="h-4 w-4" />
         </Link>
         {me && (
           <Link to="/profile" className="flex items-center gap-1.5 h-8 px-3 rounded-full border border-border bg-card text-[11px] font-mono text-muted-foreground hover:border-primary/50 hover:text-foreground transition">

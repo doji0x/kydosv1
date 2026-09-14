@@ -1,0 +1,42 @@
+{
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "app_publish",
+      "events": [
+        "published"
+      ]
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "log_deployment_release",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "create_release": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "createGithubRelease",
+            "args": {
+              "published_at": "${ .trigger.occurred_at }",
+              "visibility": "${ .trigger.visibility }",
+              "is_first_publish": "${ .trigger.is_first_publish }",
+              "published_by": "${ .trigger.published_by }"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Create GitHub release",
+            "description": "Tagged deployment entry"
+          }
+        }
+      }
+    ]
+  },
+  "description": "Creates a tagged GitHub Release on the Kydos repo every time the app is published",
+  "name": "Log Deployment Release"
+}
