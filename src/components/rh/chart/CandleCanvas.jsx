@@ -4,7 +4,7 @@ import { chartDomain, scaleChartRows } from "@/components/rh/chart/chartScale";
 import { renderChart } from "@/lib/chart/drawChart";
 import { clamp, makeScales } from "@/lib/chart/geometry";
 
-export default function CandleCanvas({ view, rows, active, mode, multiplier, timeframe, height = 300 }) {
+export default function CandleCanvas({ view, rows, active, mode, multiplier, timeframe, height = 400 }) {
   const canvasRef = useRef(null);
   const [pointer, setPointer] = useState(null);
   const [zone, setZone] = useState("plot");
@@ -45,7 +45,7 @@ export default function CandleCanvas({ view, rows, active, mode, multiplier, tim
         style={{ width: "100%", height }}
         onPointerMove={onMove} onPointerLeave={() => { setPointer(null); setZone("plot"); }} />
       {hoverBar && !view.dragging && (
-        <div className="absolute top-2 pointer-events-none" style={hover.x < scales.plotW / 2 ? { left: hover.x + 14 } : { right: width - hover.x + 14 }}>
+        <div className="absolute top-7 pointer-events-none" style={hover.x < scales.plotW / 2 ? { left: hover.x + 14 } : { right: width - hover.x + 14 }}>
           <CandleTooltip payload={[{ payload: hoverBar }]} indicators={active} mode={mode} />
         </div>
       )}

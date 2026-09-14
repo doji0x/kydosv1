@@ -1,6 +1,8 @@
 // Layout + scale helpers for the canvas candle chart.
 export const AXIS_W = 76;
 export const TIME_H = 22;
+// Share of the plot height reserved for the volume histogram along the bottom.
+export const VOL_FRAC = 0.18;
 export const RIGHT_PAD_BARS = 4;
 
 export const clamp = (n, lo, hi) => Math.max(lo, Math.min(n, hi));
@@ -16,10 +18,27 @@ export function palette(el) {
     fg: hsl(el, "--foreground"),
     bg: hsl(el, "--card"),
     primary: hsl(el, "--primary"),
+    // Subtle overlays so the axis gutters and crosshair read on the dark card.
+    gutter: "hsl(0 0% 100% / 0.025)",
+    axis: `hsl(${getComputedStyle(el).getPropertyValue("--border").trim()} / 0.9)`,
+    crosshair: hsl(el, "--foreground"),
     c4: hsl(el, "--chart-4"),
     c5: hsl(el, "--chart-5"),
     font: `10px ${getComputedStyle(el).fontFamily}`,
   };
+}
+
+// Round tick values to 1/2/5 x 10^n so the price axis reads like a terminal's.
+export function niceTicks(min, max, count = 6) {
+  const span = max - min;
+  if (!(span > 0)) return [min];
+  const raw = span / count;
+  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const norm = raw / mag;
+  const step = (norm >= 5 ? 5 : norm >= 2 ? 2 : 1) * mag;
+  const out = [];
+  for (let v = Math.ceil(min / step) * step; v <= max; v += step) out.push(v);
+  return out;
 }
 
 export function fmtTime(t, timeframe) {
