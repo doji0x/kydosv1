@@ -1,7 +1,7 @@
 // Market engine: recomputes every published stat for each tracked token from indexed
 // RhTrade records plus live pool reserves, then upserts the canonical RhToken record.
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
-import { isStable } from "../../shared/rhConstants.js";
+import { quoteUsdValue } from "../../shared/rhConstants.js";
 import { v2Reserves, erc20BalanceOf } from "../../shared/rhErc20.js";
 import { computeStats } from "../../shared/rhMarket.js";
 import { isTrusted } from "../../shared/rhAudit.js";
@@ -10,15 +10,8 @@ import { spotPriceQuote } from "../../shared/rhSpot.js";
 import { listBounded, upsertToken, getRefPrice } from "../../shared/rhStore.js";
 import { assertEngineCaller } from "../../shared/rhAuth.js";
 
-// USD value of one quote token. Stables are 1:1, ETH uses the reference price, and
-// any other quote asset (a memecoin-paired pool) is left unvalued rather than guessed.
-function quoteUsdValue(symbol, ethUsd) {
-  if (isStable(symbol)) return 1;
-  return /^(WETH|ETH)$/i.test(symbol || "") ? ethUsd : 0;
-}
-
 async function poolLiquidityUsd(pool, ethUsd, tokenPriceUsd) {
-  const quoteUsd = quoteUsdValue(pool.quote_symbol, ethUsd);
+  const quoteUsd = quoteUsdValue(pool.quote_address, ethUsd);
   let reserveBase = null;
   let reserveQuote = null;
 
@@ -66,7 +59,7 @@ export default async function (req: Request): Promise<Response> {
       for (const pool of pools) {
         const price = await spotPriceQuote(pool).catch(() => null);
         if (!price || !isFinite(price) || price <= 0) continue;
-        const quoteUsd = quoteUsdValue(pool.quote_symbol, ethUsd);
+        const quoteUsd = quoteUsdValue(pool.quote_address, ethUsd);
         if (!quoteUsd) continue;
         quotes.push({
           pool: pool.address,

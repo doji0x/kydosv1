@@ -12,7 +12,7 @@ import {
   CHAIN_ID,
 } from "../../shared/rhRpc.js";
 import { rangeLogs } from "../../shared/rhLogs.js";
-import { TOPIC, isStable, LOG_SPAN } from "../../shared/rhConstants.js";
+import { TOPIC, quoteUsdValue, LOG_SPAN } from "../../shared/rhConstants.js";
 import { parseSwapLog, SWAP_TOPIC_BY_VENUE } from "../../shared/rhVenues.js";
 import { isUsableTrade } from "../../shared/rhMarket.js";
 import {
@@ -27,13 +27,6 @@ import { rialtoTrades } from "../../shared/rhRialto.js";
 import { backfillRhHistory } from "../../shared/rhHistory.js";
 
 const SWAP_TOPICS = [TOPIC.UNIV2_SWAP, TOPIC.UNIV3_SWAP];
-
-// USD value of one quote token: stables 1:1, ETH from the reference price, anything
-// else left unvalued so a memecoin-paired pool can't invent USD volume.
-function quoteUsdValue(symbol, ethUsd) {
-  if (isStable(symbol)) return 1;
-  return /^(WETH|ETH)$/i.test(symbol || "") ? ethUsd : 0;
-}
 
 export default async function (req: Request): Promise<Response> {
   try {
@@ -144,7 +137,7 @@ export default async function (req: Request): Promise<Response> {
 
     const summary = [];
     for (const pool of pools) {
-      const quoteUsd = quoteUsdValue(pool.quote_symbol, ethUsd);
+      const quoteUsd = quoteUsdValue(pool.quote_address, ethUsd);
       let raw = [];
 
       if (pool.venue === "rialto") {

@@ -28,8 +28,25 @@ export const SELECTOR = {
 
 export const VENUES = ["uniswap_v2", "uniswap_v3", "rialto"];
 
-// Symbols treated as 1:1 with USD when they are the pool's quote asset.
+// Symbols remain useful as display metadata, but never establish quote-asset identity.
 export const STABLES = ["USDC", "USDT", "DAI", "USDG", "USDC.E", "BUSD", "FRAX", "USDS"];
+
+// Canonical Robinhood Chain quote contracts. USD valuation is address-based so a token
+// cannot spoof a trusted quote asset by returning the WETH or USDG symbol.
+export const RH_QUOTE = Object.freeze({
+  WETH: "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+  USDG: "0x5fc5360d0400a0fd4f2af552add042d716f1d168",
+});
+
+export const isCanonicalQuote = (address) =>
+  Object.values(RH_QUOTE).includes(String(address || "").toLowerCase());
+
+export const quoteUsdValue = (address, ethUsd) => {
+  const normalized = String(address || "").toLowerCase();
+  if (normalized === RH_QUOTE.USDG) return 1;
+  if (normalized === RH_QUOTE.WETH) return Number(ethUsd) || 0;
+  return 0;
+};
 
 // V1 tracked tokens. Pools are discovered on-chain, not hardcoded.
 export const TRACKED_TOKENS = [

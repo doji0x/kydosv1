@@ -1,11 +1,9 @@
 import { rpc, rpcBatch, toNum, CHAIN_ID } from "./rhRpc.js";
 import { parseSwapLog, SWAP_TOPIC_BY_VENUE } from "./rhVenues.js";
 import { isUsableTrade } from "./rhMarket.js";
-import { isStable } from "./rhConstants.js";
+import { quoteUsdValue } from "./rhConstants.js";
 import { insertNewByUid, getRefPrice } from "./rhStore.js";
 import { rialtoTrades } from "./rhRialto.js";
-
-const quoteUsdValue = (symbol, ethUsd) => isStable(symbol) ? 1 : /^(WETH|ETH)$/i.test(symbol || "") ? ethUsd : 0;
 
 async function loadReceiptLogs(transfers) {
   const hashes = [...new Set(transfers.map((transfer) => transfer.hash).filter(Boolean))];
@@ -56,7 +54,7 @@ async function backfillPoolDirection(db, token, pool, direction, pageSize, ethUs
     }
   }
 
-  const quoteUsd = quoteUsdValue(pool.quote_symbol, ethUsd);
+  const quoteUsd = quoteUsdValue(pool.quote_address, ethUsd);
   const accepted = raw.map((trade) => {
     const priceQuote = trade.quote_amount / trade.token_amount;
     return { uid: `${trade.tx_hash}-${trade.log_index}`, chain_id: CHAIN_ID, token_address: token.address,

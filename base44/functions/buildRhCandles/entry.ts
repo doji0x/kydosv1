@@ -5,7 +5,7 @@
 // RhCandle store becomes the complete series and the client never has to scan the chain
 // for old blocks. Pass lookback_ms to roll only a recent window instead.
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
-import { INTERVALS } from "../../shared/rhConstants.js";
+import { INTERVALS, isCanonicalQuote } from "../../shared/rhConstants.js";
 import { rollCandles } from "../../shared/rhMarket.js";
 import { isTrusted } from "../../shared/rhAudit.js";
 import { listBounded, upsertByUid } from "../../shared/rhStore.js";
@@ -42,7 +42,7 @@ export default async function (req: Request): Promise<Response> {
         maxTrades
       );
       const pools = await db.entities.RhPool.filter({ token_address: token.address, active: true });
-      const blockedPools = new Set(pools.filter((p) => p.trust_status === "SUSPENDED" || p.trust_status === "PROBATION").map((p) => p.address));
+      const blockedPools = new Set(pools.filter((p) => p.trust_status === "SUSPENDED" || p.trust_status === "PROBATION" || !isCanonicalQuote(p.quote_address)).map((p) => p.address));
       const trustedTrades = trades.filter((trade) => isTrusted(trade) && !blockedPools.has(trade.pool));
       if (!trustedTrades.length) {
         summary.push({ symbol: token.symbol, trades: 0, bars_written: 0 });
