@@ -102,11 +102,9 @@ export default function useChartViewport(rows, { onNeedHistory } = {}) {
       if (e.cancelable) e.preventDefault();
       const s = st.current;
       const d = drag.active;
-      if (d.axis) {
-        // One full drag across the chart height moves the price scale by one full span.
-        setYShift(d.yShift + (e.clientY - d.y) / Math.max(d.h, 1));
-        return;
-      }
+      // One full drag across the chart height moves the price scale by one full span.
+      setYShift(d.yShift + (e.clientY - d.y) / Math.max(d.h, 1));
+      if (d.axis) return;
       setShift(clamp(d.shift + (e.clientX - d.x) / s.barW, 0, Math.max(s.total - 1, 0)));
     };
     const onPointerUp = () => { drag.active = null; setDragging(false); };
