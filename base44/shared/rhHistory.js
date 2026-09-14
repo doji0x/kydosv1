@@ -1,4 +1,4 @@
-import { rpc, rpcBatch, toNum, blockTimes, CHAIN_ID } from "./rhRpc.js";
+import { rpc, rpcBatch, toNum, CHAIN_ID } from "./rhRpc.js";
 import { parseSwapLog, SWAP_TOPIC_BY_VENUE } from "./rhVenues.js";
 import { isUsableTrade } from "./rhMarket.js";
 import { isStable } from "./rhConstants.js";
@@ -7,8 +7,9 @@ import { rialtoTrades } from "./rhRialto.js";
 
 const quoteUsdValue = (symbol, ethUsd) => isStable(symbol) ? 1 : /^(WETH|ETH)$/i.test(symbol || "") ? ethUsd : 0;
 
-export async function backfillRhHistory(db, pageSize = 50) {
-  const tokens = await db.entities.RhToken.filter({ tracked: true });
+export async function backfillRhHistory(db, pageSize = 50, onlyToken = "") {
+  const tracked = await db.entities.RhToken.filter({ tracked: true });
+  const tokens = onlyToken ? tracked.filter((token) => token.address === onlyToken.toLowerCase()) : tracked;
   const ethUsd = await getRefPrice(db, "ETH");
   const summary = [];
 
@@ -21,14 +22,19 @@ export async function backfillRhHistory(db, pageSize = 50) {
     }
 
     const request = { fromBlock: "0x0", toBlock: "latest", contractAddresses: [token.address],
-      category: ["erc20"], withMetadata: false, excludeZeroValue: false,
-      maxCount: `0x${Math.min(Math.max(pageSize, 1), 100).toString(16)}`, order: "asc" };
+      category: ["erc20"], withMetadata: true, excludeZeroValue: false,
+      maxCount: `0x${Math.min(Math.max(pageSize, 1), 1000).toString(16)}`, order: "asc" };
     if (state?.page_key) request.pageKey = state.page_key;
     const page = await rpc("alchemy_getAssetTransfers", [request]);
     const transfers = page?.transfers || [];
     const hashes = [...new Set(transfers.map((t) => t.hash).filter(Boolean))];
-    const receipts = (await rpcBatch("eth_getTransactionReceipt", hashes.map((hash) => [hash]))).filter(Boolean);
+    const receiptBatches = [];
+    for (let i = 0; i < hashes.length; i += 200) {
+      receiptBatches.push(rpcBatch("eth_getTransactionReceipt", hashes.slice(i, i + 200).map((hash) => [hash])));
+    }
+    const receipts = (await Promise.all(receiptBatches)).flat().filter(Boolean);
     const logs = receipts.flatMap((r) => r.logs || []);
+    const timeByHash = new Map(transfers.map((t) => [t.hash, Date.parse(t.metadata?.blockTimestamp || "")]).filter(([, time]) => Number.isFinite(time)));
     const pools = await db.entities.RhPool.filter({ token_address: token.address, active: true });
     let accepted = [];
 
@@ -43,7 +49,6 @@ export async function backfillRhHistory(db, pageSize = 50) {
           if (parsed) raw.push({ ...parsed, tx_hash: log.transactionHash, log_index: toNum(log.logIndex), block_number: toNum(log.blockNumber) });
         }
       }
-      const times = raw.length ? await blockTimes(raw.map((t) => t.block_number)) : {};
       const quoteUsd = quoteUsdValue(pool.quote_symbol, ethUsd);
       accepted.push(...raw.map((t) => {
         const priceQuote = t.quote_amount / t.token_amount;
@@ -51,7 +56,7 @@ export async function backfillRhHistory(db, pageSize = 50) {
           symbol: token.symbol, venue: pool.venue, pool: pool.address, trader: t.trader, side: t.side,
           token_amount: t.token_amount, quote_amount: t.quote_amount, price_quote: priceQuote,
           price_usd: priceQuote * quoteUsd, volume_usd: t.quote_amount * quoteUsd,
-          block_number: t.block_number, block_time: times[t.block_number] || Date.now(),
+          block_number: t.block_number, block_time: timeByHash.get(t.tx_hash) || Date.now(),
           tx_hash: t.tx_hash, log_index: t.log_index };
       }).filter(isUsableTrade));
     }

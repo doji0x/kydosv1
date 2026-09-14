@@ -44,7 +44,7 @@ export default async function (req: Request): Promise<Response> {
 
     const body = await req.json().catch(() => ({}));
     if (body.mode === "history") {
-      return Response.json(await backfillRhHistory(db, Number(body.page_size) || 50));
+      return Response.json(await backfillRhHistory(db, Number(body.page_size) || 50, String(body.token || "")));
     }
     const initialLookback = Math.min(Number(body.initial_lookback) || 300, 5000);
     const maxSpan = Math.min(Number(body.max_span) || 2000, 2000);

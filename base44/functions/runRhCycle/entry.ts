@@ -7,7 +7,7 @@ import { secrets } from "base44:runtime";
 const STEPS = [
   { name: "refreshRhRefPrice", args: {} },
   { name: "indexRhBlockRange", args: { max_span: 3000 } },
-  { name: "indexRhBlockRange", args: { mode: "history", page_size: 50 } },
+  { name: "indexRhBlockRange", args: { mode: "history", page_size: 25 } },
   { name: "buildRhCandles", args: { max_trades: 10000, tail_bars: 2000 } },
   { name: "indexRhHolders", args: { max_span: 3000 } },
   { name: "computeRhTokenStats", args: {} },
