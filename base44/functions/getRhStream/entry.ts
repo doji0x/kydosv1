@@ -5,7 +5,7 @@
 // So this endpoint is the stream — the client passes the last block it saw and gets back
 // every real swap decoded since, plus live pool spot, so it can roll 1s/5s/15s bars.
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
-import { blockNumber } from "../../shared/rhRpc.js";
+import { blockNumber, blockTimes } from "../../shared/rhRpc.js";
 import { TOPIC, isStable } from "../../shared/rhConstants.js";
 import { rangeLogs } from "../../shared/rhLogs.js";
 import { parseSwapLog } from "../../shared/rhVenues.js";
@@ -25,7 +25,6 @@ const MAX_WINDOW = 40;
 // history. 6000 blocks is ~10 minutes of this chain, read in wide getLogs chunks.
 const MAX_BOOTSTRAP = 6000;
 const BOOTSTRAP_SPAN = 750;
-const BLOCK_MS = 100;
 
 function quoteUsdValue(symbol, ethUsd) {
   if (isStable(symbol)) return 1;
@@ -44,8 +43,8 @@ export default async function (req: Request): Promise<Response> {
     if (!/^0x[0-9a-f]{40}$/.test(address)) {
       return Response.json({ error: "A valid token address is required" }, { status: 400 });
     }
-    const sinceBlock = Number(body.since_block) || 0;
-    const windowBlocks = Math.min(Math.max(Number(body.window_blocks) || 0, 0), MAX_BOOTSTRAP);
+    const sinceBlock = Math.max(0, Math.floor(Number(body.since_block) || 0));
+    const windowBlocks = Math.min(Math.max(Math.floor(Number(body.window_blocks) || 0), 0), MAX_BOOTSTRAP);
 
     const [token] = await db.entities.RhToken.filter({ address });
     if (!token) return Response.json({ error: "Token is not tracked" }, { status: 404 });
@@ -71,24 +70,30 @@ export default async function (req: Request): Promise<Response> {
     const head = await blockNumber();
     const trades = [];
     let scannedFrom = head;
+    let scannedTo = head;
 
     if ((sinceBlock || windowBlocks) && pools.length) {
       const from = sinceBlock
-        ? Math.max(sinceBlock + 1, head - MAX_WINDOW + 1)
-        : head - windowBlocks + 1;
+        ? Math.min(sinceBlock, head) + 1
+        : Math.max(0, head - windowBlocks + 1);
+      const to = sinceBlock ? Math.min(head, from + MAX_WINDOW - 1) : head;
       scannedFrom = from;
       if (from <= head) {
         const byAddress = new Map(pools.map((p) => [p.address, p]));
-        const { logs } = await rangeLogs({
+        const { logs, times, scanned_to } = await rangeLogs({
           fromBlock: from,
-          toBlock: head,
+          toBlock: to,
           addresses: pools.map((p) => p.address),
           topics: [...new Set(pools.map((p) => SWAP_TOPIC[p.venue]))],
           maxReceipts: 120,
           span: sinceBlock ? undefined : BOOTSTRAP_SPAN,
         });
 
-        for (const log of logs) {
+        scannedTo = scanned_to;
+        const completeLogs = logs.filter((log) => Number(BigInt(log.blockNumber)) <= scannedTo);
+        const missingTimes = [...new Set(completeLogs.map((log) => Number(BigInt(log.blockNumber))))].filter((bn) => !times[bn]);
+        Object.assign(times, await blockTimes(missingTimes));
+        for (const log of completeLogs) {
           const pool = byAddress.get((log.address || "").toLowerCase());
           if (!pool) continue;
           if ((log.topics?.[0] || "").toLowerCase() !== SWAP_TOPIC[pool.venue]) continue;
@@ -111,8 +116,7 @@ export default async function (req: Request): Promise<Response> {
             pool: pool.address,
             venue: pool.venue,
             block_number: bn,
-            // Wall-clock estimate from the head block — good to ~100ms at this cadence.
-            block_time: Date.now() - Math.max(head - bn, 0) * BLOCK_MS,
+            block_time: times[bn],
             tx_hash: log.transactionHash || null,
             log_index: log.logIndex ? Number(BigInt(log.logIndex)) : 0,
           });
@@ -148,6 +152,7 @@ export default async function (req: Request): Promise<Response> {
       chain_id: 4663,
       head_block: head,
       scanned_from: scannedFrom,
+      scanned_to: scannedTo,
       pool_count: pools.length,
       trades,
       price_usd: priceUsd,

@@ -17,7 +17,7 @@ export default function OscillatorPanels({ rows, active }) {
     <div className="space-y-2">
       {active.rsi && (
         <Panel label="RSI 14">
-          <ComposedChart data={rows} margin={{ top: 2, right: 4, bottom: 0, left: 0 }}>
+          <ComposedChart data={rows} margin={{ top: 2, right: 86, bottom: 0, left: 0 }}>
             <XAxis dataKey="t" hide />
             <YAxis hide domain={[0, 100]} />
             <ReferenceLine y={70} stroke="hsl(var(--chart-3))" strokeDasharray="2 2" strokeOpacity={0.6} />
@@ -29,7 +29,7 @@ export default function OscillatorPanels({ rows, active }) {
 
       {active.macd && (
         <Panel label="MACD 12/26/9">
-          <ComposedChart data={rows} margin={{ top: 2, right: 4, bottom: 0, left: 0 }}>
+          <ComposedChart data={rows} margin={{ top: 2, right: 86, bottom: 0, left: 0 }}>
             <XAxis dataKey="t" hide />
             <YAxis hide domain={["dataMin", "dataMax"]} />
             <ReferenceLine y={0} stroke="hsl(var(--border))" />

@@ -3,6 +3,7 @@ import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { getTokenRecord } from "../../shared/rhStore.js";
 import { assertApiCaller } from "../../shared/rhApiKey.js";
 import { tokenShape, poolShape } from "../../shared/rhShape.js";
+import { loadTokenBranding } from "../../shared/rhMetadata.js";
 
 export default async function (req: Request): Promise<Response> {
   try {
@@ -22,7 +23,10 @@ export default async function (req: Request): Promise<Response> {
     const pools = await db.entities.RhPool.filter({ token_address: address, active: true });
 
     return Response.json({
-      token: tokenShape(token),
+      token: tokenShape(await loadTokenBranding(db, token).catch((error) => {
+        console.warn("Token branding unavailable", error.message);
+        return token;
+      })),
       pools: pools.map(poolShape),
       source: "kydos-indexer",
     });

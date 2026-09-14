@@ -28,15 +28,16 @@ async function post(url, method, params) {
 }
 
 // Serializes calls with a minimum gap so the shared public endpoint doesn't throttle us.
-let gate = Promise.resolve();
+let nextCallAt = 0; // Keep only timestamps globally; I/O promises belong to one request.
 let gapMs = 0; // adaptive: grows when the endpoint throttles, decays as calls succeed
 
 function paced() {
   const floor = primaryDisabled ? 120 : 0;
   const wait = Math.max(floor, gapMs);
-  const turn = gate.then(() => new Promise((r) => setTimeout(r, wait)));
-  gate = turn;
-  return turn;
+  const now = Date.now();
+  const delay = Math.max(0, nextCallAt - now);
+  nextCallAt = now + delay + wait;
+  return delay ? new Promise((resolve) => setTimeout(resolve, delay)) : Promise.resolve();
 }
 
 export async function rpc(method, params = []) {

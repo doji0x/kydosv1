@@ -2,8 +2,9 @@ import React from "react";
 import { ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import CandleShape from "@/components/rh/chart/CandleShape";
 import CandleTooltip from "@/components/rh/chart/CandleTooltip";
+import { fmtUsdPrice } from "@/lib/format";
 
-export default function PricePanel({ rows, active, height = 220, forming = true, yZoom = 1, yShift = 0 }) {
+export default function PricePanel({ rows, active, height = 250, forming = true, yZoom = 1, yShift = 0, timeframe = "5s" }) {
   const lows = rows.map((r) => r.low);
   const highs = rows.map((r) => r.high);
   const min = Math.min(...lows);
@@ -20,12 +21,17 @@ export default function PricePanel({ rows, active, height = 220, forming = true,
     <div className="rounded-2xl border border-border bg-card p-2" style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={rows} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
-          <XAxis dataKey="t" hide />
-          <YAxis
-            hide
-            domain={domain}
-            allowDataOverflow
-          />
+          <XAxis dataKey="t" height={26} minTickGap={28} tickMargin={8}
+            tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }}
+            stroke="hsl(var(--border))" tickLine={false}
+            tickFormatter={(t) => new Date(t).toLocaleString(undefined, timeframe === "1d" || timeframe === "1h"
+              ? { month: "short", day: "numeric", ...(timeframe === "1h" ? { hour: "2-digit" } : {}) }
+              : { hour: "2-digit", minute: "2-digit", ...(timeframe.endsWith("s") ? { second: "2-digit" } : {}), hour12: false })} />
+          <YAxis orientation="right" width={82} tickCount={5} tickMargin={6}
+            tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }}
+            stroke="hsl(var(--border))" tickLine={false}
+            tickFormatter={(value) => value === 0 ? "$0" : fmtUsdPrice(value)}
+            domain={domain} allowDataOverflow />
           {/* `active` is reserved by recharts on tooltip content, so indicators pass under their own name. */}
           <Tooltip content={<CandleTooltip indicators={active} />} cursor={{ stroke: "hsl(var(--border))" }} />
 

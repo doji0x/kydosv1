@@ -55,6 +55,7 @@ export default function RhLiveChart({ address }) {
               forming={view.live}
               yZoom={view.yZoom}
               yShift={view.yShift}
+              timeframe={timeframe}
             />
             <OscillatorPanels rows={view.rows} active={active} />
           </div>

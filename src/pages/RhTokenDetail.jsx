@@ -53,7 +53,7 @@ export default function RhTokenDetail() {
           <ArrowLeft className="h-4 w-4" />
         </button>
         {t.icon_url ? (
-          <Image src={t.icon_url} alt={t.symbol} className="h-10 w-10 rounded-full" />
+          <Image src={t.icon_url} alt={t.symbol} className="h-10 w-10 shrink-0 rounded-full object-cover" />
         ) : (
           <div className="h-10 w-10 rounded-full bg-muted grid-lines flex items-center justify-center font-display font-bold gold-text">
             {t.symbol?.[0]}
