@@ -80,6 +80,23 @@ export async function rpc(method, params = []) {
   return json.result;
 }
 
+export async function rpcBatch(method, paramsList) {
+  if (!paramsList.length) return [];
+  const primary = rpcUrl();
+  const payload = paramsList.map((params) => ({ jsonrpc: "2.0", id: ++reqId, method, params }));
+  const ids = payload.map((item) => item.id);
+  const res = await fetch(primary, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) return Promise.all(paramsList.map((params) => rpc(method, params).catch(() => null)));
+  const json = await res.json();
+  if (!Array.isArray(json)) return Promise.all(paramsList.map((params) => rpc(method, params).catch(() => null)));
+  const byId = new Map(json.map((item) => [item.id, item.result ?? null]));
+  return ids.map((id) => byId.get(id) ?? null);
+}
+
 export const hex = (n) => "0x" + BigInt(n).toString(16);
 export const toNum = (h) => (h === null || h === undefined ? 0 : Number(BigInt(h)));
 export const toBig = (h) => BigInt(h);

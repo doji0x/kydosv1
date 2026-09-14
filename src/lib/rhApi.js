@@ -5,9 +5,32 @@ const call = async (fn, payload = {}) => (await base44.functions.invoke(fn, payl
 
 export const fetchRhTrending = (sort = "volume_24h") => call("getRhTrending", { sort });
 export const fetchRhToken = (address) => call("getRhToken", { address });
-export const fetchRhCandles = (address, interval = "5m", limit = 120) =>
-  call("getRhCandles", { address, interval, limit });
-export const fetchRhTrades = (address, limit = 50) => call("getRhTrades", { address, limit });
+export const fetchRhCandles = (address, interval = "5m", limit = 120, beforeTime = 0) =>
+  call("getRhCandles", { address, interval, limit, before_time: beforeTime });
+export const fetchRhTrades = (address, limit = 50, beforeBlock = 0) =>
+  call("getRhTrades", { address, limit, before_block: beforeBlock });
+
+export async function fetchAllRhCandles(address, interval) {
+  const candles = [];
+  let before = 0;
+  do {
+    const page = await fetchRhCandles(address, interval, 500, before);
+    candles.unshift(...(page?.candles || []));
+    before = page?.next_before_time || 0;
+  } while (before);
+  return candles;
+}
+
+export async function fetchAllRhTrades(address) {
+  const trades = [];
+  let before = 0;
+  do {
+    const page = await fetchRhTrades(address, 1000, before);
+    trades.push(...(page?.trades || []));
+    before = page?.next_before_block || 0;
+  } while (before);
+  return trades;
+}
 export const fetchRhPoolTrades = (address, beforeBlock) => call("getRhTrades", {
   address, source: "onchain", ...(beforeBlock !== undefined ? { before_block: beforeBlock } : {}),
 });

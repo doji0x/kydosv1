@@ -23,11 +23,14 @@ export default async function (req: Request): Promise<Response> {
       );
     }
     const limit = Math.min(Math.max(Number(body.limit) || 120, 1), 500);
+    const beforeTime = Math.max(0, Math.floor(Number(body.before_time) || 0));
+    const query = { token_address: address, interval };
+    if (beforeTime) query.bucket_start = { $lt: beforeTime };
 
     const rows = await listBounded(
       db,
       "RhCandle",
-      { token_address: address, interval },
+      query,
       "-bucket_start",
       limit
     );
@@ -45,6 +48,7 @@ export default async function (req: Request): Promise<Response> {
           trades: c.trades || 0,
         }))
         .sort((a, b) => a.t - b.t),
+      next_before_time: rows.length === limit ? rows[rows.length - 1]?.bucket_start || null : null,
       source: "kydos-indexer",
     });
   } catch (error) {

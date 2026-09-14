@@ -36,11 +36,15 @@ export default async function (req: Request): Promise<Response> {
         next_before_block: from > 0 && pools.length ? from : null });
     }
     const limit = Math.min(Math.max(Number(body.limit) || 50, 1), 1000);
-
-    const trades = await listBounded(db, "RhTrade", { token_address: address }, "-block_time", limit);
+    const beforeBlock = Math.max(0, Math.floor(Number(body.before_block) || 0));
+    const query = { token_address: address };
+    if (beforeBlock) query.block_number = { $lt: beforeBlock };
+    const trades = await listBounded(db, "RhTrade", query, "-block_number", limit);
+    const oldest = trades[trades.length - 1]?.block_number || 0;
 
     return Response.json({
       trades: trades.map(tradeShape),
+      next_before_block: trades.length === limit && oldest > 0 ? oldest : null,
       source: "kydos-indexer",
     });
   } catch (error) {

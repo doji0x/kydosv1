@@ -9,17 +9,10 @@
 // intervals only reach back over a short recent window.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { openRhStream } from "@/lib/rhStream";
-import { fetchRhCandles, fetchRhStream, fetchRhTrades } from "@/lib/rhApi";
+import { fetchAllRhCandles, fetchAllRhTrades } from "@/lib/rhApi";
 import { INTERVAL_MS, isClientInterval, applyTrade, fillGaps, fillIdle, seedSeries } from "@/lib/rollCandles";
 import { tradeTime } from "@/lib/rollCandles";
 import { mergeSeries } from "@/lib/chart/mergeBars";
-import { backfillSwaps } from "@/lib/chart/backfill";
-import { persistScan } from "@/lib/chart/persistBackfill";
-
-const STORED_LIMIT = 500;
-const STORED_TRADES = 1000;
-const SUB_MINUTE_MAX_AGE_MS = 30 * 60 * 1000;
-const HISTORY_BUDGET_MS = 45_000;
 
 // Assembled history is gap-filled and advanced to now, so the line is continuous end to end.
 const present = (bars, ms) => fillIdle(fillGaps(bars, ms), ms);
@@ -74,87 +67,32 @@ export default function useLiveCandles(address, timeframe) {
     return stop;
   }, [address]);
 
-  // Paint from the store, then extend backwards off the chain in the background.
+  // Paint the complete canonical store. Historical chain reads happen only in the server
+  // indexer, never once per visitor.
   useEffect(() => {
     let alive = true;
-    const isAlive = () => alive;
     ready.current = false;
     setCandles(null);
-    setHasOlder(true);
+    setHasOlder(false);
     setLoadingOlder(true);
     setProgress({ phase: "stored" });
     oldestBlock.current = 0;
     busy.current = false;
 
-    // Folds an older batch of bars under whatever is already on screen.
-    const foldOlder = (bars) => {
-      if (!alive || !bars.length) return;
-      setCandles((prev) => present(mergeSeries(bars, prev || []), ms));
-    };
-
     (async () => {
-      // 1. Bars the indexer already rolled, plus indexed swaps for buckets it hasn't sealed.
       const [stored, storedTrades] = await Promise.all([
-        isClientInterval(timeframe)
-          ? Promise.resolve([])
-          : fetchRhCandles(address, timeframe, STORED_LIMIT).then((d) => d?.candles || []).catch(() => []),
-        fetchRhTrades(address, STORED_TRADES).then((d) => d?.trades || []).catch(() => []),
+        isClientInterval(timeframe) ? Promise.resolve([]) : fetchAllRhCandles(address, timeframe),
+        fetchAllRhTrades(address),
       ]);
       if (!alive) return;
-
-      const blocks = storedTrades.map((t) => t.block_number || 0).filter(Boolean);
-      const newestStored = blocks.length ? Math.max(...blocks) : 0;
-      const oldestStored = blocks.length ? Math.min(...blocks) : 0;
       const fromStore = mergeSeries(stored, rollTrades(storedTrades, ms));
-
-      // Show it now. Everything after this point only adds to what the user already sees.
-      if (fromStore.length || priceRef.current) {
-        ready.current = true;
-        setCandles(present(fromStore.length ? fromStore : seedSeries(priceRef.current, ms), ms));
-        setProgress(null);
-        setLoadingOlder(false);
-      } else {
-        setProgress({ phase: "onchain", stored: 0 });
-      }
-      oldestBlock.current = oldestStored || 0;
-
-      // 2. Walk the chain for whatever the store hasn't reached, page by page.
-      const head = await fetchRhStream(address, 0, 0).then((d) => d?.head_block || 0).catch(() => 0);
-      if (!alive || !head) return;
-
-      const scan = await backfillSwaps({
-        address,
-        headBlock: head,
-        minBlock: newestStored,
-        maxAgeMs: isClientInterval(timeframe) ? SUB_MINUTE_MAX_AGE_MS : 0,
-        budgetMs: HISTORY_BUDGET_MS,
-        alive: isAlive,
-        onProgress: (p) => alive && !ready.current && setProgress({ phase: "onchain", ...p }),
-        onBatch: (all) => foldOlder(rollTrades(all, ms)),
-      });
-      if (!alive) return;
-
-      const scanned = rollTrades(scan.trades, ms);
-      if (!ready.current) {
-        let series = mergeSeries(fromStore, scanned);
-        if (!series.length && priceRef.current) series = seedSeries(priceRef.current, ms);
-        ready.current = true;
-        setCandles(present(series, ms));
-        setProgress(null);
-        setLoadingOlder(false);
-      }
-
-      oldestBlock.current = Math.min(...[scan.oldestBlock, oldestStored].filter(Boolean), Infinity);
-      const atLaunch = scan.reachedStart && !scan.stoppedAtMin;
-      setHasOlder(!atLaunch && Number.isFinite(oldestBlock.current) && oldestBlock.current > 1);
-
-      // Hand the scan to the store so the next visitor reads it instead of re-scanning.
-      if (scan.trades.length) persistScan(address, scan.trades, scanned, timeframe);
+      ready.current = true;
+      setCandles(present(fromStore.length ? fromStore : priceRef.current ? seedSeries(priceRef.current, ms) : [] , ms));
+      setProgress(null);
+      setLoadingOlder(false);
     })();
 
-    return () => {
-      alive = false;
-    };
+    return () => { alive = false; };
   }, [address, timeframe, ms]);
 
   // Fold streamed swaps in once something is on screen (they queue up until then).
@@ -188,32 +126,7 @@ export default function useLiveCandles(address, timeframe) {
     return () => window.clearInterval(id);
   }, [timeframe, ms]);
 
-  // Continue past the budget cut-off when the user pans back to the oldest loaded bar.
-  const loadOlder = useCallback(async () => {
-    if (busy.current || !hasOlder || !ready.current || !oldestBlock.current) return;
-    busy.current = true;
-    setLoadingOlder(true);
-    try {
-      const to = oldestBlock.current - 1;
-      if (to <= 0) return setHasOlder(false);
-      const scan = await backfillSwaps({
-        address,
-        headBlock: to,
-        maxAgeMs: isClientInterval(timeframe) ? SUB_MINUTE_MAX_AGE_MS : 0,
-        budgetMs: HISTORY_BUDGET_MS,
-        onProgress: (p) => setProgress({ phase: "older", ...p }),
-        onBatch: (all) => setCandles((prev) => present(mergeSeries(rollTrades(all, ms), prev || []), ms)),
-      });
-      oldestBlock.current = scan.oldestBlock;
-      setHasOlder(!scan.reachedStart && !!scan.oldestBlock);
-      // Panning back fills the store too, so this history is only ever read once.
-      if (scan.trades.length) persistScan(address, scan.trades, rollTrades(scan.trades, ms), timeframe);
-    } finally {
-      busy.current = false;
-      setLoadingOlder(false);
-      setProgress(null);
-    }
-  }, [address, timeframe, ms, hasOlder]);
+  const loadOlder = useCallback(() => {}, []);
 
   return { candles, status, price, progress, loadOlder, loadingOlder, hasOlder };
 }

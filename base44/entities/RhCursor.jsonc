@@ -1,15 +1,23 @@
 {
   "name": "RhCursor",
   "type": "object",
-  "description": "Tracks the last block indexed for a given scope so the poller resumes exactly where it stopped.",
+  "description": "Tracks forward indexing and paginated historical backfills so every chain range is processed once.",
   "properties": {
     "scope": {
       "type": "string",
-      "description": "Cursor key, e.g. swaps:<pool> or transfers:<token>"
+      "description": "Cursor key, e.g. swaps:<pool>, transfers:<token>, or history:<token>"
     },
     "last_block": {
       "type": "number",
       "default": 0
+    },
+    "page_key": {
+      "type": "string",
+      "description": "Opaque provider cursor for the next historical page"
+    },
+    "complete": {
+      "type": "boolean",
+      "default": false
     },
     "updated_at": {
       "type": "number"

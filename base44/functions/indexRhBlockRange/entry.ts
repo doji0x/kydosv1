@@ -8,10 +8,6 @@ import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import {
   blockNumber,
   toNum,
-  toBig,
-  words,
-  addrFromWord,
-  scaled,
   blockTimes,
   CHAIN_ID,
 } from "../../shared/rhRpc.js";
@@ -27,6 +23,8 @@ import {
   getRefPrice,
 } from "../../shared/rhStore.js";
 import { assertEngineCaller } from "../../shared/rhAuth.js";
+import { rialtoTrades } from "../../shared/rhRialto.js";
+import { backfillRhHistory } from "../../shared/rhHistory.js";
 
 const SWAP_TOPICS = [TOPIC.UNIV2_SWAP, TOPIC.UNIV3_SWAP];
 
@@ -37,71 +35,6 @@ function quoteUsdValue(symbol, ethUsd) {
   return /^(WETH|ETH)$/i.test(symbol || "") ? ethUsd : 0;
 }
 
-const transferLeg = (log, decimals) => ({
-  from: addrFromWord(log.topics[1] || ""),
-  to: addrFromWord(log.topics[2] || ""),
-  value: scaled(toBig(words(log.data)[0] || "0x0"), decimals ?? 18),
-});
-
-// Reconstructs Rialto fills from the transfer legs already present in the sweep.
-//
-// One transaction against one pool is ONE fill, however many transfer legs the router
-// splits it into. Both sides are therefore netted per transaction before a price is taken —
-// attributing a transaction's whole quote total to each individual base leg is what used to
-// mint phantom 10x prices on routed swaps.
-function rialtoTrades(pool, logs) {
-  const byTx = new Map();
-  const at = (hash) => {
-    if (!byTx.has(hash)) byTx.set(hash, { base: 0, quote: 0, log_index: Infinity, block_number: 0, trader: "" });
-    return byTx.get(hash);
-  };
-
-  for (const log of logs) {
-    const addr = log.address.toLowerCase();
-    const isBase = addr === pool.token_address;
-    const isQuote = addr === pool.quote_address;
-    if (!isBase && !isQuote) continue;
-
-    const leg = transferLeg(log, isBase ? pool.base_decimals : pool.quote_decimals);
-    const inbound = leg.to === pool.address;
-    const outbound = leg.from === pool.address;
-    if (inbound === outbound || !leg.value) continue;
-
-    const tx = at(log.transactionHash);
-    // Signed against the pool: positive = the pool received it.
-    const signed = inbound ? leg.value : -leg.value;
-    if (isBase) {
-      tx.base += signed;
-      if (toNum(log.logIndex) < tx.log_index) {
-        tx.log_index = toNum(log.logIndex);
-        tx.trader = outbound ? leg.to : leg.from;
-      }
-      tx.block_number = toNum(log.blockNumber);
-    } else {
-      tx.quote += signed;
-    }
-  }
-
-  const out = [];
-  for (const [hash, tx] of byTx) {
-    const token_amount = Math.abs(tx.base);
-    const quote_amount = Math.abs(tx.quote);
-    // A real fill moves both sides in opposite directions; anything else is a transfer,
-    // a liquidity change, or a leg whose counterpart fell outside this sweep.
-    if (!token_amount || !quote_amount || Math.sign(tx.base) === Math.sign(tx.quote)) continue;
-    out.push({
-      side: tx.base < 0 ? "buy" : "sell",
-      token_amount,
-      quote_amount,
-      trader: tx.trader,
-      tx_hash: hash,
-      log_index: tx.log_index === Infinity ? 0 : tx.log_index,
-      block_number: tx.block_number,
-    });
-  }
-  return out;
-}
-
 export default async function (req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
@@ -110,6 +43,9 @@ export default async function (req: Request): Promise<Response> {
     const db = base44.asServiceRole;
 
     const body = await req.json().catch(() => ({}));
+    if (body.mode === "history") {
+      return Response.json(await backfillRhHistory(db, Number(body.page_size) || 50));
+    }
     const initialLookback = Math.min(Number(body.initial_lookback) || 300, 5000);
     const maxSpan = Math.min(Number(body.max_span) || 2000, 2000);
     // The chain produces blocks faster than one window covers, so a single invocation keeps
