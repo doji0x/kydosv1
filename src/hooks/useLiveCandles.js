@@ -27,9 +27,15 @@ const present = (bars, ms) => fillIdle(fillGaps(bars, ms), ms);
 const rollTrades = (trades, ms) => {
   const sorted = trades
     .slice()
-    .sort((a, b) => tradeTime(a) - tradeTime(b) || (a.block_number || 0) - (b.block_number || 0));
+    .sort((a, b) => tradeTime(a) - tradeTime(b) || (a.block_number || 0) - (b.block_number || 0) || (a.log_index || 0) - (b.log_index || 0));
   let bars = [];
-  for (const t of sorted) bars = applyTrade(bars, t, ms);
+  const seen = new Set();
+  for (const t of sorted) {
+    const key = t.uid || (t.tx_hash && t.log_index != null ? `${t.tx_hash}-${t.log_index}` : null);
+    if (key && seen.has(key)) continue;
+    if (key) seen.add(key);
+    bars = applyTrade(bars, t, ms);
+  }
   return bars;
 };
 

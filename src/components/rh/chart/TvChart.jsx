@@ -28,6 +28,8 @@ export default function TvChart({ bars, multiplier = 1, height = 420, onNeedHist
   const candleRef = useRef(null);
   const volRef = useRef(null);
   const framedRef = useRef(false);
+  const interactedRef = useRef(false);
+  const firstTimeRef = useRef(null);
   const historyRef = useRef(onNeedHistory);
   historyRef.current = onNeedHistory;
 
@@ -86,7 +88,7 @@ export default function TvChart({ bars, multiplier = 1, height = 420, onNeedHist
 
     // Panning back past the loaded edge asks for more history.
     const onRange = (range) => {
-      if (range && range.from < 6) historyRef.current?.();
+      if (interactedRef.current && range && range.from < 6) historyRef.current?.();
     };
     chart.timeScale().subscribeVisibleLogicalRangeChange(onRange);
     chartRef.current = chart;
@@ -102,6 +104,10 @@ export default function TvChart({ bars, multiplier = 1, height = 420, onNeedHist
   useEffect(() => {
     if (!candleRef.current || !bars?.length) return;
     const data = toSeries(bars, multiplier);
+    const timeScale = chartRef.current.timeScale();
+    const previousRange = timeScale.getVisibleRange();
+    const prepended = firstTimeRef.current !== null && data[0]?.time < firstTimeRef.current;
+    firstTimeRef.current = data[0]?.time ?? null;
     candleRef.current.setData(data.map(({ up, volume, ...c }) => c));
     volRef.current.setData(
       data.map((c) => ({
@@ -111,20 +117,27 @@ export default function TvChart({ bars, multiplier = 1, height = 420, onNeedHist
       }))
     );
 
-    // Open on the recent action at full candle width rather than squeezing the whole history in.
-    if (!framedRef.current && data.length) {
+    // History arrives after the first paint. Keep framing the real activity until the
+    // user pans/zooms, rather than locking the viewport to a temporary seeded series.
+    if (data.length && (!framedRef.current || !interactedRef.current)) {
       framedRef.current = true;
-      const span = Math.min(data.length, 160);
-      chartRef.current.timeScale().setVisibleLogicalRange({
-        from: data.length - span,
-        to: data.length + 4,
-      });
+      let lastActive = bars.length - 1;
+      while (lastActive > 0 && !bars[lastActive].trades) lastActive -= 1;
+      const lastTime = Math.floor(bars[lastActive].t / 1000);
+      const end = Math.max(0, data.findIndex((c) => c.time === lastTime));
+      const span = Math.min(end + 1, 160);
+      timeScale.setVisibleLogicalRange({ from: end - span + 1, to: end + 4 });
+    } else if (prepended && previousRange) {
+      // Prepending older bars must not move the period the user is inspecting.
+      timeScale.setVisibleRange(previousRange);
     }
   }, [bars, multiplier]);
 
   return (
     <div className="rounded-2xl border border-border bg-card overflow-hidden" style={{ height }}>
-      <div ref={boxRef} className="w-full h-full" />
+      <div ref={boxRef} className="w-full h-full"
+        onPointerDown={() => { interactedRef.current = true; }}
+        onWheel={() => { interactedRef.current = true; }} />
     </div>
   );
 }
