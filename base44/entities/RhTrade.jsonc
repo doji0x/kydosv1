@@ -1,0 +1,79 @@
+{
+  "name": "RhTrade",
+  "type": "object",
+  "description": "A normalized swap on Robinhood Chain, parsed from on-chain logs by a venue adapter.",
+  "properties": {
+    "uid": {
+      "type": "string",
+      "description": "Dedupe key: <tx_hash>-<log_index>"
+    },
+    "chain_id": {
+      "type": "number",
+      "default": 4663
+    },
+    "token_address": {
+      "type": "string"
+    },
+    "symbol": {
+      "type": "string"
+    },
+    "venue": {
+      "type": "string",
+      "enum": [
+        "uniswap_v2",
+        "uniswap_v3",
+        "rialto"
+      ]
+    },
+    "pool": {
+      "type": "string"
+    },
+    "trader": {
+      "type": "string"
+    },
+    "side": {
+      "type": "string",
+      "enum": [
+        "buy",
+        "sell"
+      ]
+    },
+    "token_amount": {
+      "type": "number",
+      "description": "Human-scaled tracked-token amount"
+    },
+    "quote_amount": {
+      "type": "number",
+      "description": "Human-scaled quote-token amount"
+    },
+    "price_quote": {
+      "type": "number",
+      "description": "Quote per token for this fill"
+    },
+    "price_usd": {
+      "type": "number"
+    },
+    "volume_usd": {
+      "type": "number"
+    },
+    "block_number": {
+      "type": "number"
+    },
+    "block_time": {
+      "type": "number",
+      "description": "Epoch ms of the block"
+    },
+    "tx_hash": {
+      "type": "string"
+    },
+    "log_index": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "uid",
+    "token_address",
+    "venue",
+    "side"
+  ]
+}

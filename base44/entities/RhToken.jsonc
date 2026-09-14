@@ -1,0 +1,105 @@
+{
+  "name": "RhToken",
+  "type": "object",
+  "description": "Canonical Kydos-owned market stats for a tracked Robinhood Chain token. Written only by the indexer/market-engine backend functions.",
+  "properties": {
+    "address": {
+      "type": "string",
+      "description": "Lowercase contract address"
+    },
+    "name": {
+      "type": "string"
+    },
+    "symbol": {
+      "type": "string"
+    },
+    "decimals": {
+      "type": "number",
+      "default": 18
+    },
+    "total_supply": {
+      "type": "number",
+      "description": "Human-scaled total supply"
+    },
+    "icon_url": {
+      "type": "string"
+    },
+    "website": {
+      "type": "string"
+    },
+    "twitter": {
+      "type": "string"
+    },
+    "telegram": {
+      "type": "string"
+    },
+    "tracked": {
+      "type": "boolean",
+      "default": true
+    },
+    "price_quote": {
+      "type": "number",
+      "description": "Price in the pool's quote token"
+    },
+    "price_usd": {
+      "type": "number"
+    },
+    "market_cap": {
+      "type": "number"
+    },
+    "fdv": {
+      "type": "number"
+    },
+    "volume_24h": {
+      "type": "number",
+      "description": "USD volume over trailing 24h"
+    },
+    "liquidity_usd": {
+      "type": "number"
+    },
+    "change_1h": {
+      "type": "number"
+    },
+    "change_6h": {
+      "type": "number"
+    },
+    "change_24h": {
+      "type": "number"
+    },
+    "buys_24h": {
+      "type": "number",
+      "default": 0
+    },
+    "sells_24h": {
+      "type": "number",
+      "default": 0
+    },
+    "trades_24h": {
+      "type": "number",
+      "default": 0
+    },
+    "holder_count": {
+      "type": "number",
+      "default": 0
+    },
+    "pool_count": {
+      "type": "number",
+      "default": 0
+    },
+    "last_indexed_block": {
+      "type": "number",
+      "default": 0
+    },
+    "stats_updated_at": {
+      "type": "number",
+      "description": "Epoch ms of the last market-engine refresh"
+    },
+    "pools_synced_at": {
+      "type": "number",
+      "description": "Epoch ms of the last pool discovery run"
+    }
+  },
+  "required": [
+    "address"
+  ]
+}

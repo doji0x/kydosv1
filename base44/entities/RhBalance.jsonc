@@ -1,0 +1,33 @@
+{
+  "name": "RhBalance",
+  "type": "object",
+  "description": "Per-wallet balance of a tracked token, accumulated from indexed Transfer logs.",
+  "properties": {
+    "uid": {
+      "type": "string",
+      "description": "Dedupe key: <token>-<wallet>"
+    },
+    "token_address": {
+      "type": "string"
+    },
+    "wallet": {
+      "type": "string"
+    },
+    "balance": {
+      "type": "number",
+      "description": "Human-scaled balance"
+    },
+    "is_pool": {
+      "type": "boolean",
+      "default": false
+    },
+    "updated_block": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "uid",
+    "token_address",
+    "wallet"
+  ]
+}

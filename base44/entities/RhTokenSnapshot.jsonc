@@ -1,0 +1,66 @@
+{
+  "name": "RhTokenSnapshot",
+  "type": "object",
+  "description": "Cached live market data for a curated Robinhood Chain token. Written only by the fetchRhTokens backend function.",
+  "properties": {
+    "address": {
+      "type": "string",
+      "description": "Checksummed contract address"
+    },
+    "name": {
+      "type": "string"
+    },
+    "symbol": {
+      "type": "string"
+    },
+    "price": {
+      "type": "number"
+    },
+    "market_cap": {
+      "type": "number"
+    },
+    "fdv": {
+      "type": "number"
+    },
+    "volume_24h": {
+      "type": "number"
+    },
+    "liquidity": {
+      "type": "number"
+    },
+    "change_24h": {
+      "type": "number"
+    },
+    "buys_24h": {
+      "type": "number"
+    },
+    "sells_24h": {
+      "type": "number"
+    },
+    "icon_url": {
+      "type": "string"
+    },
+    "website": {
+      "type": "string"
+    },
+    "twitter": {
+      "type": "string"
+    },
+    "telegram": {
+      "type": "string"
+    },
+    "pair_url": {
+      "type": "string"
+    },
+    "pool_count": {
+      "type": "number"
+    },
+    "fetched_at": {
+      "type": "number",
+      "description": "Epoch ms of the last successful upstream fetch"
+    }
+  },
+  "required": [
+    "address"
+  ]
+}

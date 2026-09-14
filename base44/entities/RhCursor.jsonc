@@ -1,0 +1,21 @@
+{
+  "name": "RhCursor",
+  "type": "object",
+  "description": "Tracks the last block indexed for a given scope so the poller resumes exactly where it stopped.",
+  "properties": {
+    "scope": {
+      "type": "string",
+      "description": "Cursor key, e.g. swaps:<pool> or transfers:<token>"
+    },
+    "last_block": {
+      "type": "number",
+      "default": 0
+    },
+    "updated_at": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "scope"
+  ]
+}

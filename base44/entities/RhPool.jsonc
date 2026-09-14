@@ -1,0 +1,73 @@
+{
+  "name": "RhPool",
+  "type": "object",
+  "description": "A liquidity pool trading a tracked Robinhood Chain token, discovered on-chain.",
+  "properties": {
+    "address": {
+      "type": "string",
+      "description": "Lowercase pool address"
+    },
+    "token_address": {
+      "type": "string",
+      "description": "The tracked token this pool trades"
+    },
+    "venue": {
+      "type": "string",
+      "enum": [
+        "uniswap_v2",
+        "uniswap_v3",
+        "rialto"
+      ],
+      "description": "Which adapter parses this pool's events"
+    },
+    "token0": {
+      "type": "string"
+    },
+    "token1": {
+      "type": "string"
+    },
+    "base_is_token0": {
+      "type": "boolean",
+      "description": "True when the tracked token is token0"
+    },
+    "quote_address": {
+      "type": "string"
+    },
+    "quote_symbol": {
+      "type": "string"
+    },
+    "quote_decimals": {
+      "type": "number",
+      "default": 18
+    },
+    "base_decimals": {
+      "type": "number",
+      "default": 18
+    },
+    "fee": {
+      "type": "number",
+      "description": "Fee tier in hundredths of a bip (Uniswap V3)"
+    },
+    "reserve_base": {
+      "type": "number"
+    },
+    "reserve_quote": {
+      "type": "number"
+    },
+    "liquidity_usd": {
+      "type": "number"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    },
+    "discovered_at": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "address",
+    "token_address",
+    "venue"
+  ]
+}

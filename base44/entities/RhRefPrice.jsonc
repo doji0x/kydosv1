@@ -1,0 +1,22 @@
+{
+  "name": "RhRefPrice",
+  "type": "object",
+  "description": "Reference USD price for a quote asset (e.g. ETH), refreshed each indexing cycle.",
+  "properties": {
+    "symbol": {
+      "type": "string"
+    },
+    "price_usd": {
+      "type": "number"
+    },
+    "source": {
+      "type": "string"
+    },
+    "updated_at": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "symbol"
+  ]
+}
