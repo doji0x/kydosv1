@@ -23,6 +23,10 @@ export const isClientInterval = (i) => i in CLIENT_INTERVALS;
 
 export const bucketStart = (ts, ms) => Math.floor(ts / ms) * ms;
 
+// The market API publishes a swap's time as `timestamp`; entity records call it `block_time`.
+// Both reach the chart, so always read the time through here.
+export const tradeTime = (t) => t.block_time || t.timestamp || 0;
+
 function emptyBar(t, price) {
   return { t, open: price, high: price, low: price, close: price, volume_usd: 0, trades: 0 };
 }
@@ -34,7 +38,7 @@ function emptyBar(t, price) {
 export function applyTrade(bars, trade, ms, maxBars = 5000) {
   const price = trade.price_usd;
   if (!price || !isFinite(price)) return bars;
-  const t = bucketStart(trade.block_time || Date.now(), ms);
+  const t = bucketStart(tradeTime(trade) || Date.now(), ms);
   const next = bars.slice();
   const tail = next[next.length - 1];
 
@@ -80,6 +84,29 @@ export function fillIdle(bars, ms, now = Date.now(), maxBars = 5000) {
     next.push({ t, open: prev.close, high: prev.close, low: prev.close, close: prev.close, volume_usd: 0, trades: 0 });
   }
   return next.length > maxBars ? next.slice(next.length - maxBars) : next;
+}
+
+/**
+ * Fills quiet stretches *between* bars with flat carry-forward bars, so a sparse market draws
+ * a continuous line instead of candles floating at arbitrary distances. Runs longer than
+ * `maxRun` buckets are left as a single jump rather than thousands of empty bars.
+ */
+export function fillGaps(bars, ms, maxRun = 400) {
+  if (bars.length < 2) return bars;
+  const out = [bars[0]];
+  for (let i = 1; i < bars.length; i++) {
+    const prev = out[out.length - 1];
+    const gaps = (bars[i].t - prev.t) / ms - 1;
+    if (gaps > 0 && gaps <= maxRun) {
+      for (let g = 1; g <= gaps; g++) {
+        const t = prev.t + g * ms;
+        const c = out[out.length - 1].close;
+        out.push({ t, open: c, high: c, low: c, close: c, volume_usd: 0, trades: 0 });
+      }
+    }
+    out.push(bars[i]);
+  }
+  return out;
 }
 
 /** Seeds an empty sub-minute series from a single known price. */

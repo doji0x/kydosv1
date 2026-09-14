@@ -10,7 +10,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { openRhStream } from "@/lib/rhStream";
 import { fetchRhCandles, fetchRhStream, fetchRhTrades } from "@/lib/rhApi";
-import { INTERVAL_MS, isClientInterval, applyTrade, fillIdle, seedSeries } from "@/lib/rollCandles";
+import { INTERVAL_MS, isClientInterval, applyTrade, fillGaps, fillIdle, seedSeries } from "@/lib/rollCandles";
+import { tradeTime } from "@/lib/rollCandles";
 import { mergeSeries } from "@/lib/chart/mergeBars";
 import { backfillSwaps } from "@/lib/chart/backfill";
 import { persistScan } from "@/lib/chart/persistBackfill";
@@ -20,10 +21,13 @@ const STORED_TRADES = 400;
 const SUB_MINUTE_MAX_AGE_MS = 30 * 60 * 1000;
 const HISTORY_BUDGET_MS = 45_000;
 
+// Assembled history is gap-filled and advanced to now, so the line is continuous end to end.
+const present = (bars, ms) => fillIdle(fillGaps(bars, ms), ms);
+
 const rollTrades = (trades, ms) => {
   const sorted = trades
     .slice()
-    .sort((a, b) => (a.block_time || 0) - (b.block_time || 0) || (a.block_number || 0) - (b.block_number || 0));
+    .sort((a, b) => tradeTime(a) - tradeTime(b) || (a.block_number || 0) - (b.block_number || 0));
   let bars = [];
   for (const t of sorted) bars = applyTrade(bars, t, ms);
   return bars;
@@ -79,7 +83,7 @@ export default function useLiveCandles(address, timeframe) {
     // Folds an older batch of bars under whatever is already on screen.
     const foldOlder = (bars) => {
       if (!alive || !bars.length) return;
-      setCandles((prev) => fillIdle(mergeSeries(bars, prev || []), ms));
+      setCandles((prev) => present(mergeSeries(bars, prev || []), ms));
     };
 
     (async () => {
@@ -100,7 +104,7 @@ export default function useLiveCandles(address, timeframe) {
       // Show it now. Everything after this point only adds to what the user already sees.
       if (fromStore.length || priceRef.current) {
         ready.current = true;
-        setCandles(fillIdle(fromStore.length ? fromStore : seedSeries(priceRef.current, ms), ms));
+        setCandles(present(fromStore.length ? fromStore : seedSeries(priceRef.current, ms), ms));
         setProgress(null);
         setLoadingOlder(false);
       } else {
@@ -129,7 +133,7 @@ export default function useLiveCandles(address, timeframe) {
         let series = mergeSeries(fromStore, scanned);
         if (!series.length && priceRef.current) series = seedSeries(priceRef.current, ms);
         ready.current = true;
-        setCandles(fillIdle(series, ms));
+        setCandles(present(series, ms));
         setProgress(null);
         setLoadingOlder(false);
       }
@@ -192,7 +196,7 @@ export default function useLiveCandles(address, timeframe) {
         maxAgeMs: isClientInterval(timeframe) ? SUB_MINUTE_MAX_AGE_MS : 0,
         budgetMs: HISTORY_BUDGET_MS,
         onProgress: (p) => setProgress({ phase: "older", ...p }),
-        onBatch: (all) => setCandles((prev) => mergeSeries(rollTrades(all, ms), prev || [])),
+        onBatch: (all) => setCandles((prev) => present(mergeSeries(rollTrades(all, ms), prev || []), ms)),
       });
       oldestBlock.current = scan.oldestBlock;
       setHasOlder(!scan.reachedStart && !!scan.oldestBlock);
