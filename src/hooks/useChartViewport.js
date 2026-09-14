@@ -149,8 +149,10 @@ export default function useChartViewport(rows, { onNeedHistory } = {}) {
 
   // Reaching the oldest loaded bar pulls in more history.
   useEffect(() => {
-    if (total && first <= 1) onNeedHistory?.();
-  }, [first, total, onNeedHistory]);
+    // Only once the user has actually panned back to the oldest bar — a short series on
+    // first paint sits at index 0 by definition and must not trigger a scan.
+    if (total > 5 && first <= 1 && shift > 0) onNeedHistory?.();
+  }, [first, total, shift, onNeedHistory]);
 
   return {
     ref: setEl, width, rows: visible, first, last, endIndex, barW, yZoom, yShift, dragging,

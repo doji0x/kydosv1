@@ -40,6 +40,8 @@ export async function backfillSwaps({
     pages += 1;
     const oldestTime = batch.reduce((min, t) => Math.min(min, t.block_time || Infinity), Infinity);
     onProgress?.({ pages, trades: trades.length, oldestTime: isFinite(oldestTime) ? oldestTime : null });
+    // Hand each page up as it lands so the chart can grow while the walk continues.
+    if (batch.length) onBatch?.(trades.slice(), oldestBlock);
 
     // Everything below minBlock is already in the store — that's the whole point.
     if (minBlock && oldestBlock <= minBlock) {
