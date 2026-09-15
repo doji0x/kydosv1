@@ -9,9 +9,10 @@ import { isUsableTrade } from "./rhMarket.js";
 export async function readPoolSwaps(pools, from, to) {
   if (from > to || !pools.length) return [];
   if (to - from + 1 > 1000) throw new Error("Swap scan exceeds 1000 blocks");
-  const addresses = pools.map((p) => p.address);
+  const addresses = [...new Set(pools.map((p) => p.venue === "uniswap_v4" ? p.pool_manager : p.address))];
   const topics = [[...new Set(pools.flatMap((p) => swapTopic[p.venue] || []))]];
-  const byAddress = new Map(pools.map((p) => [p.address, p]));
+  const byAddress = new Map(pools.filter((p) => p.venue !== "uniswap_v4").map((p) => [p.address, p]));
+  const byPoolId = new Map(pools.filter((p) => p.venue === "uniswap_v4").map((p) => [p.address, p]));
   const logs = [];
   for (let start = from; start <= to; start += LOG_SPAN * 4) {
     const chunks = [];
@@ -23,7 +24,7 @@ export async function readPoolSwaps(pools, from, to) {
   }
   const times = await blockTimes([...new Set(logs.map((l) => Number(BigInt(l.blockNumber))))]);
   return logs.filter((l) => !l.removed).map((log) => {
-    const pool = byAddress.get(log.address.toLowerCase());
+    const pool = byAddress.get(log.address.toLowerCase()) || byPoolId.get(String(log.topics?.[1] || "").toLowerCase());
     const parsed = pool && parseSwapLog(log, pool);
     if (!parsed) return null;
     const priceQuote = parsed.quote_amount / parsed.token_amount;

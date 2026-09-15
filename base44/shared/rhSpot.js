@@ -33,6 +33,14 @@ async function curvePrice(pool) {
   return ret && ret !== "0x" ? scaled(toBig(ret), 18) : null;
 }
 
+function v4Price(pool) {
+  const sqrt = BigInt(pool.sqrt_price_x96 || "0");
+  if (!sqrt) return null;
+  const ratio = Number(sqrt) / Number(Q96);
+  const price1Per0 = ratio * ratio * 10 ** ((pool.token0 === pool.token_address ? pool.base_decimals : pool.quote_decimals) - (pool.token0 === pool.token_address ? pool.quote_decimals : pool.base_decimals));
+  return pool.base_is_token0 ? price1Per0 : 1 / price1Per0;
+}
+
 async function v2Price(pool) {
   const ret = await ethCall(pool.address, SELECTOR.getReserves);
   if (!ret || ret === "0x") return null;
@@ -53,6 +61,7 @@ async function v2Price(pool) {
 /** Quote-token price of one base token, read live from the pool. */
 export async function spotPriceQuote(pool) {
   if (pool.venue === "uniswap_v3") return v3Price(pool);
+  if (pool.venue === "uniswap_v4") return v4Price(pool);
   if (pool.venue === "kydos_curve") return curvePrice(pool);
   return v2Price(pool);
 }

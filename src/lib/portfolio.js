@@ -1,12 +1,12 @@
-import { quoteSell } from "@/lib/curve";
+import { currentPrice } from "@/lib/curve";
 
 // Average-cost accounting over a trader's fills, valued at the live curve.
 export function buildPortfolio(trades, tokensById) {
   const byToken = new Map();
   for (const t of trades) {
     const g = byToken.get(t.token_id) || { token_id: t.token_id, ticker: t.ticker, bought: 0, sold: 0, hoodIn: 0, hoodOut: 0 };
-    if (t.side === "buy") { g.bought += t.token_amount || 0; g.hoodIn += t.hood_amount || 0; }
-    else { g.sold += t.token_amount || 0; g.hoodOut += t.hood_amount || 0; }
+    if (t.side === "buy") { g.bought += t.token_amount || 0; g.hoodIn += t.quote_amount ?? t.hood_amount ?? 0; }
+    else { g.sold += t.token_amount || 0; g.hoodOut += t.quote_amount ?? t.hood_amount ?? 0; }
     byToken.set(t.token_id, g);
   }
 
@@ -16,7 +16,7 @@ export function buildPortfolio(trades, tokensById) {
     const avgCost = g.bought > 0 ? g.hoodIn / g.bought : 0;
     const qty = Math.max(0, g.bought - g.sold);
     const cost = avgCost * qty;
-    const value = token && qty > 0 ? quoteSell(token, qty) : 0;
+    const value = token && qty > 0 ? currentPrice(token) * qty : 0;
     const realized = g.hoodOut - avgCost * Math.min(g.sold, g.bought);
     positions.push({
       ...g, token, qty, avgCost, cost, value, realized,

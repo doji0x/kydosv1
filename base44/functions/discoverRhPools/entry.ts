@@ -18,7 +18,7 @@ import { upsertToken } from "../../shared/rhStore.js";
 import { assertEngineCaller } from "../../shared/rhAuth.js";
 
 const ZERO = "0x" + "0".repeat(40);
-const SWAP_TOPICS = [TOPIC.UNIV2_SWAP, TOPIC.UNIV3_SWAP];
+const SWAP_TOPICS = [TOPIC.UNIV2_SWAP, TOPIC.UNIV3_SWAP, TOPIC.UNIV4_SWAP];
 
 export default async function (req: Request): Promise<Response> {
   try {

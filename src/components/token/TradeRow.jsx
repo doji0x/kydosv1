@@ -11,7 +11,7 @@ export default function TradeRow({ trade }) {
       <span className="text-muted-foreground truncate">{shortAddr(trade.trader)}</span>
       <span className={buy ? "text-emerald-400" : "text-red-400"}>{buy ? "bought" : "sold"}</span>
       <span>{fmtTokens(trade.token_amount)} ${trade.ticker}</span>
-      <span className="text-muted-foreground">for {fmtHood(trade.hood_amount)} HOOD</span>
+      <span className="text-muted-foreground">for {fmtHood(trade.quote_amount ?? trade.hood_amount ?? 0)} ETH</span>
       <span className="ml-auto text-muted-foreground shrink-0">{timeAgo(trade.created_date)}</span>
     </div>
   );

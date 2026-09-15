@@ -15,35 +15,41 @@
         "sell"
       ]
     },
+    "quote_amount": {
+      "type": "number",
+      "description": "Native ETH spent or received"
+    },
     "hood_amount": {
       "type": "number",
-      "description": "HOOD spent or received"
+      "description": "Legacy quote amount retained for existing records"
     },
     "token_amount": {
-      "type": "number",
-      "description": "Tokens bought or sold"
+      "type": "number"
     },
     "price": {
       "type": "number",
-      "description": "Price per token in HOOD after trade"
+      "description": "ETH per token after trade"
     },
     "market_cap": {
       "type": "number",
-      "description": "Market cap after trade (HOOD)"
+      "description": "Market cap in ETH after trade"
     },
     "trader": {
-      "type": "string",
-      "description": "Wallet address or handle"
+      "type": "string"
     },
     "trader_id": {
-      "type": "string",
-      "description": "User id of the trader"
+      "type": "string"
+    },
+    "tx_hash": {
+      "type": "string"
+    },
+    "block_number": {
+      "type": "number"
     }
   },
   "required": [
     "token_id",
     "side",
-    "hood_amount",
     "token_amount"
   ]
 }

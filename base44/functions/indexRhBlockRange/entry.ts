@@ -8,6 +8,9 @@ import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import {
   blockNumber,
   toNum,
+  toBig,
+  words,
+  scaled,
   blockTimes,
   CHAIN_ID,
 } from "../../shared/rhRpc.js";
@@ -26,7 +29,8 @@ import { assertEngineCaller } from "../../shared/rhAuth.js";
 import { rialtoTrades } from "../../shared/rhRialto.js";
 import { backfillRhHistory } from "../../shared/rhHistory.js";
 
-const SWAP_TOPICS = [TOPIC.UNIV2_SWAP, TOPIC.UNIV3_SWAP, TOPIC.KYDOS_BUY, TOPIC.KYDOS_SELL];
+const SWAP_TOPICS = [TOPIC.UNIV2_SWAP, TOPIC.UNIV3_SWAP, TOPIC.UNIV4_SWAP, TOPIC.KYDOS_BUY, TOPIC.KYDOS_SELL];
+const PROVENANCE_TOPICS = [TOPIC.POOL_REGISTERED, TOPIC.HOOK_FEE_COLLECTED, TOPIC.POOL_FEES_SWEPT];
 
 export default async function (req: Request): Promise<Response> {
   try {
@@ -113,7 +117,7 @@ export default async function (req: Request): Promise<Response> {
     const addresses = [
       ...new Set(
         pools.flatMap((p) =>
-          p.venue === "rialto" ? [p.address, p.token_address, p.quote_address] : [p.address]
+          p.venue === "rialto" ? [p.address, p.token_address, p.quote_address] : p.venue === "uniswap_v4" ? [p.pool_manager, p.hook_address] : [p.address]
         ).filter(Boolean).map((a) => String(a).toLowerCase())
       ),
     ];
@@ -121,7 +125,7 @@ export default async function (req: Request): Promise<Response> {
       fromBlock,
       toBlock: targetBlock,
       addresses,
-      topics: hasRialto ? [...SWAP_TOPICS, TOPIC.TRANSFER] : SWAP_TOPICS,
+      topics: hasRialto ? [...SWAP_TOPICS, ...PROVENANCE_TOPICS, TOPIC.TRANSFER] : [...SWAP_TOPICS, ...PROVENANCE_TOPICS],
       // With an address filter the response is small, so the node tolerates a far wider
       // range per call than the unfiltered 10-block crawl.
       span: logSpan,
@@ -135,6 +139,27 @@ export default async function (req: Request): Promise<Response> {
       byAddress.get(addr).push(log);
     }
 
+    const poolById = new Map(pools.filter((p) => p.venue === "uniswap_v4").map((p) => [p.address, p]));
+    const provenance = sweep.logs.filter((log) => PROVENANCE_TOPICS.includes(String(log.topics?.[0] || "").toLowerCase())).map((log) => {
+      const pool = poolById.get(String(log.topics?.[1] || "").toLowerCase());
+      if (!pool) return null;
+      const w = words(log.data);
+      const eventTopic = String(log.topics[0]).toLowerCase();
+      const registered = eventTopic === TOPIC.POOL_REGISTERED;
+      const feeCollected = eventTopic === TOPIC.HOOK_FEE_COLLECTED;
+      return {
+        uid: `v4-${log.transactionHash}-${toNum(log.logIndex)}`, scope: registered ? "graduation" : "fee", target: `${log.transactionHash}-${toNum(log.logIndex)}`,
+        token_address: pool.token_address, source_address: log.address.toLowerCase(), status: "VERIFIED",
+        verification_method: "deterministic", severity: "SEV-5", recommended_action: "IGNORE", audited_at: Date.now(),
+        original_value: registered
+          ? { pool_id: pool.address, memecoin: w[0], quote_token: w[1], creator: w[2], liquidity_locked: true, tx_hash: log.transactionHash }
+          : feeCollected
+            ? { pool_id: pool.address, currency: w[0], fee_amount: scaled(toBig(w[1] || "0x0"), 18), creator_tax: scaled(toBig(w[2] || "0x0"), 18), tx_hash: log.transactionHash }
+            : { pool_id: pool.address, protocol_amount: scaled(toBig(w[0] || "0x0"), 18), buyback_amount: scaled(toBig(w[1] || "0x0"), 18), creator_amount: scaled(toBig(w[2] || "0x0"), 18), tokens_locked: scaled(toBig(w[3] || "0x0"), 18), tx_hash: log.transactionHash }
+      };
+    }).filter(Boolean);
+    if (provenance.length) await insertNewByUid(db, "RhAuditEvent", provenance);
+
     const summary = [];
     for (const pool of pools) {
       const quoteUsd = pool.launchpad_verified ? ethUsd : quoteUsdValue(pool.quote_address, ethUsd);
@@ -143,8 +168,10 @@ export default async function (req: Request): Promise<Response> {
       if (pool.venue === "rialto") {
         raw = rialtoTrades(pool, sweep.logs);
       } else {
-        for (const log of byAddress.get(pool.address) || []) {
+        const emitter = pool.venue === "uniswap_v4" ? pool.pool_manager : pool.address;
+        for (const log of byAddress.get(emitter) || []) {
           if (!isVenueSwap(pool.venue, log.topics?.[0])) continue;
+          if (pool.venue === "uniswap_v4" && String(log.topics?.[1] || "").toLowerCase() !== pool.address) continue;
           const parsed = parseSwapLog(log, pool);
           if (!parsed) continue;
           raw.push({
@@ -174,6 +201,8 @@ export default async function (req: Request): Promise<Response> {
             price_quote: priceQuote,
             price_usd: priceQuote * quoteUsd,
             volume_usd: t.quote_amount * quoteUsd,
+            sqrt_price_x96: t.sqrt_price_x96,
+            tick: t.tick,
             block_number: t.block_number,
             block_time: times[t.block_number] || Date.now(),
             tx_hash: t.tx_hash,
@@ -183,6 +212,8 @@ export default async function (req: Request): Promise<Response> {
         .filter(isUsableTrade);
 
       const inserted = await insertNewByUid(db, "RhTrade", records);
+      const latestV4 = pool.venue === "uniswap_v4" ? raw.filter((t) => t.sqrt_price_x96).at(-1) : null;
+      if (latestV4) await db.entities.RhPool.update(pool.id, { sqrt_price_x96: latestV4.sqrt_price_x96, current_tick: latestV4.tick });
       await setCursor(db, `swaps:${pool.address}`, scannedTo);
       await upsertToken(db, pool.token_address, { last_indexed_block: scannedTo });
 

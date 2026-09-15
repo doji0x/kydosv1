@@ -17,7 +17,7 @@ export default function TradeSheet({ token, onTraded }) {
             <p className="font-semibold gold-text truncate">{fmtHood(marketCap(token))} ETH</p>
           </div>
           {graduated ? (
-            <span className="text-xs font-mono px-3 h-9 rounded-full bg-emerald-500/15 text-emerald-400 flex items-center">Graduated · trading on DEX</span>
+            <span className="text-xs font-mono px-3 h-9 rounded-full bg-emerald-500/15 text-emerald-400 flex items-center">Graduated · V4 liquidity locked</span>
           ) : (
             <>
               <Button onClick={() => setSide("buy")} className="h-12 px-8 rounded-full font-semibold gold-glow">Buy</Button>

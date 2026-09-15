@@ -47,11 +47,11 @@ export default function TokenHeader({ token }) {
       <div className="grid grid-cols-2 sm:grid-cols-1 gap-3 sm:text-right shrink-0 font-mono">
         <div>
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Market cap</p>
-          <p className="text-lg font-semibold gold-text">{fmtHood(marketCap(token))} HOOD</p>
+          <p className="text-lg font-semibold gold-text">{fmtHood(marketCap(token))} ETH</p>
         </div>
         <div>
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Price</p>
-          <p className="text-sm">{fmtPrice(currentPrice(token))} HOOD</p>
+          <p className="text-sm">{fmtPrice(currentPrice(token))} ETH</p>
         </div>
       </div>
     </div>

@@ -27,7 +27,7 @@ export default function LaunchPreview({ form }) {
           </div>
         </div>
         <div className="mt-4 flex justify-between text-xs font-mono">
-          <span className="text-muted-foreground">MC <span className="text-foreground">27.95 HOOD</span></span>
+          <span className="text-muted-foreground">MC <span className="text-foreground">27.95 ETH</span></span>
           <span className="text-primary">0.0%</span>
         </div>
         <div className="mt-2 h-1 rounded-full bg-muted" />

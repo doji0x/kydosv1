@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Loader2, Rocket, X } from "lucide-react";
 import { useMe } from "@/lib/MeContext";
 import { GRADUATION_TARGET } from "@/lib/curve";
@@ -15,7 +16,7 @@ import { toast } from "sonner";
 import MediaUploadField from "@/components/media/MediaUploadField";
 import useGoBack from "@/lib/useGoBack";
 
-const empty = { name: "", ticker: "", description: "", image_url: "", website: "", twitter: "", telegram: "" };
+const empty = { name: "", ticker: "", description: "", image_url: "", website: "", twitter: "", telegram: "", creator_tax_bps: 0, buyback_enabled: true };
 
 export default function Launch() {
   const [form, setForm] = useState(empty);
@@ -69,10 +70,18 @@ export default function Launch() {
             <Field label="Telegram"><Input value={form.telegram} onChange={set("telegram")} placeholder="optional" className="h-11 bg-card" /></Field>
           </div>
 
+          <div className="rounded-2xl border border-border bg-card/60 p-4 space-y-4">
+            <div className="flex items-center justify-between gap-4">
+              <div><p className="text-sm font-medium">Buyback and five-year lock</p><p className="text-xs text-muted-foreground mt-1">Route the configured creator fee share into token buybacks and a linear vest.</p></div>
+              <Switch checked={form.buyback_enabled} onCheckedChange={(checked) => setForm((f) => ({ ...f, buyback_enabled: checked }))} />
+            </div>
+            <Field label="Optional creator tax (0–10%)"><Input type="number" min="0" max="10" step="0.1" value={form.creator_tax_bps / 100} onChange={(e) => setForm((f) => ({ ...f, creator_tax_bps: Math.min(1000, Math.max(0, Math.round(Number(e.target.value) * 100))) }))} className="h-11 bg-background font-mono" /></Field>
+          </div>
+
           <div className="rounded-2xl border border-border bg-card/60 p-4 text-sm text-muted-foreground font-mono grid sm:grid-cols-3 gap-3">
             <div><span className="block text-xs">Supply</span><span className="text-foreground">1,000,000,000</span></div>
             <div><span className="block text-xs">Graduation</span><span className="text-foreground">{GRADUATION_TARGET} ETH</span></div>
-            <div><span className="block text-xs">Launch fee</span><span className="text-foreground">Free</span></div>
+            <div><span className="block text-xs">Quote asset</span><span className="text-foreground">Native ETH</span></div>
           </div>
 
           <Button type="submit" size="lg" disabled={saving} className="w-full sm:w-auto rounded-full font-semibold px-8 gold-glow">

@@ -14,9 +14,19 @@
       "enum": [
         "uniswap_v2",
         "uniswap_v3",
+        "uniswap_v4",
         "rialto",
         "kydos_curve"
       ]
+    },
+    "pool_manager": {
+      "type": "string"
+    },
+    "hook_address": {
+      "type": "string"
+    },
+    "position_id": {
+      "type": "string"
     },
     "token0": {
       "type": "string"
@@ -44,6 +54,15 @@
     "fee": {
       "type": "number"
     },
+    "tick_spacing": {
+      "type": "number"
+    },
+    "sqrt_price_x96": {
+      "type": "string"
+    },
+    "current_tick": {
+      "type": "number"
+    },
     "reserve_base": {
       "type": "number"
     },
@@ -54,6 +73,10 @@
       "type": "number"
     },
     "launchpad_verified": {
+      "type": "boolean",
+      "default": false
+    },
+    "liquidity_locked": {
       "type": "boolean",
       "default": false
     },

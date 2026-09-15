@@ -3,12 +3,10 @@
   "type": "object",
   "properties": {
     "name": {
-      "type": "string",
-      "description": "Token name"
+      "type": "string"
     },
     "ticker": {
-      "type": "string",
-      "description": "Symbol, e.g. KYD"
+      "type": "string"
     },
     "description": {
       "type": "string"
@@ -26,15 +24,21 @@
       "type": "string"
     },
     "creator": {
-      "type": "string",
-      "description": "Creator wallet address"
+      "type": "string"
     },
     "creator_id": {
-      "type": "string",
-      "description": "Creator user id"
+      "type": "string"
     },
     "creator_handle": {
       "type": "string"
+    },
+    "creator_tax_bps": {
+      "type": "number",
+      "default": 0
+    },
+    "buyback_enabled": {
+      "type": "boolean",
+      "default": true
     },
     "chain_id": {
       "type": "number",
@@ -47,6 +51,16 @@
       "type": "string"
     },
     "uniswap_pair": {
+      "type": "string",
+      "description": "V4 PoolId after graduation"
+    },
+    "v4_position_id": {
+      "type": "string"
+    },
+    "hook_address": {
+      "type": "string"
+    },
+    "locker_address": {
       "type": "string"
     },
     "tx_hash": {
@@ -61,12 +75,11 @@
     },
     "reserve": {
       "type": "number",
-      "description": "On-chain native ETH reserve mirror",
+      "description": "Tracked native ETH reserve",
       "default": 0
     },
     "tokens_sold": {
       "type": "number",
-      "description": "On-chain tokens-sold mirror",
       "default": 0
     },
     "market_cap": {
@@ -76,8 +89,17 @@
     },
     "graduation_target": {
       "type": "number",
-      "description": "Reserve needed to graduate",
+      "description": "Tracked ETH needed to graduate",
       "default": 85
+    },
+    "graduation_phase": {
+      "type": "string",
+      "enum": [
+        "curve",
+        "swept",
+        "seeded"
+      ],
+      "default": "curve"
     },
     "status": {
       "type": "string",

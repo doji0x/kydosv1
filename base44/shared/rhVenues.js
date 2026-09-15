@@ -54,6 +54,23 @@ function parseV3(log, pool) {
   };
 }
 
+function parseV4(log, pool) {
+  const w = words(log.data);
+  if (w.length < 6) return null;
+  const a0 = toSigned(w[0]);
+  const a1 = toSigned(w[1]);
+  const baseDelta = pool.base_is_token0 ? a0 : a1;
+  const quoteDelta = pool.base_is_token0 ? a1 : a0;
+  const token_amount = Math.abs(scaled(baseDelta, pool.base_decimals ?? 18));
+  const quote_amount = Math.abs(scaled(quoteDelta, pool.quote_decimals ?? 18));
+  if (!token_amount || !quote_amount) return null;
+  return {
+    side: baseDelta < 0n ? "buy" : "sell", token_amount, quote_amount,
+    trader: addrFromWord(log.topics[2] || ""), sqrt_price_x96: toBig(w[2]).toString(),
+    tick: Number(toSigned(w[4])),
+  };
+}
+
 function parseKydosCurve(log) {
   const w = words(log.data);
   if (w.length < 3) return null;
@@ -72,9 +89,10 @@ function parseKydosCurve(log) {
 export const SWAP_TOPICS_BY_VENUE = {
   uniswap_v2: [TOPIC.UNIV2_SWAP],
   uniswap_v3: [TOPIC.UNIV3_SWAP],
+  uniswap_v4: [TOPIC.UNIV4_SWAP],
   kydos_curve: [TOPIC.KYDOS_BUY, TOPIC.KYDOS_SELL],
 };
-export const SWAP_TOPIC_BY_VENUE = { uniswap_v2: TOPIC.UNIV2_SWAP, uniswap_v3: TOPIC.UNIV3_SWAP };
+export const SWAP_TOPIC_BY_VENUE = { uniswap_v2: TOPIC.UNIV2_SWAP, uniswap_v3: TOPIC.UNIV3_SWAP, uniswap_v4: TOPIC.UNIV4_SWAP };
 export const isVenueSwap = (venue, topic) => (SWAP_TOPICS_BY_VENUE[venue] || []).includes(String(topic || "").toLowerCase());
 
 // Rialto pools expose no known Swap signature, so their fills are inferred from the
@@ -82,6 +100,7 @@ export const isVenueSwap = (venue, topic) => (SWAP_TOPICS_BY_VENUE[venue] || [])
 export function parseSwapLog(log, pool) {
   if (pool.venue === "uniswap_v2") return parseV2(log, pool);
   if (pool.venue === "uniswap_v3") return parseV3(log, pool);
+  if (pool.venue === "uniswap_v4") return parseV4(log, pool);
   if (pool.venue === "kydos_curve") return parseKydosCurve(log);
   return null;
 }

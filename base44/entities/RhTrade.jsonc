@@ -1,7 +1,7 @@
 {
   "name": "RhTrade",
   "type": "object",
-  "description": "A normalized swap on Robinhood Chain with canonical verification status.",
+  "description": "A normalized Robinhood Chain swap with canonical verification status.",
   "properties": {
     "uid": {
       "type": "string",
@@ -22,6 +22,7 @@
       "enum": [
         "uniswap_v2",
         "uniswap_v3",
+        "uniswap_v4",
         "rialto",
         "kydos_curve"
       ]
@@ -52,6 +53,12 @@
       "type": "number"
     },
     "volume_usd": {
+      "type": "number"
+    },
+    "sqrt_price_x96": {
+      "type": "string"
+    },
+    "tick": {
       "type": "number"
     },
     "block_number": {

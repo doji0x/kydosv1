@@ -8,7 +8,8 @@ export async function refetchTrade(db, trade) {
   if (!pool || pool.venue === "rialto" || !trade.tx_hash) return null;
   const receipt = await rpc("eth_getTransactionReceipt", [trade.tx_hash]);
   const topic = SWAP_TOPIC_BY_VENUE[pool.venue];
-  const log = receipt?.logs?.find((item) => item.address?.toLowerCase() === pool.address && item.topics?.[0]?.toLowerCase() === topic);
+  const emitter = pool.venue === "uniswap_v4" ? pool.pool_manager : pool.address;
+  const log = receipt?.logs?.find((item) => item.address?.toLowerCase() === emitter && item.topics?.[0]?.toLowerCase() === topic && (pool.venue !== "uniswap_v4" || item.topics?.[1]?.toLowerCase() === pool.address));
   if (!log) return null;
   const decoded = parseSwapLog(log, pool);
   if (!decoded) return null;

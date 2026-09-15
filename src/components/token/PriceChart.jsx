@@ -4,14 +4,14 @@ import { format } from "date-fns";
 import { marketCap, fmtHood } from "@/lib/curve";
 
 export default function PriceChart({ token, trades }) {
-  const base = { time: new Date(token.created_date).getTime(), cap: 27.95 };
+  const base = { time: new Date(token.created_date).getTime(), cap: marketCap({ ...token, reserve: 0, tokens_sold: 0 }) };
   const data = [base, ...[...trades].reverse().map((t) => ({ time: new Date(t.created_date).getTime(), cap: t.market_cap }))];
   if (data.length === 1) data.push({ time: Date.now(), cap: marketCap(token) });
 
   return (
     <div className="rounded-2xl border border-border bg-card/70 p-5">
       <div className="flex items-center justify-between mb-4">
-        <p className="text-xs uppercase tracking-wider text-muted-foreground">Market cap · HOOD</p>
+        <p className="text-xs uppercase tracking-wider text-muted-foreground">Market cap · ETH</p>
         <p className="font-mono text-xs text-muted-foreground">{trades.length} trades</p>
       </div>
       <div className="h-64">
@@ -28,7 +28,7 @@ export default function PriceChart({ token, trades }) {
             <Tooltip
               contentStyle={{ background: "hsl(0 0% 8%)", border: "1px solid hsl(0 0% 16%)", borderRadius: 12, fontFamily: "var(--font-mono)", fontSize: 12 }}
               labelFormatter={(v) => format(v, "MMM d, HH:mm:ss")}
-              formatter={(v) => [`${fmtHood(v)} HOOD`, "MC"]}
+              formatter={(v) => [`${fmtHood(v)} ETH`, "MC"]}
             />
             <Area type="monotone" dataKey="cap" stroke="hsl(42 96% 56%)" strokeWidth={2} fill="url(#gold)" isAnimationActive />
           </AreaChart>

@@ -1,16 +1,31 @@
 {
   "name": "KydosConfig",
   "type": "object",
-  "description": "Active Robinhood Chain launchpad deployment configuration.",
+  "description": "Active Kydos launchpad and Uniswap V4 deployment configuration.",
   "properties": {
     "chain_id": {
       "type": "number"
+    },
+    "protocol_version": {
+      "type": "string",
+      "enum": [
+        "legacy_v2",
+        "pons_v4"
+      ],
+      "default": "legacy_v2"
     },
     "factory_address": {
       "type": "string"
     },
     "curve_implementation": {
       "type": "string"
+    },
+    "launch_deployer": {
+      "type": "string"
+    },
+    "launch_config_id": {
+      "type": "number",
+      "default": 0
     },
     "uniswap_router": {
       "type": "string"
@@ -19,6 +34,36 @@
       "type": "string"
     },
     "weth_address": {
+      "type": "string"
+    },
+    "v4_pool_manager": {
+      "type": "string"
+    },
+    "v4_position_manager": {
+      "type": "string"
+    },
+    "v4_state_view": {
+      "type": "string"
+    },
+    "v4_universal_router": {
+      "type": "string"
+    },
+    "v4_permit2": {
+      "type": "string"
+    },
+    "hook_address": {
+      "type": "string"
+    },
+    "locker_address": {
+      "type": "string"
+    },
+    "fee_escrow_address": {
+      "type": "string"
+    },
+    "buyback_vault_address": {
+      "type": "string"
+    },
+    "graduation_executor": {
       "type": "string"
     },
     "deployment_tx": {
@@ -37,9 +82,6 @@
   },
   "required": [
     "chain_id",
-    "factory_address",
-    "curve_implementation",
-    "uniswap_router",
-    "weth_address"
+    "factory_address"
   ]
 }

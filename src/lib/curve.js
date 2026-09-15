@@ -1,12 +1,12 @@
 // Constant-product bonding curve with virtual reserves (pump.fun / Pons style).
 export const TOTAL_SUPPLY = 1_000_000_000;
-export const VIRTUAL_HOOD = 30;
+export const VIRTUAL_ETH = 30;
 export const VIRTUAL_TOKENS = 1_073_000_000;
-export const GRADUATION_TARGET = 85; // HOOD in reserve to graduate
-export const K = VIRTUAL_HOOD * VIRTUAL_TOKENS;
+export const GRADUATION_TARGET = 85; // native ETH held before graduation
+export const K = VIRTUAL_ETH * VIRTUAL_TOKENS;
 
 export function currentPrice(token) {
-  const h = VIRTUAL_HOOD + (token.reserve || 0);
+  const h = VIRTUAL_ETH + (token.reserve || 0);
   const t = VIRTUAL_TOKENS - (token.tokens_sold || 0);
   return h / t;
 }
@@ -16,14 +16,14 @@ export function marketCap(token) {
 }
 
 export function quoteBuy(token, hoodIn) {
-  const h = VIRTUAL_HOOD + (token.reserve || 0);
+  const h = VIRTUAL_ETH + (token.reserve || 0);
   const t = VIRTUAL_TOKENS - (token.tokens_sold || 0);
   const tokensOut = t - K / (h + hoodIn);
   return Math.max(0, Math.min(tokensOut, TOTAL_SUPPLY - (token.tokens_sold || 0)));
 }
 
 export function quoteSell(token, tokensIn) {
-  const h = VIRTUAL_HOOD + (token.reserve || 0);
+  const h = VIRTUAL_ETH + (token.reserve || 0);
   const t = VIRTUAL_TOKENS - (token.tokens_sold || 0);
   const hoodOut = h - K / (t + tokensIn);
   return Math.max(0, Math.min(hoodOut, token.reserve || 0));

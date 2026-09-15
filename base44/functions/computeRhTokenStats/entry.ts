@@ -20,6 +20,10 @@ async function poolLiquidityUsd(pool, ethUsd, tokenPriceUsd) {
     reserveBase = await erc20BalanceOf(pool.token_address, pool.address, pool.base_decimals ?? 18);
     reserveQuote = scaled(toBig(await rpc("eth_getBalance", [pool.address, "latest"])), 18);
   }
+  if (pool.venue === "uniswap_v4") {
+    reserveBase = pool.reserve_base || 0;
+    reserveQuote = pool.reserve_quote || 0;
+  }
   if (pool.venue === "uniswap_v2") {
     const r = await v2Reserves(pool.address, pool.base_is_token0 ? pool.base_decimals : pool.quote_decimals, pool.base_is_token0 ? pool.quote_decimals : pool.base_decimals);
     if (r) {

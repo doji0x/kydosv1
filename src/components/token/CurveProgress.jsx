@@ -16,11 +16,11 @@ export default function CurveProgress({ token }) {
       </div>
       <p className="text-xs text-muted-foreground mt-3 leading-relaxed">
         {token.status === "graduated"
-          ? "Graduated. Reserve migrated to a locked DEX pool."
-          : `${fmtHood(token.reserve || 0)} of ${target} HOOD raised. At ${target} HOOD the curve closes and liquidity is locked on the DEX.`}
+          ? "Graduated. Native ETH and reserved tokens are permanently locked in a full-range Uniswap V4 position."
+          : `${fmtHood(token.reserve || 0)} of ${target} ETH held. At ${target} ETH the curve closes and liquidity is permanently locked on Uniswap V4.`}
       </p>
       <div className="grid grid-cols-2 gap-3 mt-4 font-mono text-xs">
-        <Stat label="In curve" value={`${fmtHood(token.reserve || 0)} HOOD`} />
+        <Stat label="In curve" value={`${fmtHood(token.reserve || 0)} ETH`} />
         <Stat label="Sold" value={fmtTokens(token.tokens_sold || 0)} />
         <Stat label="Trades" value={token.trade_count || 0} />
         <Stat label="Supply" value="1.00B" />

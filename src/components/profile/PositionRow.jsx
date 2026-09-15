@@ -16,7 +16,7 @@ export default function PositionRow({ position }) {
         <p className="font-mono text-[11px] text-muted-foreground">{fmtTokens(position.qty)} held</p>
       </div>
       <div className="text-right font-mono">
-        <p className="text-sm">{fmtHood(position.value)} <span className="text-muted-foreground text-[11px]">HOOD</span></p>
+        <p className="text-sm">{fmtHood(position.value)} <span className="text-muted-foreground text-[11px]">ETH</span></p>
         <p className={`text-[11px] ${up ? "text-emerald-400" : "text-destructive"}`}>
           {up ? "+" : ""}{fmtHood(position.unrealized)} ({up ? "+" : ""}{position.pct.toFixed(1)}%)
         </p>

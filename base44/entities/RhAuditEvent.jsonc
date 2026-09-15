@@ -12,7 +12,9 @@
         "trade",
         "candle",
         "pool",
-        "market"
+        "market",
+        "graduation",
+        "fee"
       ]
     },
     "target": {
@@ -28,6 +30,7 @@
       "type": "string",
       "enum": [
         "OPEN",
+        "VERIFIED",
         "IGNORED",
         "QUARANTINED",
         "REPAIRED",

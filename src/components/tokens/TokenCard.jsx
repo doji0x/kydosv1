@@ -42,7 +42,7 @@ export default function TokenCard({ token, index = 0 }) {
           </div>
         </div>
         <div className="px-4 py-3 flex items-center gap-3 font-mono text-xs">
-          <span className="text-muted-foreground">MC <span className="text-foreground font-semibold">{fmtHood(marketCap(token))}</span> HOOD</span>
+          <span className="text-muted-foreground">MC <span className="text-foreground font-semibold">{fmtHood(marketCap(token))}</span> ETH</span>
           <span className="text-muted-foreground ml-auto">{token.trade_count || 0} trades · {timeAgo(token.created_date)}</span>
           <button
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); setPosting(true); }}
