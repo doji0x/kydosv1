@@ -7,17 +7,17 @@ const WalletContext=createContext({address:"",chainId:0,connected:false,isTestne
 const isMetaMask=(provider)=>provider?.isMetaMask && !provider?.isCoinbaseWallet;
 
 async function findMetaMask(){
-  const injected=window.ethereum;
-  const listed=injected?.providers?.find(isMetaMask);
-  if(listed) return listed;
-  if(isMetaMask(injected)) return injected;
   const announced=[];
-  const listener=(event)=>{if(event.detail?.info?.rdns==="io.metamask"||isMetaMask(event.detail?.provider)) announced.push(event.detail.provider);};
+  const listener=(event)=>{if(event.detail?.info?.rdns==="io.metamask") announced.push(event.detail.provider);};
   window.addEventListener("eip6963:announceProvider",listener);
   window.dispatchEvent(new Event("eip6963:requestProvider"));
   await new Promise((resolve)=>setTimeout(resolve,150));
   window.removeEventListener("eip6963:announceProvider",listener);
-  return announced[0]||null;
+  if(announced[0]) return announced[0];
+  const injected=window.ethereum;
+  const listed=injected?.providers?.find(isMetaMask);
+  if(listed) return listed;
+  return isMetaMask(injected)?injected:null;
 }
 
 export function WalletProvider({children}){
