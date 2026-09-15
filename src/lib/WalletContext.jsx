@@ -2,7 +2,8 @@ import React,{createContext,useContext,useEffect,useMemo,useState} from "react";
 import { BrowserProvider } from "ethers";
 import { RH_CHAINS, RH_TESTNET } from "@/lib/kydosContracts";
 
-const WalletContext=createContext(null);
+const unavailable=async()=>{throw new Error("Wallet connection is not available yet");};
+const WalletContext=createContext({address:"",chainId:0,connected:false,isTestnet:false,connect:unavailable,signer:unavailable});
 const isMetaMask=(provider)=>provider?.isMetaMask && !provider?.isCoinbaseWallet;
 
 async function findMetaMask(){
