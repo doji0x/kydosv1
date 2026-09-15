@@ -2,8 +2,8 @@
 // Uses plain outbound fetch() — NOT a Core integration — so it never consumes integration credits.
 import { secrets } from "base44:runtime";
 
-export const CHAIN_ID = 4663;
-export const PUBLIC_RPC = "https://rpc.mainnet.chain.robinhood.com";
+export const CHAIN_ID = 46630;
+export const PUBLIC_RPC = "https://rpc.testnet.chain.robinhood.com";
 
 export function rpcUrl() {
   try {

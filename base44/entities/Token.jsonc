@@ -36,28 +36,47 @@
     "creator_handle": {
       "type": "string"
     },
+    "chain_id": {
+      "type": "number",
+      "default": 46630
+    },
+    "token_address": {
+      "type": "string"
+    },
+    "curve_address": {
+      "type": "string"
+    },
+    "uniswap_pair": {
+      "type": "string"
+    },
+    "tx_hash": {
+      "type": "string"
+    },
+    "block_number": {
+      "type": "number"
+    },
     "total_supply": {
       "type": "number",
       "default": 1000000000
     },
     "reserve": {
       "type": "number",
-      "description": "HOOD collected in the bonding curve",
+      "description": "On-chain native ETH reserve mirror",
       "default": 0
     },
     "tokens_sold": {
       "type": "number",
-      "description": "Tokens sold from the curve",
+      "description": "On-chain tokens-sold mirror",
       "default": 0
     },
     "market_cap": {
       "type": "number",
-      "description": "Market cap in HOOD",
+      "description": "Market cap in native ETH",
       "default": 0
     },
     "graduation_target": {
       "type": "number",
-      "description": "Reserve needed to graduate (HOOD)",
+      "description": "Reserve needed to graduate",
       "default": 85
     },
     "status": {

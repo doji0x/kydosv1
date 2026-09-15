@@ -54,16 +54,35 @@ function parseV3(log, pool) {
   };
 }
 
-export const SWAP_TOPIC_BY_VENUE = {
-  uniswap_v2: TOPIC.UNIV2_SWAP,
-  uniswap_v3: TOPIC.UNIV3_SWAP,
+function parseKydosCurve(log) {
+  const w = words(log.data);
+  if (w.length < 3) return null;
+  const topic = (log.topics?.[0] || "").toLowerCase();
+  const buy = topic === TOPIC.KYDOS_BUY;
+  const sell = topic === TOPIC.KYDOS_SELL;
+  if (!buy && !sell) return null;
+  return {
+    side: buy ? "buy" : "sell",
+    token_amount: scaled(toBig(buy ? w[1] : w[0]), 18),
+    quote_amount: scaled(toBig(buy ? w[0] : w[1]), 18),
+    trader: addrFromWord(log.topics[1] || ""),
+  };
+}
+
+export const SWAP_TOPICS_BY_VENUE = {
+  uniswap_v2: [TOPIC.UNIV2_SWAP],
+  uniswap_v3: [TOPIC.UNIV3_SWAP],
+  kydos_curve: [TOPIC.KYDOS_BUY, TOPIC.KYDOS_SELL],
 };
+export const SWAP_TOPIC_BY_VENUE = { uniswap_v2: TOPIC.UNIV2_SWAP, uniswap_v3: TOPIC.UNIV3_SWAP };
+export const isVenueSwap = (venue, topic) => (SWAP_TOPICS_BY_VENUE[venue] || []).includes(String(topic || "").toLowerCase());
 
 // Rialto pools expose no known Swap signature, so their fills are inferred from the
 // paired ERC20 Transfer legs in the same transaction (see inferRialtoTrades).
 export function parseSwapLog(log, pool) {
   if (pool.venue === "uniswap_v2") return parseV2(log, pool);
   if (pool.venue === "uniswap_v3") return parseV3(log, pool);
+  if (pool.venue === "kydos_curve") return parseKydosCurve(log);
   return null;
 }
 

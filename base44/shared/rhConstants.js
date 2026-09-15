@@ -10,6 +10,8 @@ export const TOPIC = {
   UNIV3_SWAP: "0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67",
   // Transfer(address,address,uint256)
   TRANSFER: "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+  KYDOS_BUY: "0xbeae048c6d270d9469f86cf6e8fedda3c60ad770f16c24c9fc131c8e9a09101d",
+  KYDOS_SELL: "0x846c37eef631e0943682d87352ec117c20008eb7f425c9b85ac011a6d4774cc0",
 };
 
 // 4-byte function selectors
@@ -24,9 +26,10 @@ export const SELECTOR = {
   name: "0x06fdde03",
   totalSupply: "0x18160ddd",
   balanceOf: "0x70a08231",
+  currentPrice: "0x9d1b464a",
 };
 
-export const VENUES = ["uniswap_v2", "uniswap_v3", "rialto"];
+export const VENUES = ["uniswap_v2", "uniswap_v3", "rialto", "kydos_curve"];
 
 // Symbols remain useful as display metadata, but never establish quote-asset identity.
 export const STABLES = ["USDC", "USDT", "DAI", "USDG", "USDC.E", "BUSD", "FRAX", "USDS"];
@@ -68,6 +71,6 @@ export const INTERVALS = {
   "1d": 86_400_000,
 };
 
-export const CHAIN_ID_DEFAULT = 4663;
+export const CHAIN_ID_DEFAULT = 46630;
 
 export const isStable = (symbol) => !!symbol && STABLES.includes(symbol.toUpperCase());

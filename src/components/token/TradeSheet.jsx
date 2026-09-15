@@ -14,7 +14,7 @@ export default function TradeSheet({ token, onTraded }) {
         <div className="mx-auto max-w-2xl px-4 h-20 flex items-center gap-3">
           <div className="flex-1 font-mono min-w-0">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Market cap</p>
-            <p className="font-semibold gold-text truncate">{fmtHood(marketCap(token))} HOOD</p>
+            <p className="font-semibold gold-text truncate">{fmtHood(marketCap(token))} ETH</p>
           </div>
           {graduated ? (
             <span className="text-xs font-mono px-3 h-9 rounded-full bg-emerald-500/15 text-emerald-400 flex items-center">Graduated · trading on DEX</span>

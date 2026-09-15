@@ -10,7 +10,7 @@ export async function readPoolSwaps(pools, from, to) {
   if (from > to || !pools.length) return [];
   if (to - from + 1 > 1000) throw new Error("Swap scan exceeds 1000 blocks");
   const addresses = pools.map((p) => p.address);
-  const topics = [[...new Set(pools.map((p) => swapTopic[p.venue]))]];
+  const topics = [[...new Set(pools.flatMap((p) => swapTopic[p.venue] || []))]];
   const byAddress = new Map(pools.map((p) => [p.address, p]));
   const logs = [];
   for (let start = from; start <= to; start += LOG_SPAN * 4) {

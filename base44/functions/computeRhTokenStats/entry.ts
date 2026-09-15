@@ -2,6 +2,7 @@
 // RhTrade records plus live pool reserves, then upserts the canonical RhToken record.
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { quoteUsdValue } from "../../shared/rhConstants.js";
+import { rpc, scaled, toBig } from "../../shared/rhRpc.js";
 import { v2Reserves, erc20BalanceOf } from "../../shared/rhErc20.js";
 import { computeStats } from "../../shared/rhMarket.js";
 import { isTrusted } from "../../shared/rhAudit.js";
@@ -11,10 +12,14 @@ import { listBounded, upsertToken, getRefPrice } from "../../shared/rhStore.js";
 import { assertEngineCaller } from "../../shared/rhAuth.js";
 
 async function poolLiquidityUsd(pool, ethUsd, tokenPriceUsd) {
-  const quoteUsd = quoteUsdValue(pool.quote_address, ethUsd);
+  const quoteUsd = pool.launchpad_verified ? ethUsd : quoteUsdValue(pool.quote_address, ethUsd);
   let reserveBase = null;
   let reserveQuote = null;
 
+  if (pool.venue === "kydos_curve") {
+    reserveBase = await erc20BalanceOf(pool.token_address, pool.address, pool.base_decimals ?? 18);
+    reserveQuote = scaled(toBig(await rpc("eth_getBalance", [pool.address, "latest"])), 18);
+  }
   if (pool.venue === "uniswap_v2") {
     const r = await v2Reserves(pool.address, pool.base_is_token0 ? pool.base_decimals : pool.quote_decimals, pool.base_is_token0 ? pool.quote_decimals : pool.base_decimals);
     if (r) {
@@ -59,7 +64,7 @@ export default async function (req: Request): Promise<Response> {
       for (const pool of pools) {
         const price = await spotPriceQuote(pool).catch(() => null);
         if (!price || !isFinite(price) || price <= 0) continue;
-        const quoteUsd = quoteUsdValue(pool.quote_address, ethUsd);
+        const quoteUsd = pool.launchpad_verified ? ethUsd : quoteUsdValue(pool.quote_address, ethUsd);
         if (!quoteUsd) continue;
         quotes.push({
           pool: pool.address,

@@ -10,6 +10,7 @@ import CurveProgress from "@/components/token/CurveProgress";
 import ActivityFeed from "@/components/token/ActivityFeed";
 import TradeSheet from "@/components/token/TradeSheet";
 import useGoBack from "@/lib/useGoBack";
+import WalletButton from "@/components/wallet/WalletButton";
 
 export default function TokenDetail() {
   const { id } = useParams();
@@ -59,6 +60,7 @@ export default function TokenDetail() {
             <span className="font-display font-semibold truncate">{token?.name}</span>
             {token && <span className="font-mono text-xs text-primary">${token.ticker}</span>}
           </div>
+          <WalletButton />
           <button onClick={share} className="h-10 w-10 rounded-full flex items-center justify-center hover:bg-card"><Share2 className="h-4.5 w-4.5" /></button>
         </div>
       </header>

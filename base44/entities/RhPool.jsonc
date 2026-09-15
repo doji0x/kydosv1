@@ -14,7 +14,8 @@
       "enum": [
         "uniswap_v2",
         "uniswap_v3",
-        "rialto"
+        "rialto",
+        "kydos_curve"
       ]
     },
     "token0": {
@@ -51,6 +52,10 @@
     },
     "liquidity_usd": {
       "type": "number"
+    },
+    "launchpad_verified": {
+      "type": "boolean",
+      "default": false
     },
     "active": {
       "type": "boolean",

@@ -6,10 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Loader2, Rocket, X } from "lucide-react";
-import { getWallet } from "@/lib/wallet";
 import { useMe } from "@/lib/MeContext";
-import { TOTAL_SUPPLY, GRADUATION_TARGET } from "@/lib/curve";
+import { GRADUATION_TARGET } from "@/lib/curve";
 import LaunchPreview from "@/components/launch/LaunchPreview";
+import WalletButton from "@/components/wallet/WalletButton";
+import useKydosLaunch from "@/hooks/useKydosLaunch";
+import { toast } from "sonner";
 import MediaUploadField from "@/components/media/MediaUploadField";
 import useGoBack from "@/lib/useGoBack";
 
@@ -21,21 +23,21 @@ export default function Launch() {
   const navigate = useNavigate();
   const goBack = useGoBack("/");
   const { me } = useMe();
+  const launchToken = useKydosLaunch();
   const set = (k) => (e) => setForm({ ...form, [k]: k === "ticker" ? e.target.value.toUpperCase().slice(0, 8) : e.target.value });
 
   const submit = async (e) => {
     e.preventDefault();
     setSaving(true);
-    const token = await base44.entities.Token.create({
-      ...form,
-      creator: getWallet(),
-      creator_id: me?.id || "",
-      creator_handle: me?.profile?.handle || "",
-      total_supply: TOTAL_SUPPLY,
-      graduation_target: GRADUATION_TARGET,
-      reserve: 0, tokens_sold: 0, market_cap: 0, trade_count: 0, holder_count: 0, status: "live",
-    });
-    navigate(`/token/${token.id}`);
+    try {
+      const token = await launchToken(form, me);
+      toast.success(`$${token.ticker} launched on Robinhood testnet`);
+      navigate(`/token/${token.id}`);
+    } catch (error) {
+      toast.error(error.shortMessage || error.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -43,10 +45,11 @@ export default function Launch() {
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-xl">
         <div className="mx-auto max-w-5xl px-2 h-14 flex items-center gap-2">
           <button type="button" onClick={goBack} aria-label="Close" className="h-10 w-10 rounded-full flex items-center justify-center hover:bg-card"><X className="h-5 w-5" /></button>
-          <div>
+          <div className="flex-1">
             <p className="font-mono text-[10px] tracking-[0.3em] text-primary leading-none">NEW LAUNCH</p>
             <h1 className="font-display font-semibold leading-tight">Create your token</h1>
           </div>
+          <WalletButton />
         </div>
       </header>
 
@@ -68,7 +71,7 @@ export default function Launch() {
 
           <div className="rounded-2xl border border-border bg-card/60 p-4 text-sm text-muted-foreground font-mono grid sm:grid-cols-3 gap-3">
             <div><span className="block text-xs">Supply</span><span className="text-foreground">1,000,000,000</span></div>
-            <div><span className="block text-xs">Graduation</span><span className="text-foreground">{GRADUATION_TARGET} HOOD</span></div>
+            <div><span className="block text-xs">Graduation</span><span className="text-foreground">{GRADUATION_TARGET} ETH</span></div>
             <div><span className="block text-xs">Launch fee</span><span className="text-foreground">Free</span></div>
           </div>
 

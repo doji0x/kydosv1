@@ -1,0 +1,45 @@
+{
+  "name": "KydosConfig",
+  "type": "object",
+  "description": "Active Robinhood Chain launchpad deployment configuration.",
+  "properties": {
+    "chain_id": {
+      "type": "number"
+    },
+    "factory_address": {
+      "type": "string"
+    },
+    "curve_implementation": {
+      "type": "string"
+    },
+    "uniswap_router": {
+      "type": "string"
+    },
+    "uniswap_factory": {
+      "type": "string"
+    },
+    "weth_address": {
+      "type": "string"
+    },
+    "deployment_tx": {
+      "type": "string"
+    },
+    "deployment_block": {
+      "type": "number"
+    },
+    "deployed_at": {
+      "type": "number"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "chain_id",
+    "factory_address",
+    "curve_implementation",
+    "uniswap_router",
+    "weth_address"
+  ]
+}

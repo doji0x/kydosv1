@@ -13,7 +13,7 @@ import {
 } from "../../shared/rhRpc.js";
 import { rangeLogs } from "../../shared/rhLogs.js";
 import { TOPIC, quoteUsdValue, LOG_SPAN } from "../../shared/rhConstants.js";
-import { parseSwapLog, SWAP_TOPIC_BY_VENUE } from "../../shared/rhVenues.js";
+import { parseSwapLog, isVenueSwap } from "../../shared/rhVenues.js";
 import { isUsableTrade } from "../../shared/rhMarket.js";
 import {
   getCursor,
@@ -26,7 +26,7 @@ import { assertEngineCaller } from "../../shared/rhAuth.js";
 import { rialtoTrades } from "../../shared/rhRialto.js";
 import { backfillRhHistory } from "../../shared/rhHistory.js";
 
-const SWAP_TOPICS = [TOPIC.UNIV2_SWAP, TOPIC.UNIV3_SWAP];
+const SWAP_TOPICS = [TOPIC.UNIV2_SWAP, TOPIC.UNIV3_SWAP, TOPIC.KYDOS_BUY, TOPIC.KYDOS_SELL];
 
 export default async function (req: Request): Promise<Response> {
   try {
@@ -137,15 +137,14 @@ export default async function (req: Request): Promise<Response> {
 
     const summary = [];
     for (const pool of pools) {
-      const quoteUsd = quoteUsdValue(pool.quote_address, ethUsd);
+      const quoteUsd = pool.launchpad_verified ? ethUsd : quoteUsdValue(pool.quote_address, ethUsd);
       let raw = [];
 
       if (pool.venue === "rialto") {
         raw = rialtoTrades(pool, sweep.logs);
       } else {
-        const topic = SWAP_TOPIC_BY_VENUE[pool.venue];
         for (const log of byAddress.get(pool.address) || []) {
-          if ((log.topics?.[0] || "").toLowerCase() !== topic) continue;
+          if (!isVenueSwap(pool.venue, log.topics?.[0])) continue;
           const parsed = parseSwapLog(log, pool);
           if (!parsed) continue;
           raw.push({

@@ -28,6 +28,11 @@ async function v3Price(pool) {
 }
 
 // Uniswap V2 (and Rialto-style pools that expose getReserves): quote/base reserves.
+async function curvePrice(pool) {
+  const ret = await ethCall(pool.address, SELECTOR.currentPrice);
+  return ret && ret !== "0x" ? scaled(toBig(ret), 18) : null;
+}
+
 async function v2Price(pool) {
   const ret = await ethCall(pool.address, SELECTOR.getReserves);
   if (!ret || ret === "0x") return null;
@@ -48,5 +53,6 @@ async function v2Price(pool) {
 /** Quote-token price of one base token, read live from the pool. */
 export async function spotPriceQuote(pool) {
   if (pool.venue === "uniswap_v3") return v3Price(pool);
+  if (pool.venue === "kydos_curve") return curvePrice(pool);
   return v2Price(pool);
 }

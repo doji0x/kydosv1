@@ -1,5 +1,5 @@
 import { rpc, rpcBatch, toNum, CHAIN_ID } from "./rhRpc.js";
-import { parseSwapLog, SWAP_TOPIC_BY_VENUE } from "./rhVenues.js";
+import { parseSwapLog, isVenueSwap } from "./rhVenues.js";
 import { isUsableTrade } from "./rhMarket.js";
 import { quoteUsdValue } from "./rhConstants.js";
 import { insertNewByUid, getRefPrice } from "./rhStore.js";
@@ -46,15 +46,14 @@ async function backfillPoolDirection(db, token, pool, direction, pageSize, ethUs
   let raw = [];
   if (pool.venue === "rialto") raw = rialtoTrades(pool, logs);
   else {
-    const topic = SWAP_TOPIC_BY_VENUE[pool.venue];
     for (const log of logs) {
-      if (String(log.address).toLowerCase() !== pool.address || (log.topics?.[0] || "").toLowerCase() !== topic) continue;
+      if (String(log.address).toLowerCase() !== pool.address || !isVenueSwap(pool.venue, log.topics?.[0])) continue;
       const parsed = parseSwapLog(log, pool);
       if (parsed) raw.push({ ...parsed, tx_hash: log.transactionHash, log_index: toNum(log.logIndex), block_number: toNum(log.blockNumber) });
     }
   }
 
-  const quoteUsd = quoteUsdValue(pool.quote_address, ethUsd);
+  const quoteUsd = pool.launchpad_verified ? ethUsd : quoteUsdValue(pool.quote_address, ethUsd);
   const accepted = raw.map((trade) => {
     const priceQuote = trade.quote_amount / trade.token_amount;
     return { uid: `${trade.tx_hash}-${trade.log_index}`, chain_id: CHAIN_ID, token_address: token.address,
