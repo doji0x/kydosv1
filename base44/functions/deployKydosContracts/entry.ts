@@ -13,7 +13,8 @@ export default async function(req: Request): Promise<Response> {
     if(!user) return Response.json({error:"Unauthorized"},{status:401});
     if(user.role!=="admin") return Response.json({error:"Forbidden"},{status:403});
     const body=await req.json().catch(()=>({}));
-    const provider=new JsonRpcProvider(secrets.get("RH_RPC_URL"));
+    const rpcUrl=body.mode==="register_v4" ? secrets.get("RH_RPC_URL") : "https://rpc.testnet.chain.robinhood.com";
+    const provider=new JsonRpcProvider(rpcUrl);
     const network=await provider.getNetwork();
     const db=base44.asServiceRole;
 
@@ -33,21 +34,30 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({config,official_uniswap_v4:true});
     }
 
-    if(!body.uniswap_router || !body.weth_address) return Response.json({error:"uniswap_router and weth_address are required"},{status:400});
     if(Number(network.chainId)!==46630) return Response.json({error:`RH_RPC_URL must target Robinhood testnet (46630), received ${network.chainId}`},{status:400});
-    const routerAddress=getAddress(body.uniswap_router); const wethAddress=getAddress(body.weth_address);
-    const router=new Contract(routerAddress,ROUTER_ABI,provider);
-    const [uniFactory,routerWeth]=await Promise.all([router.factory(),router.WETH()]);
-    if(getAddress(routerWeth)!==wethAddress) return Response.json({error:"Router WETH does not match weth_address"},{status:400});
+    if(!body.weth_address) return Response.json({error:"weth_address is required"},{status:400});
+    const wethAddress=getAddress(body.weth_address);
+    let routerAddress=null; let uniFactory=null;
+    if(body.uniswap_router) {
+      routerAddress=getAddress(body.uniswap_router);
+      const router=new Contract(routerAddress,ROUTER_ABI,provider);
+      const [factoryAddress,routerWeth]=await Promise.all([router.factory(),router.WETH()]);
+      if(getAddress(routerWeth)!==wethAddress) return Response.json({error:"Router WETH does not match weth_address"},{status:400});
+      uniFactory=String(factoryAddress).toLowerCase();
+    }
     const wallet=new Wallet(secrets.get("KYDOS_DEPLOYER_KEY"),provider);
-    const factory=await new ContractFactory(artifact.abi,artifact.bytecode,wallet).deploy(routerAddress,wethAddress);
+    const balance=await provider.getBalance(wallet.address);
+    if(balance===0n) return Response.json({error:"Deployment wallet has no testnet ETH",deployer:wallet.address,balance:"0",balance_eth:"0"},{status:400});
+    const factory=await new ContractFactory(artifact.abi,artifact.bytecode,wallet).deploy(routerAddress || wethAddress,wethAddress);
     await factory.waitForDeployment();
     const receipt=await factory.deploymentTransaction().wait();
     const factoryAddress=(await factory.getAddress()).toLowerCase();
     const implementation=String(await factory.curveImplementation()).toLowerCase();
     const active=await db.entities.KydosConfig.filter({active:true});
     await Promise.all(active.map((row)=>db.entities.KydosConfig.update(row.id,{active:false})));
-    const config=await db.entities.KydosConfig.create({chain_id:46630,protocol_version:"legacy_v2",factory_address:factoryAddress,curve_implementation:implementation,uniswap_router:routerAddress.toLowerCase(),uniswap_factory:String(uniFactory).toLowerCase(),weth_address:wethAddress.toLowerCase(),deployment_tx:receipt.hash,deployment_block:receipt.blockNumber,deployed_at:Date.now(),active:true});
-    return Response.json({config,deployer:wallet.address,balance:await provider.getBalance(wallet.address).then(String)});
+    const configData={chain_id:46630,protocol_version:"legacy_v2",factory_address:factoryAddress,curve_implementation:implementation,weth_address:wethAddress.toLowerCase(),deployment_tx:receipt.hash,deployment_block:receipt.blockNumber,deployed_at:Date.now(),active:true};
+    if(routerAddress) Object.assign(configData,{uniswap_router:routerAddress.toLowerCase(),uniswap_factory:uniFactory});
+    const config=await db.entities.KydosConfig.create(configData);
+    return Response.json({config,deployer:wallet.address,balance:String(await provider.getBalance(wallet.address)),balance_eth:Number(await provider.getBalance(wallet.address))/1e18,graduation_enabled:Boolean(routerAddress)});
   } catch(error) { return Response.json({error:error.message},{status:500}); }
 }

@@ -10,6 +10,7 @@ import { Loader2, Rocket, X } from "lucide-react";
 import { useMe } from "@/lib/MeContext";
 import { GRADUATION_TARGET } from "@/lib/curve";
 import LaunchPreview from "@/components/launch/LaunchPreview";
+import AdminDeployCallout from "@/components/launch/AdminDeployCallout";
 import WalletButton from "@/components/wallet/WalletButton";
 import useKydosLaunch from "@/hooks/useKydosLaunch";
 import { toast } from "sonner";
@@ -53,6 +54,10 @@ export default function Launch() {
           <WalletButton />
         </div>
       </header>
+
+      <div className="mx-auto max-w-5xl px-4 sm:px-6 pt-6">
+        <AdminDeployCallout isAdmin={me?.role === "admin"} />
+      </div>
 
       <div className="mx-auto max-w-5xl px-4 sm:px-6 py-8 pb-24 grid gap-10 lg:grid-cols-[1fr_360px]">
         <form onSubmit={submit} className="space-y-6">
