@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, ShieldCheck } from "lucide-react";
+import TestnetFunding from "@/components/launch/TestnetFunding";
 
 const TESTNET_WETH = "0x7943e237c7F95DA44E0301572D358911207852Fa";
 
@@ -34,6 +35,7 @@ export default function AdminDeployCallout({ isAdmin }) {
   if (active) return null;
   return <section className="rounded-xl border border-primary/30 bg-card/80 p-4 space-y-3">
     <div className="flex gap-3"><ShieldCheck className="h-5 w-5 text-primary shrink-0" /><div><h2 className="text-sm font-semibold">Deploy testnet factory</h2><p className="text-xs text-muted-foreground mt-1">One-time admin setup for Robinhood testnet. V2 graduation stays disabled without a router.</p></div></div>
+    <TestnetFunding />
     <Input value={weth} onChange={(e) => setWeth(e.target.value)} aria-label="Testnet WETH address" className="bg-background font-mono text-xs" />
     <Input value={router} onChange={(e) => setRouter(e.target.value)} placeholder="Uniswap V2 router (optional)" aria-label="Uniswap V2 router address" className="bg-background font-mono text-xs" />
     {error && <p className="text-xs text-destructive">{error}</p>}

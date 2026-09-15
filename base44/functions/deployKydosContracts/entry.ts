@@ -2,6 +2,7 @@ import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { secrets } from "base44:runtime";
 import { Contract, ContractFactory, JsonRpcProvider, Wallet, getAddress } from "npm:ethers@6.15.0";
 import artifact from "../../shared/kydosArtifact.json" with { type: "json" };
+import { RH_TESTNET } from "../../shared/rhRpc.js";
 
 const ROUTER_ABI=["function factory() view returns(address)","function WETH() view returns(address)"];
 const V4={poolManager:"0x8366a39cc670b4001a1121b8f6a443a643e40951",positionManager:"0x58daec3116aae6d93017baaea7749052e8a04fa7",stateView:"0xf3334192d15450cdd385c8b70e03f9a6bd9e673b",universalRouter:"0x8876789976decbfcbbbe364623c63652db8c0904",permit2:"0x000000000022D473030F116dDEE9F6B43aC78BA3"};
@@ -13,7 +14,7 @@ export default async function(req: Request): Promise<Response> {
     if(!user) return Response.json({error:"Unauthorized"},{status:401});
     if(user.role!=="admin") return Response.json({error:"Forbidden"},{status:403});
     const body=await req.json().catch(()=>({}));
-    const rpcUrl=body.mode==="register_v4" ? secrets.get("RH_RPC_URL") : "https://rpc.testnet.chain.robinhood.com";
+    const rpcUrl=body.mode==="register_v4" ? secrets.get("RH_RPC_URL") : RH_TESTNET.publicRpc;
     const provider=new JsonRpcProvider(rpcUrl);
     const network=await provider.getNetwork();
     const db=base44.asServiceRole;
@@ -34,8 +35,19 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({config,official_uniswap_v4:true});
     }
 
-    if(Number(network.chainId)!==46630) return Response.json({error:`RH_RPC_URL must target Robinhood testnet (46630), received ${network.chainId}`},{status:400});
+    if(Number(network.chainId)!==RH_TESTNET.chainId) return Response.json({error:`RPC must target Robinhood testnet (${RH_TESTNET.chainId}), received ${network.chainId}`},{status:400});
+    const wallet=new Wallet(secrets.get("KYDOS_DEPLOYER_KEY"),provider);
+    const [balance,latestBlock]=await Promise.all([provider.getBalance(wallet.address),provider.getBlockNumber()]);
+    const status={rpc:RH_TESTNET.publicRpc,chain_id:Number(network.chainId),latest_block:latestBlock,deployer:wallet.address,balance:String(balance),balance_eth:Number(balance)/1e18,explorer:`${RH_TESTNET.explorer}/address/${wallet.address}`};
+    if(body.mode==="preflight") return Response.json(status);
+    if(body.mode==="send_test") {
+      if(balance===0n) return Response.json({error:"Deployment wallet has no testnet ETH",...status},{status:400});
+      const tx=await wallet.sendTransaction({to:wallet.address,value:0n});
+      const receipt=await tx.wait();
+      return Response.json({...status,transaction:receipt.hash,receipt_status:receipt.status,transaction_explorer:`${RH_TESTNET.explorer}/tx/${receipt.hash}`});
+    }
     if(!body.weth_address) return Response.json({error:"weth_address is required"},{status:400});
+    if(balance===0n) return Response.json({error:"Deployment wallet has no testnet ETH",...status},{status:400});
     const wethAddress=getAddress(body.weth_address);
     let routerAddress=null; let uniFactory=null;
     if(body.uniswap_router) {
@@ -45,9 +57,6 @@ export default async function(req: Request): Promise<Response> {
       if(getAddress(routerWeth)!==wethAddress) return Response.json({error:"Router WETH does not match weth_address"},{status:400});
       uniFactory=String(factoryAddress).toLowerCase();
     }
-    const wallet=new Wallet(secrets.get("KYDOS_DEPLOYER_KEY"),provider);
-    const balance=await provider.getBalance(wallet.address);
-    if(balance===0n) return Response.json({error:"Deployment wallet has no testnet ETH",deployer:wallet.address,balance:"0",balance_eth:"0"},{status:400});
     const factory=await new ContractFactory(artifact.abi,artifact.bytecode,wallet).deploy(routerAddress || wethAddress,wethAddress);
     await factory.waitForDeployment();
     const receipt=await factory.deploymentTransaction().wait();

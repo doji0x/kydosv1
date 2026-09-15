@@ -1,9 +1,17 @@
-// Raw JSON-RPC access to Robinhood Chain (Arbitrum Orbit L2, chain id 4663).
+// Central Robinhood Testnet network configuration shared by indexing and deployment.
 // Uses plain outbound fetch() — NOT a Core integration — so it never consumes integration credits.
 import { secrets } from "base44:runtime";
 
-export const CHAIN_ID = 46630;
-export const PUBLIC_RPC = "https://rpc.testnet.chain.robinhood.com";
+export const RH_TESTNET = Object.freeze({
+  name: "Robinhood Chain Testnet",
+  chainId: 46630,
+  publicRpc: "https://rpc.testnet.chain.robinhood.com",
+  explorer: "https://explorer.testnet.chain.robinhood.com",
+  blockscoutApi: "https://explorer.testnet.chain.robinhood.com/api/",
+  nativeCurrency: Object.freeze({ name: "Ether", symbol: "ETH", decimals: 18 }),
+});
+export const CHAIN_ID = RH_TESTNET.chainId;
+export const PUBLIC_RPC = RH_TESTNET.publicRpc;
 
 export function rpcUrl() {
   try {
