@@ -12,7 +12,7 @@ const ZERO = "0x" + "0".repeat(40);
 export default async function (req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
-    const denied = await assertEngineCaller(base44);
+    const denied = await assertEngineCaller(base44, req);
     if (denied) return denied;
     const db = base44.asServiceRole;
 
@@ -37,7 +37,7 @@ export default async function (req: Request): Promise<Response> {
       const deltas = new Map();
 
       const sweep = await rangeLogs({
-        address: token.address,
+        addresses: [token.address],
         topics: [TOPIC.TRANSFER],
         fromBlock,
         toBlock: targetBlock,
@@ -60,7 +60,7 @@ export default async function (req: Request): Promise<Response> {
       for (let i = 0; i < wallets.length; i += 100) {
         const chunk = wallets.slice(i, i + 100);
         const uids = chunk.map((w) => `${token.address}-${w}`);
-        const existing = await db.entities.RhBalance.filter({ uid: { $in: uids } });
+        const existing = await db.entities.RhBalance.filter({ uid: { $in: uids } }, "uid", uids.length);
         const byUid = new Map(existing.map((r) => [r.uid, r]));
 
         const fresh = [];

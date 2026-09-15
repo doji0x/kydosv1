@@ -12,6 +12,12 @@ export function repoSlug() {
   }
 }
 
+export async function assertGithubAdmin(base44) {
+  const user = await base44.auth.me().catch(() => null);
+  if (user?.role === "admin") return null;
+  return Response.json({ error: "Forbidden" }, { status: 403 });
+}
+
 export async function githubToken(base44) {
   const { accessToken } = await base44.asServiceRole.connectors.getConnection("github");
   return accessToken;

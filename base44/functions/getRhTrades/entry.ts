@@ -44,11 +44,11 @@ export default async function (req: Request): Promise<Response> {
     const pools = await db.entities.RhPool.filter({ token_address: address, active: true });
     const blockedPools = new Set(pools.filter((p) => p.trust_status === "SUSPENDED" || p.trust_status === "PROBATION").map((p) => p.address));
     const trades = scanned.filter((trade) => isTrusted(trade) && !blockedPools.has(trade.pool)).slice(0, limit);
-    const oldest = scanned[scanned.length - 1]?.block_number || 0;
+    const oldest = trades[trades.length - 1]?.block_number || 0;
 
     return Response.json({
       trades: trades.map(tradeShape),
-      next_before_block: scanned.length >= limit && oldest > 0 ? oldest : null,
+      next_before_block: trades.length >= limit && oldest > 0 ? oldest : null,
       source: "kydos-indexer",
     });
   } catch (error) {

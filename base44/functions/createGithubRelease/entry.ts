@@ -1,5 +1,5 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
-import { githubApi, githubToken, repoSlug } from "../../shared/github.js";
+import { assertGithubAdmin, githubApi, githubToken, repoSlug } from "../../shared/github.js";
 
 function tagFor(date) {
   const p = (n) => String(n).padStart(2, "0");
@@ -9,6 +9,8 @@ function tagFor(date) {
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
+    const denied = await assertGithubAdmin(base44);
+    if (denied) return denied;
     const body = await req.json().catch(() => ({}));
 
     const when = body.published_at ? new Date(body.published_at) : new Date();

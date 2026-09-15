@@ -7,7 +7,6 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { INTERVALS, CHAIN_ID_DEFAULT } from "../../shared/rhConstants.js";
 import { insertNewByUid, getTokenRecord } from "../../shared/rhStore.js";
-import { assertApiCaller } from "../../shared/rhApiKey.js";
 import { backfillTradeRecords } from "../../shared/rhBackfillWrite.js";
 
 const MAX_TRADES = 500;
@@ -16,8 +15,10 @@ const MAX_CANDLES = 200;
 export default async function (req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
-    const denied = await assertApiCaller(base44, req);
-    if (denied) return denied;
+    const user = await base44.auth.me().catch(() => null);
+    if (user?.role !== "admin") {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
+    }
     const db = base44.asServiceRole;
 
     const body = await req.json().catch(() => ({}));

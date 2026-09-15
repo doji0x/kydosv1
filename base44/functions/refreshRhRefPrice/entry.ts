@@ -19,7 +19,7 @@ const SOURCES = [
 export default async function (req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
-    const denied = await assertEngineCaller(base44);
+    const denied = await assertEngineCaller(base44, req);
     if (denied) return denied;
     const db = base44.asServiceRole;
 

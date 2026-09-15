@@ -28,17 +28,29 @@ export default function TradePanel({ token, onTraded, initialSide = "buy" }) {
     if (n <= 0 || !requireAuth(side)) return;
     if (!token.curve_address) return toast.error("This token is not connected to an on-chain curve");
     setBusy("trade");
+    let result;
     try {
-      const result = await chain.trade(side, amount);
+      result = await chain.trade(side, amount);
+    } catch (error) {
+      toast.error(error.shortMessage || error.message);
+      setBusy("");
+      return;
+    }
+
+    setAmount("");
+    toast.success(side === "buy" ? `Bought ${fmtTokens(result.tokens)} $${token.ticker}` : `Sold ${fmtTokens(result.tokens)} $${token.ticker}`);
+    try {
       const next = { ...token, reserve: result.reserve, tokens_sold: result.sold };
       await Promise.all([
         base44.entities.Trade.create({ token_id: token.id, ticker: token.ticker, side, quote_amount: result.quote, token_amount: result.tokens, price: result.price, market_cap: result.price * token.total_supply, trader: result.trader, trader_id: me?.id, tx_hash: result.hash, block_number: result.block }),
         base44.entities.Token.update(token.id, { reserve: result.reserve, tokens_sold: result.sold, market_cap: marketCap(next), trade_count: (token.trade_count || 0) + 1, holder_count: Math.max(token.holder_count || 0, side === "buy" ? 1 : 0) })
       ]);
-      toast.success(side === "buy" ? `Bought ${fmtTokens(result.tokens)} $${token.ticker}` : `Sold ${fmtTokens(result.tokens)} $${token.ticker}`);
-      setAmount(""); onTraded?.();
-    } catch (error) { toast.error(error.shortMessage || error.message); }
-    finally { setBusy(""); }
+      onTraded?.();
+    } catch {
+      toast.warning("Trade confirmed on-chain; app sync is pending. Do not retry the trade.");
+    } finally {
+      setBusy("");
+    }
   };
 
   const graduate = async () => {
@@ -50,7 +62,7 @@ export default function TradePanel({ token, onTraded, initialSide = "buy" }) {
 
   return <div className="rounded-2xl border border-border bg-card p-5">
     <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-muted mb-5">{["buy", "sell"].map((s) => <button key={s} onClick={() => { setSide(s); setAmount(""); }} className={`h-10 rounded-lg text-sm font-semibold capitalize transition-all ${side === s ? (s === "buy" ? "bg-primary text-primary-foreground" : "bg-destructive text-destructive-foreground") : "text-muted-foreground hover:text-foreground"}`}>{s}</button>)}</div>
-    <div className="relative"><Input type="number" min="0" step="any" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" className="h-14 bg-background text-xl font-mono pr-20"/><span className="absolute right-4 top-1/2 -translate-y-1/2 font-mono text-sm text-muted-foreground">{side === "buy" ? "ETH" : `$${token.ticker}`}</span></div>
+    <div className="relative"><Input type="number" inputMode="decimal" min="0" step="any" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" className="h-14 bg-background text-xl font-mono pr-20"/><span className="absolute right-4 top-1/2 -translate-y-1/2 font-mono text-sm text-muted-foreground">{side === "buy" ? "ETH" : `$${token.ticker}`}</span></div>
     {side === "buy" && <div className="flex gap-2 mt-3">{PRESETS.map((p) => <Chip key={p} onClick={() => setAmount(String(p))}>{p} ETH</Chip>)}</div>}
     <div className="mt-4 rounded-xl bg-muted/60 p-3 font-mono text-xs space-y-1.5"><Row label="You receive" value={side === "buy" ? `${fmtTokens(quote)} $${token.ticker}` : `${fmtHood(quote)} ETH`}/><Row label="Price" value={`${currentPrice(token).toExponential(3)} ETH`}/></div>
     <Button onClick={trade} disabled={!!busy || n <= 0} className={`w-full h-12 mt-4 rounded-xl font-semibold ${side === "sell" ? "bg-destructive hover:bg-destructive/90 text-destructive-foreground" : ""}`}>{busy === "trade" && <Loader2 className="h-4 w-4 mr-2 animate-spin"/>}{side === "buy" ? "Confirm buy in wallet" : "Confirm sell in wallet"}</Button>

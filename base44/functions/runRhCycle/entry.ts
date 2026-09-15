@@ -3,9 +3,11 @@
 // so this endpoint must never be reachable without it.
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { secrets } from "base44:runtime";
+import { isCronRequest } from "../../shared/rhAuth.js";
 
 const STEPS = [
   { name: "refreshRhRefPrice", args: {} },
+  { name: "discoverRhPools", args: {} },
   { name: "indexRhBlockRange", args: { max_span: 3000 } },
   { name: "indexRhBlockRange", args: { mode: "history", page_size: 25 } },
   { name: "buildRhCandles", args: { max_trades: 10000, tail_bars: 2000 } },
@@ -20,10 +22,7 @@ export default async function (req: Request): Promise<Response> {
       return Response.json({ error: "Cron secret not configured" }, { status: 500 });
     }
 
-    const body = await req.json().catch(() => ({}));
-    const url = new URL(req.url);
-    const provided = req.headers.get("x-kydos-cron") || body?.secret || url.searchParams.get("secret");
-    if (provided !== expected) {
+    if (!(await isCronRequest(req, false))) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -34,7 +33,7 @@ export default async function (req: Request): Promise<Response> {
     for (const step of STEPS) {
       const t0 = Date.now();
       try {
-        const res = await base44.asServiceRole.functions.invoke(step.name, step.args);
+        const res = await base44.asServiceRole.functions.invoke(step.name, { ...step.args, secret: expected });
         results.push({ step: step.name, ok: true, ms: Date.now() - t0, data: res?.data ?? null });
       } catch (error) {
         // One failing stage shouldn't abort the rest — stats still improve from partial data.

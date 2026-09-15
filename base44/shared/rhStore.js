@@ -22,7 +22,11 @@ export async function upsertByUid(db, entityName, uid, data) {
 export async function insertNewByUid(db, entityName, records) {
   if (!records.length) return 0;
   const uids = records.map((r) => r.uid);
-  const existing = await db.entities[entityName].filter({ uid: { $in: uids } });
+  const existing = await db.entities[entityName].filter(
+    { uid: { $in: uids } },
+    "uid",
+    Math.min(uids.length, 500),
+  );
   const seen = new Set(existing.map((r) => r.uid));
   const fresh = [];
   const localSeen = new Set();

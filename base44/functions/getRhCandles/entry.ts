@@ -45,7 +45,7 @@ export default async function (req: Request): Promise<Response> {
           revision: c.revision || 1,
         }))
         .sort((a, b) => a.t - b.t),
-      next_before_time: scanned.length >= limit ? scanned[scanned.length - 1]?.bucket_start || null : null,
+      next_before_time: rows.length >= limit ? rows[rows.length - 1]?.bucket_start || null : null,
       source: "kydos-indexer",
     });
   } catch (error) {
