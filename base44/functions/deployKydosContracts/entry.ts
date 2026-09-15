@@ -1,8 +1,7 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { secrets } from "base44:runtime";
 import { Contract, ContractFactory, JsonRpcProvider, Wallet, getAddress } from "npm:ethers@6.15.0";
-import solc from "npm:solc@0.8.13";
-import { compileFactory } from "../../shared/kydosContracts.js";
+import artifact from "../../shared/kydosArtifact.json" with { type: "json" };
 
 const ROUTER_ABI=["function factory() view returns(address)","function WETH() view returns(address)"];
 export default async function(req: Request): Promise<Response> {
@@ -22,9 +21,8 @@ export default async function(req: Request): Promise<Response> {
     const router=new Contract(routerAddress,ROUTER_ABI,provider);
     const [uniFactory,routerWeth]=await Promise.all([router.factory(),router.WETH()]);
     if(getAddress(routerWeth)!==wethAddress) return Response.json({error:"Router WETH does not match weth_address"},{status:400});
-    const artifact=compileFactory(solc);
     const wallet=new Wallet(key,provider);
-    const factory=await new ContractFactory(artifact.abi,`0x${artifact.evm.bytecode.object}`,wallet).deploy(routerAddress,wethAddress);
+    const factory=await new ContractFactory(artifact.abi,artifact.bytecode,wallet).deploy(routerAddress,wethAddress);
     await factory.waitForDeployment();
     const receipt=await factory.deploymentTransaction().wait();
     const factoryAddress=(await factory.getAddress()).toLowerCase();
