@@ -1,5 +1,5 @@
 export const KYDOS_SOURCE = `// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.13;
 
 interface IRouter {
   function factory() external view returns (address);

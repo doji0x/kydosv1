@@ -1,7 +1,7 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { secrets } from "base44:runtime";
 import { Contract, ContractFactory, JsonRpcProvider, Wallet, getAddress } from "npm:ethers@6.15.0";
-import solc from "npm:solc@0.8.30";
+import solc from "npm:solc@0.8.13";
 import { compileFactory } from "../../shared/kydosContracts.js";
 
 const ROUTER_ABI=["function factory() view returns(address)","function WETH() view returns(address)"];
