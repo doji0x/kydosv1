@@ -10,6 +10,7 @@ import { useMe } from "@/lib/MeContext";
 import { GRADUATION_TARGET } from "@/lib/curve";
 import LaunchPreview from "@/components/launch/LaunchPreview";
 import AdminDeployCallout from "@/components/launch/AdminDeployCallout";
+import AdminIndexerCallout from "@/components/launch/AdminIndexerCallout";
 import WalletButton from "@/components/wallet/WalletButton";
 import useKydosLaunch from "@/hooks/useKydosLaunch";
 import { toast } from "sonner";
@@ -54,8 +55,9 @@ export default function Launch() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-5xl px-4 sm:px-6 pt-6">
+      <div className="mx-auto max-w-5xl px-4 sm:px-6 pt-6 space-y-3">
         <AdminDeployCallout isAdmin={me?.role === "admin"} />
+        <AdminIndexerCallout isAdmin={me?.role === "admin"} />
       </div>
 
       <div className="mx-auto max-w-5xl px-4 sm:px-6 py-8 pb-24 grid gap-10 lg:grid-cols-[1fr_360px]">

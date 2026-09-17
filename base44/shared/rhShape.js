@@ -1,6 +1,8 @@
 // Public response shapes for the Kydos market-data API. One definition per resource so
 // the UI and third parties always see identical field names.
 
+// Existing market history is chain 4663, verified against its transaction receipts.
+// Do not relabel it as testnet until a separate, verified migration is selected.
 export const tokenShape = (t) => ({
   chain_id: 4663,
   address: t.address,

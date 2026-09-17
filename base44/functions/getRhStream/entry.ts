@@ -5,7 +5,7 @@
 // So this endpoint is the stream — the client passes the last block it saw and gets back
 // every real swap decoded since, plus live pool spot, so it can roll 1s/5s/15s bars.
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
-import { blockNumber } from "../../shared/rhRpc.js";
+import { blockNumber, rpc } from "../../shared/rhRpc.js";
 import { loadSwapPools } from "../../shared/rhSwapPools.js";
 import { readPoolSwaps } from "../../shared/rhPoolSwaps.js";
 import { spotPriceQuote } from "../../shared/rhSpot.js";
@@ -78,7 +78,7 @@ export default async function (req: Request): Promise<Response> {
     return Response.json({
       address,
       symbol: token.symbol,
-      chain_id: 4663,
+      chain_id: Number(BigInt(await rpc("eth_chainId"))),
       head_block: head,
       scanned_from: scannedFrom,
       scanned_to: scannedTo,

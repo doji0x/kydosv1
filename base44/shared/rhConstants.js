@@ -76,6 +76,6 @@ export const INTERVALS = {
   "1d": 86_400_000,
 };
 
-export const CHAIN_ID_DEFAULT = 46630;
+export { CHAIN_ID as CHAIN_ID_DEFAULT } from "./rhRpc.js";
 
 export const isStable = (symbol) => !!symbol && STABLES.includes(symbol.toUpperCase());
