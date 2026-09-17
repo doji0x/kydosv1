@@ -5,7 +5,11 @@
   "properties": {
     "uid": {
       "type": "string",
-      "description": "Dedupe key: <token>-<wallet>"
+      "description": "<chain>-<token>-<wallet>"
+    },
+    "chain_id": {
+      "type": "number",
+      "default": 46630
     },
     "token_address": {
       "type": "string"
@@ -27,6 +31,7 @@
   },
   "required": [
     "uid",
+    "chain_id",
     "token_address",
     "wallet"
   ]

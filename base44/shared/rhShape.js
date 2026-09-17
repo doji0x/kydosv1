@@ -1,10 +1,10 @@
 // Public response shapes for the Kydos market-data API. One definition per resource so
 // the UI and third parties always see identical field names.
 
-// Existing market history is chain 4663, verified against its transaction receipts.
-// Do not relabel it as testnet until a separate, verified migration is selected.
+import { CHAIN_ID } from "./rhRpc.js";
+
 export const tokenShape = (t) => ({
-  chain_id: 4663,
+  chain_id: t.chain_id || CHAIN_ID,
   address: t.address,
   name: t.name || null,
   symbol: t.symbol || null,
@@ -46,7 +46,7 @@ export const poolShape = (p) => ({
 });
 
 export const tradeShape = (t) => ({
-  chain_id: t.chain_id || 4663,
+  chain_id: t.chain_id || CHAIN_ID,
   token: t.token_address,
   symbol: t.symbol || null,
   venue: t.venue,

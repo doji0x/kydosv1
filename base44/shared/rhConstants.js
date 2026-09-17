@@ -41,27 +41,22 @@ export const STABLES = ["USDC", "USDT", "DAI", "USDG", "USDC.E", "BUSD", "FRAX",
 
 // Canonical Robinhood Chain quote contracts. USD valuation is address-based so a token
 // cannot spoof a trusted quote asset by returning the WETH or USDG symbol.
-export const RH_QUOTE = Object.freeze({
-  WETH: "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
-  USDG: "0x5fc5360d0400a0fd4f2af552add042d716f1d168",
-});
+export const RH_QUOTE = Object.freeze({});
 
 export const isCanonicalQuote = (address) =>
   Object.values(RH_QUOTE).includes(String(address || "").toLowerCase());
 
 export const quoteUsdValue = (address, ethUsd) => {
   const normalized = String(address || "").toLowerCase();
-  if (normalized === RH_QUOTE.USDG) return 1;
-  if (normalized === RH_QUOTE.WETH) return Number(ethUsd) || 0;
+  if (RH_QUOTE.USDG && normalized === RH_QUOTE.USDG) return 1;
+  if (RH_QUOTE.WETH && normalized === RH_QUOTE.WETH) return Number(ethUsd) || 0;
   return 0;
 };
 
 // V1 tracked tokens. Pools are discovered on-chain, not hardcoded.
-export const TRACKED_TOKENS = [
-  { address: "0xe27501d787d647cc82a5b4a7eafd5750386f1b77", symbol: "TWINE", name: "TWINE" },
-  { address: "0x020bfc650a365f8bb26819deaabf3e21291018b4", symbol: "CASHCAT", name: "Cash Cat" },
-  { address: "0x1cdb289befdfac8af945a288bcdccc382cb34d32", symbol: "XL", name: "X Link" },
-];
+// Testnet tracking is seeded from verified Token records created by Kydos launches.
+// Never carry production-chain token addresses into this list.
+export const TRACKED_TOKENS = [];
 
 export const LOG_SPAN = 10; // max block range per eth_getLogs call (Alchemy free tier)
 export const MAX_BLOCK_SPAN = 500; // per eth_getLogs call (dedicated provider)

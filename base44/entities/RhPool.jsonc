@@ -3,6 +3,10 @@
   "type": "object",
   "description": "A discovered liquidity pool with canonical trust controls.",
   "properties": {
+    "chain_id": {
+      "type": "number",
+      "default": 46630
+    },
     "address": {
       "type": "string"
     },
@@ -104,6 +108,7 @@
     }
   },
   "required": [
+    "chain_id",
     "address",
     "token_address",
     "venue"

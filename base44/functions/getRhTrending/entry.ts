@@ -2,6 +2,7 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { assertApiCaller } from "../../shared/rhApiKey.js";
 import { tokenShape } from "../../shared/rhShape.js";
+import { CHAIN_ID } from "../../shared/rhRpc.js";
 
 export default async function (req: Request): Promise<Response> {
   try {
@@ -14,7 +15,7 @@ export default async function (req: Request): Promise<Response> {
       ? body.sort
       : "volume_24h";
 
-    const tokens = await db.entities.RhToken.filter({ tracked: true });
+    const tokens = await db.entities.RhToken.filter({ tracked: true, chain_id: CHAIN_ID });
     const ranked = [...tokens].sort((a, b) => (b[sortKey] || 0) - (a[sortKey] || 0));
 
     return Response.json({

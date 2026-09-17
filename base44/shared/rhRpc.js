@@ -1,7 +1,5 @@
 // Central Robinhood Testnet network configuration shared by indexing and deployment.
 // Uses plain outbound fetch() — NOT a Core integration — so it never consumes integration credits.
-import { secrets } from "base44:runtime";
-
 export const RH_TESTNET = Object.freeze({
   name: "Robinhood Chain Testnet",
   chainId: 46630,
@@ -14,11 +12,7 @@ export const CHAIN_ID = RH_TESTNET.chainId;
 export const PUBLIC_RPC = RH_TESTNET.publicRpc;
 
 export function rpcUrl() {
-  try {
-    return secrets.get("RH_RPC_URL") || PUBLIC_RPC;
-  } catch {
-    return PUBLIC_RPC;
-  }
+  return PUBLIC_RPC;
 }
 
 let reqId = 0;

@@ -3,18 +3,12 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { secrets } from "base44:runtime";
 import { assertEngineCaller } from "../../shared/rhAuth.js";
-import { TOPIC, TRACKED_TOKENS } from "../../shared/rhConstants.js";
-
-const PUB = "https://rpc.mainnet.chain.robinhood.com";
+import { TOPIC } from "../../shared/rhConstants.js";
+import { PUBLIC_RPC } from "../../shared/rhRpc.js";
 const hex = (n: number) => "0x" + n.toString(16);
 
 function primaryUrl() {
-  try {
-    const url = secrets.get("RH_RPC_URL");
-    return url && url.startsWith("http") ? url : null;
-  } catch {
-    return null;
-  }
+  return PUBLIC_RPC;
 }
 
 async function call(url: string, method: string, params: unknown[]) {
@@ -41,10 +35,7 @@ async function probe(url: string) {
   }
 
   const probes = [
-    await call(url, "eth_call", [
-      { to: TRACKED_TOKENS[0].address, data: "0x313ce567" },
-      "latest",
-    ]),
+    await call(url, "eth_chainId", []),
     await call(url, "eth_getLogs", [
       {
         fromBlock: hex(latest - 50),
@@ -71,7 +62,7 @@ export default async function (req: Request): Promise<Response> {
       primary_configured: !!url,
       primary_host: host,
       primary: url ? await probe(url) : null,
-      public: await probe(PUB),
+      public: await probe(PUBLIC_RPC),
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

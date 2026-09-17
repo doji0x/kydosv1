@@ -2,6 +2,7 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { assertApiCaller } from "../../shared/rhApiKey.js";
 import { tokenShape } from "../../shared/rhShape.js";
+import { CHAIN_ID } from "../../shared/rhRpc.js";
 
 export default async function (req: Request): Promise<Response> {
   try {
@@ -12,10 +13,10 @@ export default async function (req: Request): Promise<Response> {
     const body = await req.json().catch(() => ({}));
 
     const limit = Math.min(Math.max(Number(body.limit) || 100, 1), 500);
-    const tokens = await db.entities.RhToken.filter({ tracked: true }, "-volume_24h", limit);
+    const tokens = await db.entities.RhToken.filter({ tracked: true, chain_id: CHAIN_ID }, "-volume_24h", limit);
 
     return Response.json({
-      chain_id: 4663,
+      chain_id: CHAIN_ID,
       count: tokens.length,
       tokens: tokens.map(tokenShape),
       source: "kydos-indexer",

@@ -5,7 +5,11 @@
   "properties": {
     "uid": {
       "type": "string",
-      "description": "<token>-<interval>-<bucket_start>"
+      "description": "<chain>-<token>-<interval>-<bucket_start>"
+    },
+    "chain_id": {
+      "type": "number",
+      "default": 46630
     },
     "token_address": {
       "type": "string"
@@ -64,6 +68,7 @@
   },
   "required": [
     "uid",
+    "chain_id",
     "token_address",
     "interval",
     "bucket_start"

@@ -5,15 +5,18 @@
   "properties": {
     "scope": {
       "type": "string",
-      "description": "Cursor key, e.g. swaps:<pool>, transfers:<token>, or history:<token>"
+      "description": "Chain-prefixed cursor key"
+    },
+    "chain_id": {
+      "type": "number",
+      "default": 46630
     },
     "last_block": {
       "type": "number",
       "default": 0
     },
     "page_key": {
-      "type": "string",
-      "description": "Opaque provider cursor for the next historical page"
+      "type": "string"
     },
     "complete": {
       "type": "boolean",
@@ -24,6 +27,7 @@
     }
   },
   "required": [
-    "scope"
+    "scope",
+    "chain_id"
   ]
 }

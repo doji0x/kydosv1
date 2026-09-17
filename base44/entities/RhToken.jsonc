@@ -3,6 +3,10 @@
   "type": "object",
   "description": "Canonical market stats and publication health for a tracked token.",
   "properties": {
+    "chain_id": {
+      "type": "number",
+      "default": 46630
+    },
     "address": {
       "type": "string"
     },
@@ -106,6 +110,7 @@
     }
   },
   "required": [
+    "chain_id",
     "address"
   ]
 }

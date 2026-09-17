@@ -6,6 +6,7 @@
 // for old blocks. Pass lookback_ms to roll only a recent window instead.
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { INTERVALS, isCanonicalQuote } from "../../shared/rhConstants.js";
+import { CHAIN_ID } from "../../shared/rhRpc.js";
 import { rollCandles } from "../../shared/rhMarket.js";
 import { isTrusted } from "../../shared/rhAudit.js";
 import { listBounded, upsertByUid } from "../../shared/rhStore.js";
@@ -27,8 +28,8 @@ export default async function (req: Request): Promise<Response> {
     const tailBars = Math.min(Number(body.tail_bars) || 200, 2000);
 
     const tokens = body.token_address
-      ? await db.entities.RhToken.filter({ address: String(body.token_address).toLowerCase() })
-      : await db.entities.RhToken.filter({ tracked: true });
+      ? await db.entities.RhToken.filter({ address: String(body.token_address).toLowerCase(), chain_id: CHAIN_ID })
+      : await db.entities.RhToken.filter({ tracked: true, chain_id: CHAIN_ID });
     const summary = [];
 
     for (const token of tokens) {
@@ -36,12 +37,12 @@ export default async function (req: Request): Promise<Response> {
         db,
         "RhTrade",
         since
-          ? { token_address: token.address, block_time: { $gte: since } }
-          : { token_address: token.address },
+          ? { token_address: token.address, chain_id: CHAIN_ID, block_time: { $gte: since } }
+          : { token_address: token.address, chain_id: CHAIN_ID },
         "-block_time",
         maxTrades
       );
-      const pools = await db.entities.RhPool.filter({ token_address: token.address, active: true });
+      const pools = await db.entities.RhPool.filter({ token_address: token.address, chain_id: CHAIN_ID, active: true });
       const blockedPools = new Set(pools.filter((p) => p.trust_status === "SUSPENDED" || p.trust_status === "PROBATION" || (!p.launchpad_verified && !isCanonicalQuote(p.quote_address))).map((p) => p.address));
       const trustedTrades = trades.filter((trade) => isTrusted(trade) && !blockedPools.has(trade.pool));
       if (!trustedTrades.length) {
@@ -54,11 +55,12 @@ export default async function (req: Request): Promise<Response> {
         const bars = rollCandles(trustedTrades, ms);
         // Only the tail of each interval can still change; older bars are already sealed.
         for (const bar of bars.slice(-tailBars)) {
-          const uid = `${token.address}-${interval}-${bar.bucket_start}`;
+          const uid = `${CHAIN_ID}-${token.address}-${interval}-${bar.bucket_start}`;
           const prior = (await db.entities.RhCandle.filter({ uid }))[0];
           const changed = prior && ["open", "high", "low", "close", "volume_usd", "trades"].some((key) => prior[key] !== bar[key]);
           await upsertByUid(db, "RhCandle", uid, {
             token_address: token.address,
+            chain_id: CHAIN_ID,
             interval,
             bucket_start: bar.bucket_start,
             open: bar.open,

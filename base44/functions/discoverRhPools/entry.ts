@@ -4,9 +4,9 @@
 // that emitted a DEX Swap event, and the busiest counterparties of a tracked token's
 // Transfer events. Each candidate is then probed with eth_call for a pool interface.
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
-import { blockNumber, addrFromWord, usingFallback } from "../../shared/rhRpc.js";
+import { blockNumber, addrFromWord, usingFallback, CHAIN_ID } from "../../shared/rhRpc.js";
 import { rangeLogs, logsUnavailable } from "../../shared/rhLogs.js";
-import { TOPIC, TRACKED_TOKENS } from "../../shared/rhConstants.js";
+import { TOPIC } from "../../shared/rhConstants.js";
 import {
   inspectPool,
   erc20Decimals,
@@ -37,8 +37,15 @@ export default async function (req: Request): Promise<Response> {
     const fromBlock = Math.max(head - lookback, 0);
 
     const only = body.token ? String(body.token).toLowerCase() : null;
-    const seeds = only ? TRACKED_TOKENS.filter((t) => t.address === only) : TRACKED_TOKENS;
+    const launches = await db.entities.Token.filter({ chain_id: CHAIN_ID });
+    const seeds = launches
+      .filter((t) => t.token_address && t.curve_address)
+      .map((t) => ({ address: t.token_address.toLowerCase(), curve: t.curve_address.toLowerCase(),
+        symbol: t.ticker, name: t.name, image_url: t.image_url, website: t.website,
+        twitter: t.twitter, telegram: t.telegram }))
+      .filter((t) => !only || t.address === only);
     const tracked = new Set(seeds.map((s) => s.address));
+    if (!seeds.length) return Response.json({ head_block: head, chain_id: CHAIN_ID, results: [], message: "No verified testnet launches to index yet." });
 
     // One sweep serves every tracked token.
     const sweep = await rangeLogs({
@@ -71,7 +78,20 @@ export default async function (req: Request): Promise<Response> {
         name: name || seed.name,
         decimals,
         total_supply: supply || 0,
+        icon_url: seed.image_url,
+        website: seed.website,
+        twitter: seed.twitter,
+        telegram: seed.telegram,
+        chain_id: CHAIN_ID,
         tracked: true,
+      });
+
+      const curveRows = await db.entities.RhPool.filter({ address: seed.curve, token_address: token, chain_id: CHAIN_ID });
+      if (!curveRows[0]) await db.entities.RhPool.create({
+        address: seed.curve, token_address: token, venue: "kydos_curve", chain_id: CHAIN_ID,
+        base_decimals: decimals, quote_decimals: 18, quote_symbol: "ETH",
+        base_is_token0: true, launchpad_verified: true, liquidity_locked: false,
+        active: true, discovered_at: Date.now(), trust_status: "TRUSTED",
       });
 
       // Tally this token's Transfer counterparties — pools are by far the busiest.
@@ -87,7 +107,7 @@ export default async function (req: Request): Promise<Response> {
         }
       }
 
-      const existing = await db.entities.RhPool.filter({ token_address: token });
+      const existing = await db.entities.RhPool.filter({ token_address: token, chain_id: CHAIN_ID });
       const known = new Set(existing.map((p) => p.address));
 
       // Swap emitters first — they are certain pools — then busy counterparties.
@@ -113,6 +133,7 @@ export default async function (req: Request): Promise<Response> {
           address: candidate,
           token_address: token,
           venue: info.venue,
+          chain_id: CHAIN_ID,
           token0: info.token0,
           token1: info.token1,
           base_is_token0: baseIsToken0,
@@ -127,7 +148,7 @@ export default async function (req: Request): Promise<Response> {
         discovered.push({ address: candidate, venue: info.venue, quote: quoteSymbol });
       }
 
-      const pools = await db.entities.RhPool.filter({ token_address: token, active: true });
+      const pools = await db.entities.RhPool.filter({ token_address: token, chain_id: CHAIN_ID, active: true });
       await upsertToken(db, token, { pool_count: pools.length, pools_synced_at: Date.now() });
 
       results.push({

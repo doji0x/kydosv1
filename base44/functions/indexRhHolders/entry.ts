@@ -1,7 +1,7 @@
 // Holder index: walks Transfer logs since its cursor and accumulates per-wallet balances
 // into RhBalance, so holder counts and top holders come from Kydos-owned data.
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
-import { blockNumber, toBig, words, addrFromWord, scaled } from "../../shared/rhRpc.js";
+import { blockNumber, toBig, words, addrFromWord, scaled, CHAIN_ID } from "../../shared/rhRpc.js";
 import { rangeLogs } from "../../shared/rhLogs.js";
 import { TOPIC } from "../../shared/rhConstants.js";
 import { getCursor, setCursor } from "../../shared/rhStore.js";
@@ -21,17 +21,17 @@ export default async function (req: Request): Promise<Response> {
     const maxSpan = Math.min(Number(body.max_span) || 400, 3000);
 
     const head = await blockNumber();
-    const tokens = await db.entities.RhToken.filter({ tracked: true });
+    const tokens = await db.entities.RhToken.filter({ tracked: true, chain_id: CHAIN_ID });
     const summary = [];
 
     for (const token of tokens) {
-      const scope = `transfers:${token.address}`;
+      const scope = `${CHAIN_ID}:transfers:${token.address}`;
       const cursor = await getCursor(db, scope);
       const fromBlock = cursor ? cursor.last_block + 1 : Math.max(head - initialLookback, 0);
       if (fromBlock > head) continue;
       const targetBlock = Math.min(head, fromBlock + maxSpan - 1);
 
-      const pools = await db.entities.RhPool.filter({ token_address: token.address });
+      const pools = await db.entities.RhPool.filter({ token_address: token.address, chain_id: CHAIN_ID });
       const poolSet = new Set(pools.map((p) => p.address));
       const decimals = token.decimals ?? 18;
       const deltas = new Map();
@@ -59,13 +59,13 @@ export default async function (req: Request): Promise<Response> {
 
       for (let i = 0; i < wallets.length; i += 100) {
         const chunk = wallets.slice(i, i + 100);
-        const uids = chunk.map((w) => `${token.address}-${w}`);
+        const uids = chunk.map((w) => `${CHAIN_ID}-${token.address}-${w}`);
         const existing = await db.entities.RhBalance.filter({ uid: { $in: uids } }, "uid", uids.length);
         const byUid = new Map(existing.map((r) => [r.uid, r]));
 
         const fresh = [];
         for (const wallet of chunk) {
-          const uid = `${token.address}-${wallet}`;
+          const uid = `${CHAIN_ID}-${token.address}-${wallet}`;
           const delta = deltas.get(wallet) || 0;
           const row = byUid.get(uid);
           if (row) {
@@ -77,6 +77,7 @@ export default async function (req: Request): Promise<Response> {
           } else {
             fresh.push({
               uid,
+              chain_id: CHAIN_ID,
               token_address: token.address,
               wallet,
               balance: Math.max(delta, 0),

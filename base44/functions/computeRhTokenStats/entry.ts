@@ -2,7 +2,7 @@
 // RhTrade records plus live pool reserves, then upserts the canonical RhToken record.
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { quoteUsdValue } from "../../shared/rhConstants.js";
-import { rpc, scaled, toBig } from "../../shared/rhRpc.js";
+import { rpc, scaled, toBig, CHAIN_ID } from "../../shared/rhRpc.js";
 import { v2Reserves, erc20BalanceOf } from "../../shared/rhErc20.js";
 import { computeStats } from "../../shared/rhMarket.js";
 import { isTrusted } from "../../shared/rhAudit.js";
@@ -51,12 +51,12 @@ export default async function (req: Request): Promise<Response> {
     const db = base44.asServiceRole;
 
     const ethUsd = await getRefPrice(db, "ETH");
-    const tokens = await db.entities.RhToken.filter({ tracked: true });
+    const tokens = await db.entities.RhToken.filter({ tracked: true, chain_id: CHAIN_ID });
     const out = [];
 
     for (const token of tokens) {
-      const allTrades = await listBounded(db, "RhTrade", { token_address: token.address }, "-block_time", 3000);
-      const allPools = await db.entities.RhPool.filter({ token_address: token.address, active: true });
+      const allTrades = await listBounded(db, "RhTrade", { token_address: token.address, chain_id: CHAIN_ID }, "-block_time", 3000);
+      const allPools = await db.entities.RhPool.filter({ token_address: token.address, chain_id: CHAIN_ID, active: true });
       const pools = allPools.filter((pool) => !pool.trust_status || pool.trust_status === "TRUSTED");
       const trustedPoolAddresses = new Set(pools.map((pool) => pool.address));
       const trades = allTrades.filter((trade) => isTrusted(trade) && trustedPoolAddresses.has(trade.pool));
@@ -100,7 +100,7 @@ export default async function (req: Request): Promise<Response> {
         quotes.map((q) => ({ ...q, liquidity_usd: liquidityByPool.get(q.pool) ?? q.liquidity_usd }))
       );
 
-      const holders = await db.entities.RhBalance.filter({ token_address: token.address, is_pool: false });
+      const holders = await db.entities.RhBalance.filter({ token_address: token.address, chain_id: CHAIN_ID, is_pool: false });
       const holderCount = holders.filter((h) => (h.balance || 0) > 0).length;
 
       const stats = computeStats(trades, {

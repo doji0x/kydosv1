@@ -67,13 +67,13 @@ export default async function (req: Request): Promise<Response> {
 
     const head = await blockNumber();
     const ethUsd = await getRefPrice(db, "ETH");
-    const pools = await db.entities.RhPool.filter({ active: true });
+    const pools = await db.entities.RhPool.filter({ active: true, chain_id: CHAIN_ID });
     if (!pools.length) return Response.json({ head_block: head, pools: 0, summary: [] });
 
     // One window covering every pool, starting at the furthest-behind cursor.
     const starts = [];
     for (const pool of pools) {
-      const cursor = await getCursor(db, `swaps:${pool.address}`);
+      const cursor = await getCursor(db, `${CHAIN_ID}:swaps:${pool.address}`);
       starts.push(cursor ? cursor.last_block + 1 : Math.max(head - initialLookback, 0));
     }
     let fromBlock = Math.min(...starts);
@@ -214,7 +214,7 @@ export default async function (req: Request): Promise<Response> {
       const inserted = await insertNewByUid(db, "RhTrade", records);
       const latestV4 = pool.venue === "uniswap_v4" ? raw.filter((t) => t.sqrt_price_x96).at(-1) : null;
       if (latestV4) await db.entities.RhPool.update(pool.id, { sqrt_price_x96: latestV4.sqrt_price_x96, current_tick: latestV4.tick });
-      await setCursor(db, `swaps:${pool.address}`, scannedTo);
+      await setCursor(db, `${CHAIN_ID}:swaps:${pool.address}`, scannedTo);
       await upsertToken(db, pool.token_address, { last_indexed_block: scannedTo });
 
       summary.push({
