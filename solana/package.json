@@ -1,0 +1,9 @@
+{
+  "name": "kydos-solana-scaffold",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/config.test.js",
+    "check": "node --check ../src/lib/solana/config.js && node --check ../src/lib/solana/index.js && node --check tests/config.test.js"
+  }
+}
