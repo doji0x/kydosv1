@@ -49,3 +49,14 @@ This project enforces structured crew-based workflow for all code, docs, and pro
 - **Termination:** Workflow results record completion time, success state, and any error explicitly.
 
 See base44/functions/astraChat/roles.ts and contracts.ts for authoritative types and permissions.
+
+## Shared delivery and concise specialist handoff
+
+- **Astra specialists deliver to `astra/latest`**, not a new branch per task. This is the shared delivery branch, not deployment approval. Other agents use separate branches/worktrees.
+- Before resuming, inspect the current tip, relevant upstream state, this file and task checkpoints. Continue only unfinished work. Re-read touched files before editing; coordinate overlapping ownership. Earlier assistant claims are not verified SHAs or job status.
+- If isolation is necessary, record owner, purpose and base SHA. Completion includes safe integration of verified, finished, build-intended work into `astra/latest`, focused checks on the integrated result and its resulting commit SHA. Do not leave routine integration to the owner. If tooling, ownership, conflicts or failed checks block integration, report blocked delivery instead of guessing.
+- Never force merges/ref updates, reset working trees, discard changes, delete unrelated branches or interrupt running jobs. Do not automatically cancel jobs for branch housekeeping. Preserve unrelated edits; unexpected changes require reinspection, not overwriting.
+- Another agent's `main` changes are upstream evidence only: obtain its exact commit SHA, changed files and concise handoff before assigning dependent work.
+- Handoff format: **scope/status; source/base SHA; changed files; resulting `astra/latest` SHA; checks actually run/results; blockers/next owner**. Link relevant decisions and checkpoints. Distinguish file/blob SHAs from commit SHAs and unrun checks from passing checks.
+- Orchestration policy lives in `base44/shared/astraDelivery.ts`, consumed by manager and specialists. Focused checks: `node --test tests/astra-delivery.test.mjs` with Node 22.18.0 (native TypeScript stripping). CI: `.github/workflows/astra-delivery.yml`. Tests are mocked GitHub/contract checks, not live Base44 execution.
+- Git and deployed Base44 configuration may differ. Report inaccessible deployed state explicitly; do not claim deployment or live job changes from a Git commit. See `docs/astra-delivery-checkpoint.md` for inspection limits and follow-up.
