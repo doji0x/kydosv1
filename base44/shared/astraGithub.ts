@@ -33,17 +33,13 @@ export async function createBranch(token, repoRef, branch) {
 }
 export async function commitFile(token, repoRef, branch, path, content, message) {
   const { owner, repo } = parseRepo(repoRef); if (!branch.startsWith('astra/')) throw new Error('Commits require an astra/* branch.');
-  await createBranch(token, repoRef, branch); const current = await readFile(token, repoRef, path, branch).catch(() => null);
-  const bytes = new TextEncoder().encode(content); let binary = ''; bytes.forEach(byte => { binary += String.fromCharCode(byte); });
-  const request = () => github(token, `/repos/${owner}/${repo}/contents/${path.split('/').map(encodeURIComponent).join('/')}`, { method: 'PUT', body: JSON.stringify({ message, content: btoa(binary), branch, ...(current ? { sha: current.sha } : {}) }) });
-  let result; let firstError;
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try { result = await request(); break; }
-    catch (error) {
-      firstError ||= error;
-      if (![404, 409].includes(error.status) || attempt === 2) throw attempt === 2 ? firstError : error;
-      await new Promise(resolve => setTimeout(resolve, 700));
-    }
-  }
-  return { path, branch, commit: result.commit?.sha, url: `https://github.com/${owner}/${repo}/compare/${await defaultBranch(token, repoRef)}...${branch}` };
+  await createBranch(token, repoRef, branch);
+  const refPath = `/repos/${owner}/${repo}/git/ref/heads/${encodeURIComponent(branch)}`;
+  const branchRef = await github(token, refPath); const parentSha = branchRef.object.sha;
+  const parentCommit = await github(token, `/repos/${owner}/${repo}/git/commits/${parentSha}`);
+  const blob = await github(token, `/repos/${owner}/${repo}/git/blobs`, { method: 'POST', body: JSON.stringify({ content, encoding: 'utf-8' }) });
+  const tree = await github(token, `/repos/${owner}/${repo}/git/trees`, { method: 'POST', body: JSON.stringify({ base_tree: parentCommit.tree.sha, tree: [{ path, mode: '100644', type: 'blob', sha: blob.sha }] }) });
+  const commit = await github(token, `/repos/${owner}/${repo}/git/commits`, { method: 'POST', body: JSON.stringify({ message, tree: tree.sha, parents: [parentSha] }) });
+  await github(token, `/repos/${owner}/${repo}/git/refs/heads/${encodeURIComponent(branch)}`, { method: 'PATCH', body: JSON.stringify({ sha: commit.sha, force: false }) });
+  return { path, branch, commit: commit.sha, url: `https://github.com/${owner}/${repo}/compare/${await defaultBranch(token, repoRef)}...${branch}` };
 }
