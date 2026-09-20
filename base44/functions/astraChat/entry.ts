@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.48';
 import { secrets } from 'base44:runtime';
-import { activityLabel, runTool, toolSchemas } from './tools.ts';
+import { ASTRA_WORKING_BRANCH, activityLabel, normalizeToolArgs, runTool, toolSchemas } from './tools.ts';
 import { buildActivityDigest, buildHistory, nextTurn, summarizeToolArgs, summarizeToolResult } from './memory.ts';
 import { crewOrder, crewRoles, runSpecialist } from './crew.ts';
 import { createPipeline } from './pipeline.ts';
@@ -11,7 +11,7 @@ const managerTools = [...toolSchemas.filter(x => x.function.name !== 'commitFile
  {type:'function',function:{name:'assignJob',description:'Assign one scoped job to the next crew specialist.',parameters:{type:'object',properties:{role:{type:'string',enum:crewOrder},job:{type:'string'},context:{type:'string'}},required:['role','job','context']}}},
  {type:'function',function:{name:'recordAuditIssue',description:'Record an audit finding and stop work for owner approval.',parameters:{type:'object',properties:{severity:{type:'string',enum:['high','medium','low']},finding:{type:'string'},proposedFix:{type:'string'},repo:{type:'string'},branch:{type:'string'},filePaths:{type:'array',items:{type:'string'}}},required:['severity','finding','proposedFix','repo','branch','filePaths']}}}
 ];
-const systemPrompt = `You are Astra, the repository engineering foreman for Kydos (default repo doji0x/kydosv1). Survey with listRepoTree/readFile, create one astra/<slug> branch, then delegate sequentially: ${crewOrder.join(' → ')}. Specialists are blind, so include full relevant file contents and earlier reports in context. Only specialists commit. Audit always runs last. Audit findings must be recorded with recordAuditIssue and are NEVER fixed without an owner-button approval. Finish with a short markdown brief naming roles, files, branch and audit result. Cite earlier owner messages as (#N).`;
+const systemPrompt = `You are Astra, the repository engineering foreman for Kydos (default repo doji0x/kydosv1). Prepare and survey the persistent ${ASTRA_WORKING_BRANCH} branch with createBranch/listRepoTree/readFile, then delegate sequentially: ${crewOrder.join(' → ')}. Every job and specialist commit accumulates on ${ASTRA_WORKING_BRANCH}; never create or use another branch. Call resetWorkingBranch only when the owner's current message explicitly tells you to start fresh, then continue on ${ASTRA_WORKING_BRANCH}. Specialists are blind, so include full relevant file contents and earlier reports in context. Only specialists commit. Audit always runs last. Audit findings must be recorded with recordAuditIssue and are NEVER fixed without an owner-button approval. Finish with a short markdown brief naming roles, files, branch and audit result. Cite earlier owner messages as (#N).`;
 
 export default async function(req: Request): Promise<Response> {
  let auditSession;
@@ -38,7 +38,7 @@ export default async function(req: Request): Promise<Response> {
   for(let iteration=0;iteration<20;iteration++){
    const message=await callOpenAi({apiKey,model:toolsModel,messages,tools:managerTools}); messages.push(message);
    if(!message.tool_calls?.length){finalText=message.content||'Run completed.';break;}
-   for(const call of message.tool_calls){let args={};try{args=JSON.parse(call.function.arguments||'{}');}catch{} const started=Date.now();let result;
+   for(const call of message.tool_calls){let args={};try{args=JSON.parse(call.function.arguments||'{}');}catch{} normalizeToolArgs(args); const started=Date.now();let result;
     try{
      if(call.function.name==='assignJob'){
       const claim=pipeline.claim(args.role); if(claim.error) result=claim; else { const report=await runSpecialist({apiKey,chatModel,toolsModel,githubToken,role:args.role,job:args.job,context:args.context,log,beforeWrite:auditSession.assertWrite}); result={role:args.role,skipped:claim.skipped,report}; if(args.role==='audit') auditPassed=/\b(no findings|no issues|clean audit|audit passed)\b/i.test(report) && !/\b(high|medium|low) severity\b/i.test(report); }
