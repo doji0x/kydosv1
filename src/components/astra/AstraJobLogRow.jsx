@@ -1,0 +1,2 @@
+import React from 'react';
+export default function AstraJobLogRow({job}){return <div className="rounded-xl border border-border bg-card p-4"><div className="flex justify-between gap-3"><strong className="text-xs tracking-wider text-primary">{job.role}</strong><span className="font-mono text-xs text-muted-foreground">{((job.durationMs||0)/1000).toFixed(1)}s</span></div><p className="mt-2 text-sm">{job.job}</p><p className="mt-2 line-clamp-3 font-mono text-xs text-muted-foreground">{job.detail}</p></div>}

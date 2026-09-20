@@ -1,0 +1,4 @@
+import React from 'react';
+import useAstraConversations from '@/hooks/useAstraConversations';
+import AstraConversationRow from './AstraConversationRow';
+export default function AstraConversationsPanel({activeId,onOpen}){const {conversations,loading,remove}=useAstraConversations();if(loading)return <p className="text-sm text-muted-foreground">Loading chats…</p>;if(!conversations.length)return <p className="text-sm text-muted-foreground">No saved chats yet.</p>;return <div className="space-y-3">{conversations.map(item=><AstraConversationRow key={item.id} item={item} active={item.id===activeId} onOpen={onOpen} onRemove={remove}/>)}</div>}

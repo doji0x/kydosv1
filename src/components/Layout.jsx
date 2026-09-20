@@ -10,7 +10,7 @@ import { WalletProvider } from "@/lib/WalletContext";
 export default function Layout() {
   const { pathname } = useLocation();
   const outlet = useOutlet();
-  const immersive = pathname.startsWith("/token/") || pathname === "/launch";
+  const immersive = pathname.startsWith("/token/") || pathname === "/launch" || pathname === "/admin/astra";
 
   return (
     <WalletProvider>

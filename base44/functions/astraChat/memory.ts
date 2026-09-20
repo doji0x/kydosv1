@@ -1,0 +1,5 @@
+export function nextTurn(rows) { return rows.filter(x => x.role === 'user').length + 1; }
+export function buildHistory(rows) { return rows.filter(x => x.role !== 'activity').map(x => ({ role: x.role, content: x.role === 'user' ? `[#${x.turn}] ${x.content}` : x.content })); }
+export function buildActivityDigest(rows) { const text = rows.filter(x => x.role === 'activity').map(x => `- ${x.content}${x.detail ? ` (${x.detail})` : ''}`).join('\n'); return text ? `Earlier activity:\n${text.slice(-4000)}` : ''; }
+export function summarizeToolArgs(args) { const { content, ...rest } = args || {}; return Object.entries(rest).map(([k,v]) => `${k}=${v}`).concat(typeof content === 'string' ? [`content=${content.length} chars`] : []).join(', '); }
+export function summarizeToolResult(result) { if (result?.error) return `error: ${result.error}`; if (result?.content) return `${result.content.length} chars`; if (result?.files) return `${result.files.length} files`; return JSON.stringify(result).slice(0, 180); }

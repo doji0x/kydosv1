@@ -1,0 +1,4 @@
+import React from 'react';
+import { Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+export default function AstraConversationRow({item,active,onOpen,onRemove}){return <div className={`flex items-center gap-3 rounded-xl border p-4 ${active?'border-primary/50 bg-primary/5':'border-border bg-card'}`}><button className="min-w-0 flex-1 text-left" onClick={()=>onOpen(item.id)}><p className="truncate text-sm font-medium">{item.firstMessage}</p><p className="mt-1 text-xs text-muted-foreground">{item.turns} messages · {new Date(item.lastAt).toLocaleDateString()}</p></button><Button variant="ghost" size="icon" onClick={()=>onRemove(item.id)}><Trash2/></Button></div>}

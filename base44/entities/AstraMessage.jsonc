@@ -1,0 +1,63 @@
+{
+  "name": "AstraMessage",
+  "type": "object",
+  "properties": {
+    "conversationId": {
+      "type": "string"
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "user",
+        "assistant",
+        "activity"
+      ],
+      "default": "user"
+    },
+    "content": {
+      "type": "string"
+    },
+    "turn": {
+      "type": "number"
+    },
+    "toolName": {
+      "type": "string"
+    },
+    "detail": {
+      "type": "string"
+    },
+    "durationMs": {
+      "type": "number"
+    },
+    "repo": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "conversationId",
+    "role",
+    "content"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -1,0 +1,107 @@
+{
+  "name": "AstraAuditIssue",
+  "type": "object",
+  "properties": {
+    "conversationId": {
+      "type": "string"
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "high",
+        "medium",
+        "low"
+      ]
+    },
+    "finding": {
+      "type": "string"
+    },
+    "proposedFix": {
+      "type": "string"
+    },
+    "branch": {
+      "type": "string"
+    },
+    "repo": {
+      "type": "string"
+    },
+    "filePaths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "rejected",
+        "resolved"
+      ],
+      "default": "pending"
+    },
+    "messageId": {
+      "type": "string"
+    },
+    "parentIssueId": {
+      "type": "string"
+    },
+    "supersededBy": {
+      "type": "string"
+    },
+    "runId": {
+      "type": "string"
+    },
+    "runStatus": {
+      "type": "string",
+      "enum": [
+        "running",
+        "completed",
+        "failed"
+      ]
+    },
+    "runError": {
+      "type": "string"
+    },
+    "decidedBy": {
+      "type": "string"
+    },
+    "decidedAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "conversationId",
+    "severity",
+    "finding",
+    "proposedFix",
+    "branch",
+    "repo",
+    "filePaths",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

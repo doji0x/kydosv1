@@ -1,0 +1,9 @@
+import { commitFile, createBranch, listRepoTree, readFile } from '../../shared/astraGithub.ts';
+export const toolSchemas = [
+ { type:'function', function:{ name:'listRepoTree', description:'List repository files.', parameters:{ type:'object', properties:{ repo:{type:'string'}, branch:{type:'string'} }, required:['repo'] } } },
+ { type:'function', function:{ name:'readFile', description:'Read one repository file.', parameters:{ type:'object', properties:{ repo:{type:'string'}, path:{type:'string'}, branch:{type:'string'} }, required:['repo','path'] } } },
+ { type:'function', function:{ name:'createBranch', description:'Create an astra/* branch.', parameters:{ type:'object', properties:{ repo:{type:'string'}, branch:{type:'string'} }, required:['repo','branch'] } } },
+ { type:'function', function:{ name:'commitFile', description:'Commit complete file contents to the review branch.', parameters:{ type:'object', properties:{ repo:{type:'string'}, branch:{type:'string'}, path:{type:'string'}, content:{type:'string'}, message:{type:'string'} }, required:['repo','branch','path','content','message'] } } }
+];
+export async function runTool(token, name, args) { if(name==='listRepoTree') return listRepoTree(token,args.repo,args.branch); if(name==='readFile') return readFile(token,args.repo,args.path,args.branch); if(name==='createBranch') return createBranch(token,args.repo,args.branch); if(name==='commitFile') return commitFile(token,args.repo,args.branch,args.path,String(args.content||''),args.message); throw new Error(`Unknown tool ${name}`); }
+export function activityLabel(name,args) { return name==='readFile'?`Reading ${args.path}`:name==='commitFile'?`Committing ${args.path}`:name==='createBranch'?`Preparing ${args.branch}`:`Listing ${args.repo}`; }

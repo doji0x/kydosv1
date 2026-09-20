@@ -1,0 +1,5 @@
+import React from 'react';
+import { Bot } from 'lucide-react';
+import AstraMessageList from './AstraMessageList';
+import AstraComposer from './AstraComposer';
+export default function AstraChatPanel({chat}){return <div><div className="mb-6 rounded-2xl border border-border bg-card p-5"><div className="flex items-center gap-2 text-primary"><Bot className="h-5 w-5"/><strong>Astra engineering crew</strong></div><p className="mt-2 text-sm text-muted-foreground">Describe a Kydos repository change. Astra surveys the code, delegates through the specialist pipeline, and commits only to an astra/* review branch.</p></div>{chat.error&&<div className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{chat.error}</div>}<AstraMessageList messages={chat.messages} issues={chat.auditIssues} loading={chat.loading} busy={chat.busy} onDecision={chat.decideAudit}/><AstraComposer busy={chat.busy} onSend={chat.send} onPause={chat.pause}/></div>}
