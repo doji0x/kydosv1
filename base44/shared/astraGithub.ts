@@ -3,7 +3,7 @@ function headers(token) { return { authorization: `Bearer ${token}`, accept: 'ap
 async function github(token, path, options = {}) {
   const response = await fetch(`${apiBase}${path}`, { ...options, headers: { ...headers(token), ...(options.body ? { 'content-type': 'application/json' } : {}) } });
   const text = await response.text(); const body = text ? JSON.parse(text) : {};
-  if (!response.ok) throw new Error(`GitHub ${response.status}: ${body.message || text.slice(0, 200)}`);
+  if (!response.ok) throw Object.assign(new Error(`GitHub ${response.status}: ${body.message || text.slice(0, 200)}`), { status: response.status });
   return body;
 }
 export function parseRepo(value) {
@@ -33,8 +33,13 @@ export async function createBranch(token, repoRef, branch) {
 }
 export async function commitFile(token, repoRef, branch, path, content, message) {
   const { owner, repo } = parseRepo(repoRef); if (!branch.startsWith('astra/')) throw new Error('Commits require an astra/* branch.');
-  await createBranch(token, repoRef, branch); const current = await readFile(token, repoRef, path, branch).catch(() => null);
-  const bytes = new TextEncoder().encode(content); let binary = ''; bytes.forEach(byte => { binary += String.fromCharCode(byte); });
-  const result = await github(token, `/repos/${owner}/${repo}/contents/${path.split('/').map(encodeURIComponent).join('/')}`, { method: 'PUT', body: JSON.stringify({ message, content: btoa(binary), branch, ...(current ? { sha: current.sha } : {}) }) });
-  return { path, branch, commit: result.commit?.sha, url: `https://github.com/${owner}/${repo}/compare/${await defaultBranch(token, repoRef)}...${branch}` };
+  await createBranch(token, repoRef, branch);
+  const refPath = `/repos/${owner}/${repo}/git/ref/heads/${encodeURIComponent(branch)}`;
+  const branchRef = await github(token, refPath); const parentSha = branchRef.object.sha;
+  const parentCommit = await github(token, `/repos/${owner}/${repo}/git/commits/${parentSha}`);
+  const blob = await github(token, `/repos/${owner}/${repo}/git/blobs`, { method: 'POST', body: JSON.stringify({ content, encoding: 'utf-8' }) });
+  const tree = await github(token, `/repos/${owner}/${repo}/git/trees`, { method: 'POST', body: JSON.stringify({ base_tree: parentCommit.tree.sha, tree: [{ path, mode: '100644', type: 'blob', sha: blob.sha }] }) });
+  const commit = await github(token, `/repos/${owner}/${repo}/git/commits`, { method: 'POST', body: JSON.stringify({ message, tree: tree.sha, parents: [parentSha] }) });
+  await github(token, `/repos/${owner}/${repo}/git/refs/heads/${encodeURIComponent(branch)}`, { method: 'PATCH', body: JSON.stringify({ sha: commit.sha, force: false }) });
+  return { path, branch, commit: commit.sha, url: `https://github.com/${owner}/${repo}/compare/${await defaultBranch(token, repoRef)}...${branch}` };
 }
