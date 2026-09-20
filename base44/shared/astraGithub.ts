@@ -12,6 +12,16 @@ export function parseRepo(value) {
   if (!match) throw new Error('Use owner/repo form.'); return { owner: match[1], repo: match[2] };
 }
 async function defaultBranch(token, repoRef) { const { owner, repo } = parseRepo(repoRef); return (await github(token, `/repos/${owner}/${repo}`)).default_branch; }
+export async function inspectRepoState(token, repoRef, branch = ASTRA_WORKING_BRANCH) {
+  const { owner, repo } = parseRepo(repoRef); const base = await defaultBranch(token, repoRef);
+  await createBranch(token, repoRef, branch);
+  const [baseRef, headRef, comparison] = await Promise.all([
+    github(token, `/repos/${owner}/${repo}/git/ref/heads/${encodeURIComponent(base)}`),
+    github(token, `/repos/${owner}/${repo}/git/ref/heads/${encodeURIComponent(branch)}`),
+    github(token, `/repos/${owner}/${repo}/compare/${encodeURIComponent(base)}...${encodeURIComponent(branch)}`).catch(() => ({ files: [] }))
+  ]);
+  return { branch, baseCommitSha: baseRef.object.sha, headSha: headRef.object.sha, changedFiles: (comparison.files || []).slice(0, 100).map(file => file.filename) };
+}
 export async function listRepoTree(token, repoRef, branch) {
   const { owner, repo } = parseRepo(repoRef); const ref = branch || await defaultBranch(token, repoRef);
   const tree = await github(token, `/repos/${owner}/${repo}/git/trees/${encodeURIComponent(ref)}?recursive=1`);
