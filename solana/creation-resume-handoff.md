@@ -138,3 +138,68 @@ attribution, parent guards and single-existing-audit handoff. Post-commit read-b
 and branch/check inspection are reported in the external handoff. No shell is
 available; no executable tests or independent audit were run. Historical check
 limitations above apply to their original sessions, not this inspection.
+
+## Acceptance provenance — plan 6aafca03950adc548b23d387
+
+**Blocked: designated acceptance head and complete comparison evidence are
+unavailable.** This is an acceptance-provenance-only resume under parent
+`6aafc9abb6f11cfb1012dcee`, not a re-run of the older coordination task or a
+request to reopen token economics. Historical statements above are preserved,
+not treated as verified commit-range evidence.
+
+### Durable manifest reference and boundaries
+
+The [version-1 evidence manifest](https://github.com/doji0x/kydosv1/blob/f24c3a668e6d653553780cd7ede632ba0573427a/docs/astra-delivery-checkpoint.md#acceptance-provenance-resume--plan-6aafca03950adc548b23d387)
+is pinned to documentation commit `f24c3a668e6d653553780cd7ede632ba0573427a`.
+It explicitly records unknown evidence rather than fabricating an exact range.
+See also the [current checkpoint](../docs/astra-delivery-checkpoint.md).
+
+- B: `a6e61ab7146f735cb28e30f51492c7ec976abe79`, supplied baseline, **excluded**.
+- H: **not established**, **included** once explicitly designated and verified.
+- Intended commit set: all commits reachable from H but not B (`B..H`), with
+  verified B-to-H ancestry, full SHAs/parents and per-parent changed-file lists.
+  Separately list net B-to-H changed files; do not substitute a three-dot or
+  first-parent-only comparison. Exact commits and files are presently unknown.
+- Observed pre-edit working head: `ddcbb2280f8e362c1618fddad87d7c7629490fa2`.
+  This is neither H nor evidence that the supplied baseline is its ancestor.
+- Recorded historical head: `679e74566a673d6a1193067a928243ce859ad11b`.
+  Its prior check statement is not independently reverified. A branch-status
+  lookup using that SHA returned 404; the branch-oriented interface cannot
+  establish commit absence. Commit-object, ancestry and exact check evidence
+  remain blockers. Do not automatically designate that historical head as H.
+
+### Missing handoff packages / next owner
+
+The stored plan read failed with HTTP 500; exact search returned no match.
+Recover its approved immutable version and the authorized acceptance-head
+record, then use read-only history/compare access to complete the manifest.
+No upstream dependency was relied on in this resume; the complete acceptance
+inventory is unknown. Before relying on any other agent's main/orchestration
+change, obtain exact SHA, complete changed files, SHA-bound test outcomes/run
+references and immutable owner scope/completion handoff, plus integration mapping.
+For each relied-on hosted service, obtain an outside-Git deployment/release
+reference linked to reviewed source or an artifact/source mapping, service and
+environment identity, tests and owner handoff. This includes applicable Base44
+orchestration and existing image/metadata hosting; neither their inventory nor
+deployed versions is verified by this documentation. Git is not deployment proof.
+
+### Scope, consistency checks and integration gate
+
+Only `docs/astra-delivery-checkpoint.md` and this file were edited; existing
+contents were preserved and re-read before writes. The first documentation commit
+was observed at `f24c3a668e6d653553780cd7ede632ba0573427a` with `checks: []`.
+Before that edit, repeated status queries reported `scaffold: completed/success`
+on `ddcbb2280f8e362c1618fddad87d7c7629490fa2`; that result is not transferred to
+new commits. Static checks covered IDs, immutable link SHA, boundary semantics,
+unknown fields and historical-text preservation. Both relevant workflow filters
+were inspected. No shell/executable tests, independent audit or external branch
+integration were performed. No unexpected head/file movement was observed before
+these serialized writes; this is not a general mergeability or ownership proof.
+
+This handoff edit triggers the scaffold workflow. Inspect the resulting exact
+head's checks and final read-back; report their results externally. Acceptance
+and any further integration remain blocked until required checks pass, conflicts
+are cleared, the comparison and dependency packages are complete, and independent
+review is recorded. Do not infer passing checks from an empty list. Preserve
+newer work and all existing audit/parent guards. No deployment, spending,
+credentials, protections or live jobs were changed.
