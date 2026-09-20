@@ -1,0 +1,17 @@
+[toolchain]
+anchor_version = "0.31.1"
+solana_version = "2.1.21"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+kydos_launchpad = "Fg6PaFpoGXkYsidMpWxTWqkZqvFmR6UJA4R9C3bZ9S2"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "node --test tests/*.test.js"

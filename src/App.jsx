@@ -26,6 +26,8 @@ import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
 import OAuthConsent from '@/pages/OAuthConsent';
 import AdminAstra from '@/pages/AdminAstra';
+import SolanaLaunch from '@/pages/SolanaLaunch';
+import { SolanaWalletProvider } from '@/lib/SolanaWalletContext';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -57,6 +59,7 @@ const AuthenticatedApp = () => {
       <Route element={<Layout />}>
         <Route path="/" element={<Home />} />
         <Route path="/launch" element={<Launch />} />
+        <Route path="/launch/solana" element={<SolanaLaunch />} />
         <Route path="/token/:id" element={<TokenDetail />} />
         <Route path="/rh/:address" element={<RhTokenDetail />} />
         <Route path="/forum" element={<Forum />} />
@@ -79,6 +82,7 @@ function App() {
 
   return (
     <AuthProvider>
+      <SolanaWalletProvider>
       <QueryClientProvider client={queryClientInstance}>
         <Router>
           <ScrollToTop />
@@ -94,6 +98,7 @@ function App() {
         <Toaster />
         <SonnerToaster position="top-center" />
       </QueryClientProvider>
+      </SolanaWalletProvider>
     </AuthProvider>
   )
 }

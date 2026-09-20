@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -51,6 +51,7 @@ export default function Launch() {
             <p className="font-mono text-[10px] tracking-[0.3em] text-primary leading-none">NEW LAUNCH</p>
             <h1 className="font-display font-semibold leading-tight">Create your token</h1>
           </div>
+          <Link to="/launch/solana" className="text-xs font-mono text-primary">SOLANA</Link>
           <WalletButton />
         </div>
       </header>

@@ -1,0 +1,49 @@
+{
+  "name": "SolanaTrade",
+  "type": "object",
+  "description": "Normalized Solana launchpad transaction indexed through Helius.",
+  "properties": {
+    "signature": {
+      "type": "string"
+    },
+    "mint": {
+      "type": "string"
+    },
+    "wallet": {
+      "type": "string"
+    },
+    "side": {
+      "type": "string",
+      "enum": [
+        "buy",
+        "sell",
+        "launch",
+        "graduate"
+      ]
+    },
+    "sol_amount": {
+      "type": "number"
+    },
+    "token_amount": {
+      "type": "number"
+    },
+    "slot": {
+      "type": "number"
+    },
+    "block_time": {
+      "type": "number"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "confirmed",
+        "failed"
+      ]
+    }
+  },
+  "required": [
+    "signature",
+    "side",
+    "status"
+  ]
+}
