@@ -26,20 +26,24 @@ export async function readFile(token, repoRef, path, branch) {
 }
 export async function createBranch(token, repoRef, branch = ASTRA_WORKING_BRANCH) {
   const { owner, repo } = parseRepo(repoRef); if (branch !== ASTRA_WORKING_BRANCH) throw new Error(`Astra only works on ${ASTRA_WORKING_BRANCH}.`);
-  const base = await defaultBranch(token, repoRef); const existing = await github(token, `/repos/${owner}/${repo}/git/ref/heads/${encodeURIComponent(branch)}`).catch(() => null);
-  if (existing) return { branch, created: false, base };
+  const base = await defaultBranch(token, repoRef);
+  const refPath = `/repos/${owner}/${repo}/git/ref/heads/${encodeURIComponent(branch)}`;
+  const existing = await github(token, refPath).catch(error => { if (error.status === 404) return null; throw error; });
+  if (existing) return { branch, created: false, base, commit: existing.object.sha };
   const ref = await github(token, `/repos/${owner}/${repo}/git/ref/heads/${encodeURIComponent(base)}`);
-  await github(token, `/repos/${owner}/${repo}/git/refs`, { method: 'POST', body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: ref.object.sha }) });
-  return { branch, created: true, base };
+  try {
+    await github(token, `/repos/${owner}/${repo}/git/refs`, { method: 'POST', body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: ref.object.sha }) });
+  } catch (error) {
+    // A concurrent specialist may have created it. Never reset or retry a write.
+    if (error.status !== 422) throw error;
+    const concurrent = await github(token, refPath);
+    return { branch, created: false, base, commit: concurrent.object.sha };
+  }
+  return { branch, created: true, base, commit: ref.object.sha };
 }
-export async function resetWorkingBranch(token, repoRef) {
-  const { owner, repo } = parseRepo(repoRef); const base = await defaultBranch(token, repoRef);
-  const ref = await github(token, `/repos/${owner}/${repo}/git/ref/heads/${encodeURIComponent(base)}`);
-  const path = `/repos/${owner}/${repo}/git/refs/heads/${encodeURIComponent(ASTRA_WORKING_BRANCH)}`;
-  const existing = await github(token, `/repos/${owner}/${repo}/git/ref/heads/${encodeURIComponent(ASTRA_WORKING_BRANCH)}`).catch(() => null);
-  if (existing) await github(token, path, { method: 'PATCH', body: JSON.stringify({ sha: ref.object.sha, force: true }) });
-  else await github(token, `/repos/${owner}/${repo}/git/refs`, { method: 'POST', body: JSON.stringify({ ref: `refs/heads/${ASTRA_WORKING_BRANCH}`, sha: ref.object.sha }) });
-  return { branch: ASTRA_WORKING_BRANCH, reset: true, base };
+// Fail closed for legacy callers as well as removing the model-visible tool.
+export async function resetWorkingBranch() {
+  throw new Error(`Reset disabled: preserve shared delivery branch ${ASTRA_WORKING_BRANCH}.`);
 }
 export async function commitFile(token, repoRef, branch, path, content, message) {
   const { owner, repo } = parseRepo(repoRef); if (branch !== ASTRA_WORKING_BRANCH) throw new Error(`Commits require ${ASTRA_WORKING_BRANCH}.`);
