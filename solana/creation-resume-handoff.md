@@ -203,3 +203,71 @@ are cleared, the comparison and dependency packages are complete, and independen
 review is recorded. Do not infer passing checks from an empty list. Preserve
 newer work and all existing audit/parent guards. No deployment, spending,
 credentials, protections or live jobs were changed.
+
+### Supplied verdict carried forward — authorized plan 6aafd151295902a39dc815b6
+
+**BLOCKED: acceptance and parent closure remain blocked by unavailable evidence.**
+Current identities supplied by the job are authorized plan
+`6aafd151295902a39dc815b6`, existing review `6aafca03950adc548b23d387`, finding
+`6aafc9fd4449eee391e11756` and parent `6aafc9abb6f11cfb1012dcee`. Earlier use
+of the review ID as the plan ID is preserved as historical text, not the current
+mapping. Owner approval and gate-open status are supplied context; recover the
+existing immutable approval linkage without repeat approval. This task does not
+reopen economics or authorize implementation, deployment, queue mutation, a
+recursive audit or a successor audit.
+
+The [current verdict supplement](https://github.com/doji0x/kydosv1/blob/169ec4a92357a35aed644f6136c7561ab561e554/docs/astra-delivery-checkpoint.md#supplied-verdict-carried-forward--authorized-plan-6aafd151295902a39dc815b6)
+was committed at `169ec4a92357a35aed644f6136c7561ab561e554`; branch status
+confirmed that exact intermediate head with `checks: []`, not passing checks.
+That documentation commit is not designated H and does not independently verify
+the older pinned evidence commit `f24c3a668e6d653553780cd7ede632ba0573427a`.
+
+- **Recovered Git evidence:** repeated pre-edit branch checks observed
+  `2450747533a91dacb18148b735a7ba63f917d88d` with only `scaffold` success.
+  Historical `delivery-contracts` success is not current acceptance proof.
+  Neither working nor documentation heads are automatically H.
+- **Unavailable immutable records:** targeted ID/approval search returned no
+  results; direct reads of the authorized plan, finding and existing review each
+  failed with HTTP 500. Their contents/version and existing approval linkage
+  remain unavailable, not disproven. Exact search for the older pinned SHA also
+  returned no results. No available tool reads commit objects or pinned file
+  contents: independent verification of that pinned artifact remains a blocker,
+  despite the surviving historical link and testimony.
+- **Unavailable comparison:** B is
+  `a6e61ab7146f735cb28e30f51492c7ec976abe79`, object unverified. Authorized H
+  designation, H object and B-to-H ancestry are unverified. Require every reachable
+  `B..H` commit with full SHA/parents, B excluded and H included, not first-parent
+  or three-dot. Export complete paginated paths/statuses against every parent,
+  including merge-parent diffs and rename old/new paths, with explicit completeness
+  evidence; separately export the net B-to-H manifest. These are unknown, not
+  empty; supplied scope lists and working bases cannot fill them.
+- **Unavailable dependency inventory:** recover every relied-on upstream source
+  and integration SHA mapped to H, complete files, SHA-bound tests/run references
+  and immutable owner scope/completion handoffs. No upstream work was integrated
+  or relied on by this documentation resume; acceptance-target non-reliance is
+  not established. Applicable hosted Base44 orchestration and image/metadata
+  services require release/deployment, service/environment identities and
+  source/artifact mappings, tests and immutable handoffs, or evidenced non-reliance.
+  Neither complete inventory nor hosted versions are verified.
+- **Separate live-evidence track:** dispatch, attempt, serialization and queue
+  records were inaccessible; no acknowledgement or state change is claimed.
+  Git observations cannot establish live state. Older coordination instructions
+  remain historical and are not authority to resume or dispatch in this job.
+
+Integration handoff: documentation-only delivery from observed source
+`2450747533a91dacb18148b735a7ba63f917d88d`; changed files are only
+`docs/astra-delivery-checkpoint.md` and `solana/creation-resume-handoff.md`, with
+additions confined to acceptance provenance and all prior text preserved.
+Recover missing external evidence with authorized read-only access, independently
+verify the pinned commit, and complete the immutable comparison/dependency package.
+Keep the existing review and parent open; require SHA-bound focused/integration
+checks, independent review and GitHub conflict clearance before integration or
+acceptance. No external branch integration or conflict clearance is claimed here.
+
+Checks: targeted file/reference inspection and static specialist review of IDs,
+range semantics, attribution, historical preservation and workflow filters. No
+shell or executable tests were available; no independent audit was run. The Solana
+edit matches scaffold's push filter; neither edit triggers delivery-contracts.
+Final exact-head checks, read-back and resulting commit SHA belong in the external
+handoff. Missing checks or external evidence remain blockers; do not infer success
+from an empty check list or transfer prior-head success to this delivery.
