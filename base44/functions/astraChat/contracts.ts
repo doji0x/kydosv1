@@ -89,3 +89,49 @@ export interface RunEvent {
   relatedTo?: string;
   data?: Record<string, unknown>;
 }
+
+export type CrewWorkflowStage =
+  | "initiate"
+  | "assign_roles"
+  | "agent_task"
+  | "review"
+  | "finalize";
+
+export interface AssignedAgentRole {
+  agentId: string;
+  role: CrewRoleID;
+}
+
+export interface CrewAgentActivity {
+  agentId: string;
+  role: CrewRoleID;
+  stage: CrewWorkflowStage;
+  startedAt: string;
+  completedAt?: string;
+  error?: string;
+  output?: unknown;
+}
+
+export interface CrewWorkflowState {
+  crewId: string;
+  stage: CrewWorkflowStage;
+  assignedRoles: AssignedAgentRole[];
+  activities: CrewAgentActivity[];
+  startedAt: string;
+  completedAt?: string;
+  error?: string;
+}
+
+export interface CrewWorkflowInput {
+  prompt: string;
+  crewSize: number;
+  requiredRoles: CrewRoleID[];
+}
+
+export interface CrewWorkflowResult {
+  crewId: string;
+  outputs: unknown[];
+  completedAt: string;
+  success: boolean;
+  error?: string;
+}

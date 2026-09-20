@@ -45,4 +45,7 @@ This project enforces structured crew-based workflow for all code, docs, and pro
 - **Audit:** All changes must finish with an explicit audit phase. Critical findings are recorded and never directly fixed without owner approval.
 - **Hand-off:** Crew must pass full file context and decisions to the next specialist, to eliminate blind spots and omissions between crew phases.
 
+- **Crew stages:** Effective crew runs use `initiate`, `assign_roles`, `agent_task`, `review`, and `finalize`; assignments and activity records identify the responsible role at each stage.
+- **Termination:** Workflow results record completion time, success state, and any error explicitly.
+
 See base44/functions/astraChat/roles.ts and contracts.ts for authoritative types and permissions.
