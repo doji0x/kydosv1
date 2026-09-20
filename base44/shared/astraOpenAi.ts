@@ -1,4 +1,4 @@
-const maxRetries = 4;
+const maxAttempts = 6;
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 export function resolveModel(value) { return String(value || '').trim() || 'gpt-4.1'; }
 export function resolveToolsModel(value) { const model = resolveModel(value); return model === 'gpt-6-astra' ? 'gpt-4.1' : model; }
@@ -18,7 +18,9 @@ export async function callOpenAi({ apiKey, model, messages, tools, responseForma
     if (response.ok) { const data = await response.json(); return usesTools ? data.choices[0].message : normalizeResponse(data); }
     const body = await response.json().catch(() => ({}));
     const detail = body.error?.message || `OpenAI ${response.status}`;
-    if (response.status !== 429 || attempt >= maxRetries) throw new Error(detail);
-    await wait(1000 * 2 ** attempt);
+    if (response.status !== 429 || attempt >= maxAttempts - 1) throw new Error(detail);
+    const retryAfterSeconds = Number(response.headers.get('retry-after'));
+    const retryAfterMs = Number.isFinite(retryAfterSeconds) && retryAfterSeconds >= 0 ? retryAfterSeconds * 1000 : 0;
+    await wait(Math.max(retryAfterMs, 1000 * 2 ** attempt));
   }
 }
