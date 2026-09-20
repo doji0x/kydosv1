@@ -20,6 +20,11 @@ import Search from '@/pages/Search';
 import Notifications from '@/pages/Notifications';
 import Releases from '@/pages/Releases';
 import MarketAudits from '@/pages/MarketAudits';
+import Login from '@/pages/Login';
+import Register from '@/pages/Register';
+import ForgotPassword from '@/pages/ForgotPassword';
+import ResetPassword from '@/pages/ResetPassword';
+import OAuthConsent from '@/pages/OAuthConsent';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -75,7 +80,14 @@ function App() {
       <QueryClientProvider client={queryClientInstance}>
         <Router>
           <ScrollToTop />
-          <AuthenticatedApp />
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/oauth/consent" element={<OAuthConsent />} />
+            <Route path="/*" element={<AuthenticatedApp />} />
+          </Routes>
         </Router>
         <Toaster />
         <SonnerToaster position="top-center" />
