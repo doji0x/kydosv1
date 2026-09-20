@@ -31,6 +31,46 @@
     },
     "repo": {
       "type": "string"
+    },
+    "jobId": {
+      "type": "string"
+    },
+    "specialistRole": {
+      "type": "string"
+    },
+    "activityType": {
+      "type": "string",
+      "enum": [
+        "specialist_start",
+        "reasoning",
+        "tool",
+        "report",
+        "specialist_complete",
+        "specialist_failed"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "running",
+        "completed",
+        "failed"
+      ]
+    },
+    "summary": {
+      "type": "string"
+    },
+    "detailType": {
+      "type": "string",
+      "enum": [
+        "file",
+        "tree",
+        "reference",
+        "none"
+      ]
+    },
+    "detailRef": {
+      "type": "string"
     }
   },
   "required": [
