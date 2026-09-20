@@ -27,8 +27,8 @@ export async function callOpenAi({ apiKey, model, messages, tools, responseForma
       method: 'POST', headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' }, body
     });
     if (response.ok) return normalizeResponse(await response.json());
-    const body = await response.json().catch(() => ({}));
-    const detail = body.error?.message || `OpenAI ${response.status}`;
+    const errorBody = await response.json().catch(() => ({}));
+    const detail = errorBody.error?.message || `OpenAI ${response.status}`;
     if (response.status !== 429 || attempt >= maxAttempts - 1) throw new Error(detail);
     const retryAfterSeconds = Number(response.headers.get('retry-after'));
     const retryAfterMs = Number.isFinite(retryAfterSeconds) && retryAfterSeconds >= 0 ? retryAfterSeconds * 1000 : 0;
