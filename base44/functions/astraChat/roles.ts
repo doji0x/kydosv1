@@ -1,187 +1,100 @@
 /**
- * Typed registry of all specialist roles and their workflow boundaries for crew-based work.
+ * Single source of truth for Astra's live specialist roles and boundaries.
  */
-
-export type CrewRoleID =
-  | 'architect'
-  | 'logic_math_engineer'
-  | 'code_specialist'
-  | 'reviewer'
-  | 'auditor'
-  | 'lead_engineer'
-  | 'operator';
 
 export const CrewRoleID = [
   'architect',
-  'logic_math_engineer',
-  'code_specialist',
-  'reviewer',
-  'auditor',
-  'lead_engineer',
-  'operator'
+  'logic',
+  'functions',
+  'integration',
+  'documentation',
+  'audit'
 ] as const;
+
+export type CrewRoleID = (typeof CrewRoleID)[number];
 
 export interface CrewRole {
   id: CrewRoleID;
-  label: string;
-  description: string;
-  responsibilities: string[];
-  permissions: string[];
+  title: string;
+  brief: string;
+  writes: boolean;
   reviewRequired: boolean;
   approvalRequired: boolean;
-  maySelfApprove: boolean;
-  exampleActions: string[];
-  context: string;
+  maySelfApprove: false;
 }
 
 export const CrewRoles: CrewRole[] = [
   {
     id: 'architect',
-    label: 'Architect',
-    description: 'Defines requirements, workflow, and structural standards for jobs.',
-    responsibilities: [
-      'Produce clear plans and rationale.',
-      'Enumerate all structural changes first.',
-      'Hand off complete reasoning to execution roles.'
-    ],
-    permissions: [
-      'initiate_job',
-      'produce_plan',
-      'require_rationale'
-    ],
+    title: 'ARCHITECT',
+    brief: 'Map structure and return a concrete file-by-file plan.',
+    writes: false,
     reviewRequired: false,
     approvalRequired: true,
-    maySelfApprove: false,
-    exampleActions: [
-      'Write architecture plan.',
-      'Approve foundational workflow change.'
-    ],
-    context: 'Team leadership, project management.'
+    maySelfApprove: false
   },
   {
-    id: 'logic_math_engineer',
-    label: 'Logic / Math Engineer',
-    description: 'Defines formal requirements, proofs, and types for new workflow/data.',
-    responsibilities: [
-      'Produce strict types/interfaces.',
-      'Show edge-case/risk analysis with rationale.'
-    ],
-    permissions: [
-      'design_type',
-      'solidify_contracts'
-    ],
+    id: 'logic',
+    title: 'LOGIC / MATH ENGINEER',
+    brief: 'Implement algorithms, state transitions, and edge cases.',
+    writes: true,
     reviewRequired: true,
     approvalRequired: true,
-    maySelfApprove: false,
-    exampleActions: [
-      'Author workflow contract.',
-      'Formalize roles registry.'
-    ],
-    context: 'Critical design, correctness.'
+    maySelfApprove: false
   },
   {
-    id: 'code_specialist',
-    label: 'Code Specialist',
-    description: 'Implements, adapts, and maintains production code per TaskPlan.',
-    responsibilities: [
-      'Follow designed types.',
-      'Make changes per approved plan.'
-    ],
-    permissions: [
-      'implement_feature',
-      'make_code_change'
-    ],
+    id: 'functions',
+    title: 'FUNCTIONS ENGINEER',
+    brief: 'Implement backend handlers, validation, auth, and response contracts.',
+    writes: true,
     reviewRequired: true,
     approvalRequired: true,
-    maySelfApprove: false,
-    exampleActions: [
-      'Commit function using contract.',
-      'Refactor per plan.'
-    ],
-    context: 'Production code, backend, or frontend.'
+    maySelfApprove: false
   },
   {
-    id: 'reviewer',
-    label: 'Reviewer',
-    description: 'Reviews plans, code, or configs for correctness, risk, and clarity.',
-    responsibilities: [
-      'Spot errors, holes, unauthorized changes.',
-      'Flag unclear rationale or missing audit.'
-    ],
-    permissions: [
-      'review_code',
-      'require_changes'
-    ],
-    reviewRequired: false,
-    approvalRequired: false,
-    maySelfApprove: false,
-    exampleActions: [
-      'Approve code patch.',
-      'Request clarification or rewrite.'
-    ],
-    context: 'Peer review, safety net.'
+    id: 'integration',
+    title: 'INTEGRATION ENGINEER',
+    brief: 'Wire modules together and ensure imports and contracts agree.',
+    writes: true,
+    reviewRequired: true,
+    approvalRequired: true,
+    maySelfApprove: false
   },
   {
-    id: 'auditor',
-    label: 'Auditor',
-    description: 'Final check: documents, records, and reports audit findings to owner.',
-    responsibilities: [
-      'Record every finding before hand-off.',
-      'Never fix own audit finding.'
-    ],
-    permissions: [
-      'run_audit',
-      'record_issue'
-    ],
+    id: 'documentation',
+    title: 'DOCUMENTATION ENGINEER',
+    brief: 'Document exactly what shipped and how to use it.',
+    writes: true,
+    reviewRequired: true,
+    approvalRequired: true,
+    maySelfApprove: false
+  },
+  {
+    id: 'audit',
+    title: 'AUDIT / SECURITY',
+    brief: 'Review security, authorization, validation, secrets, and correctness. Never commit.',
+    writes: false,
     reviewRequired: false,
     approvalRequired: true,
-    maySelfApprove: false,
-    exampleActions: [
-      'Log audit finding to issues.',
-      'Produce final merge/safety report.'
-    ],
-    context: 'Security, compliance, trust.'
-  },
-  {
-    id: 'lead_engineer',
-    label: 'Lead Engineer',
-    description: 'Coordinates between architect and implementers, ensures plan clarity.',
-    responsibilities: [
-      'Mediate plan conflicts.',
-      'Defend rationale to team or owner.'
-    ],
-    permissions: [
-      'mediate_conflict',
-      'clarify_plan'
-    ],
-    reviewRequired: false,
-    approvalRequired: true,
-    maySelfApprove: false,
-    exampleActions: [
-      'Merge after consensus.',
-      'Clarify change context.'
-    ],
-    context: 'Bridge roles, unblock execution.'
-  },
-  {
-    id: 'operator',
-    label: 'Operator',
-    description: 'Runs standard, repeated, or scripted workflow steps as trusted bot.',
-    responsibilities: [
-      'Execute automated checklist.',
-      'Never self-approve.'
-    ],
-    permissions: [
-      'run_workflow',
-      'auto_log_event'
-    ],
-    reviewRequired: false,
-    approvalRequired: false,
-    maySelfApprove: false,
-    exampleActions: [
-      'Auto-log job rotation.',
-      'Run automated step.'
-    ],
-    context: 'Infrastructure, automation.'
+    maySelfApprove: false
   }
 ];
+
+export const crewOrder: CrewRoleID[] = [...CrewRoleID];
+
+export function getCrewRole(role: string): CrewRole | undefined {
+  return CrewRoles.find(item => item.id === role);
+}
+
+export function assertCrewRegistry(): void {
+  if (CrewRoles.length !== crewOrder.length || new Set(CrewRoles.map(role => role.id)).size !== crewOrder.length) {
+    throw new Error('Crew registry must define every live role exactly once.');
+  }
+  if (CrewRoles.some(role => role.maySelfApprove)) {
+    throw new Error('Crew roles cannot self-approve.');
+  }
+  const audit = CrewRoles.find(role => role.id === 'audit');
+  if (!audit || audit.writes || crewOrder[crewOrder.length - 1] !== 'audit') {
+    throw new Error('Audit must be the final, non-writing crew role.');
+  }
+}
