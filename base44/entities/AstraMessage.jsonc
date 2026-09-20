@@ -2,6 +2,9 @@
   "name": "AstraMessage",
   "type": "object",
   "properties": {
+    "requestId": {
+      "type": "string"
+    },
     "conversationId": {
       "type": "string"
     },

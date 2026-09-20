@@ -6,6 +6,9 @@
     "jobUid": {
       "type": "string"
     },
+    "requestId": {
+      "type": "string"
+    },
     "conversationId": {
       "type": "string"
     },
@@ -158,6 +161,7 @@
   },
   "required": [
     "jobUid",
+    "requestId",
     "conversationId",
     "batchId",
     "role",
