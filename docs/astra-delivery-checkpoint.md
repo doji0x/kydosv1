@@ -201,3 +201,70 @@ other branches is claimed. Static specialist audit only: independent review,
 acceptance and parent closure remain blocked. Post-commit SHA/read-back/check
 results belong in the external handoff; a repository write cannot resume an audit
 or establish a live queue state.
+
+### Supplied verdict carried forward — authorized plan 6aafd151295902a39dc815b6
+
+**BLOCKED: acceptance and parent closure remain blocked by unavailable evidence.**
+This acceptance-only supplement preserves all earlier text and the version-1
+manifest as historical records. The current job identifies authorized plan
+`6aafd151295902a39dc815b6`, existing review `6aafca03950adc548b23d387`, finding
+`6aafc9fd4449eee391e11756` and parent `6aafc9abb6f11cfb1012dcee`. Thus the older
+heading/manifest's use of the review ID as a plan ID is historical, not the current
+identity mapping. Owner approval and an open gate are supplied context; recover
+the existing immutable approval-to-plan/finding/review linkage, **not repeat
+approval**. No new review, recursive audit or successor audit is authorized here.
+
+Evidence recovered in this resume, and explicit limits:
+
+- Two pre-edit durable branch queries independently observed
+  `2450747533a91dacb18148b735a7ba63f917d88d` with only
+  `scaffold: completed/success`. This is working-head Git/check evidence, not H
+  designation or current acceptance proof. Historical `delivery-contracts`
+  success is not current acceptance proof; no current result for that check was
+  returned. Required acceptance/integration checks remain unverified.
+- Targeted curated search for the supplied IDs/approval provenance returned no
+  results. Direct reads of the authorized plan, finding and existing review each
+  failed with HTTP 500. Immutable contents, version and approval linkage remain
+  unavailable; these failures do not show that the records do not exist.
+- Exact search for pinned evidence commit
+  `f24c3a668e6d653553780cd7ede632ba0573427a` returned no results. Its link and
+  prior observation survive in the Solana handoff, but **independent verification
+  remains unavailable**: latest-file reads cannot fetch that commit's object or
+  pinned contents, and no commit/history API is exposed. Neither the current
+  copy nor the prior testimony verifies the pinned artifact or its ancestry.
+- B remains `a6e61ab7146f735cb28e30f51492c7ec976abe79` (object unverified);
+  authorized H designation, H object and B-to-H ancestry remain unavailable.
+  Require all reachable `B..H` commits, full SHAs and parents, **B excluded/H
+  included**, not first-parent or three-dot. Collect every page of per-parent
+  path/status evidence, including merge parents, old/new rename paths and explicit
+  pagination/completeness markers, plus a separate net B-to-H manifest. Commit
+  set, per-parent diffs and net manifest remain unknown, not empty. No supplied
+  working base or changed-scope list substitutes for these exports.
+- Full upstream dependency inventory is unavailable. For every relied-on upstream
+  change require exact source and integration SHAs mapped into H, complete files,
+  SHA-bound test results/run references and immutable owner scope/completion
+  handoffs. No other agent's main changes were relied on or integrated here;
+  that does not establish non-reliance for the acceptance target.
+- Hosted dependency evidence remains unavailable. Applicable Base44 orchestration
+  and image/metadata hosting require release/deployment, service and environment
+  identities, source/artifact mappings, tests and immutable owner handoffs, or
+  evidenced non-reliance for each excluded dependency. Unknown hosted state is
+  a blocker; a Git commit cannot prove deployment or non-reliance.
+
+Live dispatch, attempt, serialization and queue evidence form a separate evidence
+track from Git. No live access or durable acknowledgement was available; no audit
+resume, dispatch, queue mutation or deployment was performed. Earlier coordination
+instructions are historical and do not authorize those operations in this job.
+
+Integration handoff: preserve this blocked verdict and the existing review/parent
+identities. Recover the missing external records with authorized read-only access,
+independently verify the pinned commit, and bind the complete comparison and
+reliance inventory to immutable evidence before acceptance. Require SHA-bound
+focused/integration checks and GitHub conflict clearance before any external
+branch integration. Missing evidence must remain a blocker, not be inferred.
+Only the two requested acceptance-provenance sections are changed in this resume.
+Static specialist review covered ID attribution, range semantics, evidence limits
+and historical-text preservation; it is not independent audit approval. No shell
+or executable tests are available. Workflow inspection confirms the Solana edit
+matches scaffold's push filter, not delivery-contracts'. Final commit/read-back
+and exact-head check results are reported in the external integration handoff.
