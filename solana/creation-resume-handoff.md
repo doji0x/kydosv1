@@ -70,3 +70,71 @@ frontend checks, then obtain independent review before integration/acceptance.
 Final audit phase: specialist static review only; no self-approval, independent
 security audit or completion claim. No buy/sell, spending, credentials, deployment,
 inscription, wallet-creation service or Pump.fun dependency was added.
+
+## Issue 6aafc9fd4449eee391e11756 coordination checkpoint
+
+**Blocked before resume; no audit was dispatched or resumed by this session.**
+This entry supplements, rather than replaces, the historical checkpoint above.
+Work is limited to recovering and coordinating the stored approved fix, not
+reconstructing its plan or independently implementing the creation milestone.
+
+### Verified references and evidence boundaries
+
+- GitHub `checkBranchStatus` observed `astra/latest` at commit
+  `679e74566a673d6a1193067a928243ce859ad11b`, matching the supplied working SHA,
+  with `delivery-contracts` completed/success. This is delivery evidence only,
+  not approval provenance, serialization clearance or actual audit evidence.
+- Read `AGENTS.md`, [creation checkpoint](creation-checkpoint.md), this handoff
+  and [delivery checkpoint](../docs/astra-delivery-checkpoint.md). No unrelated
+  repository scan or upstream integration was performed. This file was re-read
+  before appending; its pre-edit blob SHA was
+  `79bac766bd0e555115182857ee7aaeedd53e2279` (not a commit SHA).
+- An exact curated-reference search for `6aafc9fd4449eee391e11756` returned no
+  results; the broader issue/approval/audit search returned unrelated technical
+  references. No readable immutable plan/version or approval-ledger entry was
+  obtained. This does not establish that those records do not exist elsewhere.
+- The job context states owner decision approved and audit gate open. Those
+  statements are preserved as supplied context, not independently verified
+  ledger entries. No new owner decision is requested or inferred here.
+
+### Missing prerequisites and queue relationship
+
+1. Readable immutable approved-plan reference/version for issue
+   `6aafc9fd4449eee391e11756`, including the stored focused re-run scope.
+2. Owner approval-ledger entry identifying that issue and exact plan version.
+3. Current serialization clearance bound to existing target audit
+   `0d1720ec-8b0b-4ec2-8f8b-be8b865a5e3a` and the shared-branch work.
+4. Authorized live-queue access to reconcile that audit with integration
+   `e30c4aa2-b8d4-4053-8f36-94d0f9c20bef` and audit
+   `06e35b80-cc6f-4f9a-9f6a-26f86d4c4e56`. The latter two are reported by the
+   job context as blocked waiting for prior work; their current states,
+   dependencies and relationship to the target are not verified. Do not assume
+   equivalence, exclusive ownership, staleness or permission to cancel either.
+5. Access to the authorized existing-record resume mechanism and its durable
+   acknowledgement. Available tools expose reference and GitHub operations,
+   not live jobs, approval ledgers, serialization controls or audit resume.
+   A repository commit cannot substitute for any of these operations.
+
+### Next authorized coordinator / acceptance handoff
+
+Recover the plan and ledger references, inspect the live records and dependencies,
+and obtain current target-bound serialization clearance before any re-run.
+Record the exact references and reconciled queue state. Then use only the
+platform's authorized resume mechanism for the existing target audit to permit
+exactly one focused re-run of that stored plan. Preserve the original audit
+identity; do not create a successor, dispatch duplicate work or run the plan
+independently. Record the resume acknowledgement and attempt identity; if its
+outcome is ambiguous, inspect durable state before retrying, rather than blindly
+resuming again. This handoff does **not** confirm a successful resume.
+
+Keep stored parent `6aafc9abb6f11cfb1012dcee` open pending actual audit evidence;
+the finding also bars closing `6aafc9420e4a3c5bda9a938f` without evidence. No issue
+state or queue state was changed here. No economics, implementation, deployment,
+spending or protection changes are authorized by this checkpoint.
+
+Checks for this documentation-only addition: targeted reference/file inspection,
+pre-edit durable branch/check inspection and static review of IDs, evidence
+attribution, parent guards and single-existing-audit handoff. Post-commit read-back
+and branch/check inspection are reported in the external handoff. No shell is
+available; no executable tests or independent audit were run. Historical check
+limitations above apply to their original sessions, not this inspection.
