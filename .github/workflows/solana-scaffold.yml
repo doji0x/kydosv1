@@ -1,0 +1,29 @@
+name: Solana scaffold
+
+on:
+  push:
+    branches: [astra/latest, main]
+    paths:
+      - 'solana/**'
+      - 'src/lib/solana/**'
+      - '.github/workflows/solana-scaffold.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'solana/**'
+      - 'src/lib/solana/**'
+      - '.github/workflows/solana-scaffold.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  scaffold:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm --prefix solana run check
+      - run: npm --prefix solana test
