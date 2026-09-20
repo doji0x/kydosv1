@@ -4,7 +4,7 @@ import { activityLabel, runTool, toolSchemas } from './tools.ts';
 import { buildActivityDigest, buildHistory, nextTurn, summarizeToolArgs, summarizeToolResult } from './memory.ts';
 import { crewOrder, crewRoles, runSpecialist } from './crew.ts';
 import { createPipeline } from './pipeline.ts';
-import { callOpenAi, resolveModel } from '../../shared/astraOpenAi.ts';
+import { callOpenAi, resolveModel, resolveToolsModel } from '../../shared/astraOpenAi.ts';
 import { createAuditSession } from './auditSession.ts';
 
 const managerTools = [...toolSchemas.filter(x => x.function.name !== 'commitFile'),
@@ -24,7 +24,7 @@ export default async function(req: Request): Promise<Response> {
   if(input.decision&&!['approve','reject'].includes(input.decision)) return Response.json({error:'Choose approve or reject.'},{status:400});
   const prompt=input.decision?`Audit decision: ${input.decision} for ${input.issueId}.`:String(input.message||'').trim();
   if(!prompt||prompt.length>60000) return Response.json({error:'Send a message up to 60,000 characters.'},{status:400});
-  const apiKey=secrets.get('ASTRA_OPENAI_API_KEY'); const chatModel=resolveModel(secrets.get('ASTRA_OPENAI_MODEL')); const toolsModel=resolveModel(secrets.get('ASTRA_TOOLS_MODEL'));
+  const apiKey=secrets.get('ASTRA_OPENAI_API_KEY'); const chatModel=resolveModel(secrets.get('ASTRA_OPENAI_MODEL')); const toolsModel=resolveToolsModel(secrets.get('ASTRA_TOOLS_MODEL'));
   if(!apiKey) return Response.json({error:'Astra credentials are missing.'},{status:503});
   const {accessToken:githubToken}=await base44.asServiceRole.connectors.getConnection('github');
   auditSession=await createAuditSession(base44,input,user);

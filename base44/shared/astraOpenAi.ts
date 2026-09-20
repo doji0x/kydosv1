@@ -1,6 +1,7 @@
 const maxRetries = 4;
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 export function resolveModel(value) { return String(value || '').trim() || 'gpt-4.1'; }
+export function resolveToolsModel(value) { const model = resolveModel(value); return model === 'gpt-6-astra' ? 'gpt-4.1' : model; }
 function normalizeResponse(data) {
   const content = data.output_text || (data.output || []).flatMap(item => item.content || []).filter(item => item.type === 'output_text').map(item => item.text || '').join('\n');
   return { role: 'assistant', content, tool_calls: [] };
