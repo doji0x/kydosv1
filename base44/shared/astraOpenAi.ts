@@ -5,7 +5,7 @@ export async function callOpenAi({ apiKey, model, messages, tools, responseForma
   for (let attempt = 0; ; attempt++) {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST', headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' },
-      body: JSON.stringify({ model, messages, ...(tools?.length ? { tools, tool_choice: 'auto', parallel_tool_calls: false, reasoning_effort: 'xhigh' } : {}), ...(responseFormat ? { response_format: responseFormat } : {}) })
+      body: JSON.stringify({ model, messages, ...(tools?.length ? { tools, tool_choice: 'auto', parallel_tool_calls: false } : {}), ...(responseFormat ? { response_format: responseFormat } : {}) })
     });
     if (response.ok) return (await response.json()).choices[0].message;
     const body = await response.json().catch(() => ({}));

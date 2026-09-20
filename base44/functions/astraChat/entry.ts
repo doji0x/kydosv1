@@ -24,24 +24,24 @@ export default async function(req: Request): Promise<Response> {
   if(input.decision&&!['approve','reject'].includes(input.decision)) return Response.json({error:'Choose approve or reject.'},{status:400});
   const prompt=input.decision?`Audit decision: ${input.decision} for ${input.issueId}.`:String(input.message||'').trim();
   if(!prompt||prompt.length>60000) return Response.json({error:'Send a message up to 60,000 characters.'},{status:400});
-  const apiKey=secrets.get('ASTRA_OPENAI_API_KEY'); const model=resolveModel(secrets.get('ASTRA_OPENAI_MODEL'));
+  const apiKey=secrets.get('ASTRA_OPENAI_API_KEY'); const chatModel=resolveModel(secrets.get('ASTRA_OPENAI_MODEL')); const toolsModel=resolveModel(secrets.get('ASTRA_TOOLS_MODEL'));
   if(!apiKey) return Response.json({error:'Astra credentials are missing.'},{status:503});
   const {accessToken:githubToken}=await base44.asServiceRole.connectors.getConnection('github');
   auditSession=await createAuditSession(base44,input,user);
   const stored=(await base44.entities.AstraMessage.filter({conversationId},'-created_date',300)).reverse();
   const turn=nextTurn(stored); await base44.entities.AstraMessage.create({conversationId,role:'user',content:prompt,turn,repo:'doji0x/kydosv1'});
-  if(auditSession.decision?.status==='rejected') { const reply=await auditSession.revise(apiKey,model); const saved=await base44.entities.AstraMessage.create({conversationId,role:'assistant',content:reply}); await auditSession.finish(saved.id,false,false); return Response.json({reply}); }
+  if(auditSession.decision?.status==='rejected') { const reply=await auditSession.revise(apiKey,chatModel); const saved=await base44.entities.AstraMessage.create({conversationId,role:'assistant',content:reply}); await auditSession.finish(saved.id,false,false); return Response.json({reply}); }
   if(auditSession.blocked) return Response.json({error:'Use the pending audit approval card before continuing.'},{status:409});
   const messages=[{role:'system',content:systemPrompt},...(auditSession.directive?[{role:'system',content:auditSession.directive}]:[]),...(buildActivityDigest(stored)?[{role:'system',content:buildActivityDigest(stored)}]:[]),...buildHistory(stored),{role:'user',content:`[#${turn}] ${prompt}`}];
   const pipeline=createPipeline(); let finalText=''; let auditPassed=false; let executionFailed=false;
   const log=async item=>{if(item.failed)executionFailed=true;await base44.entities.AstraMessage.create({conversationId,role:'activity',content:item.failed?`${item.label} — failed: ${item.error}`:item.label,toolName:item.toolName,detail:item.detail,durationMs:item.durationMs,repo:'doji0x/kydosv1'}).catch(()=>{});};
   for(let iteration=0;iteration<20;iteration++){
-   const message=await callOpenAi({apiKey,model,messages,tools:managerTools}); messages.push(message);
+   const message=await callOpenAi({apiKey,model:toolsModel,messages,tools:managerTools}); messages.push(message);
    if(!message.tool_calls?.length){finalText=message.content||'Run completed.';break;}
    for(const call of message.tool_calls){let args={};try{args=JSON.parse(call.function.arguments||'{}');}catch{} const started=Date.now();let result;
     try{
      if(call.function.name==='assignJob'){
-      const claim=pipeline.claim(args.role); if(claim.error) result=claim; else { const report=await runSpecialist({apiKey,model,githubToken,role:args.role,job:args.job,context:args.context,log,beforeWrite:auditSession.assertWrite}); result={role:args.role,skipped:claim.skipped,report}; if(args.role==='audit') auditPassed=/\b(no findings|no issues|clean audit|audit passed)\b/i.test(report) && !/\b(high|medium|low) severity\b/i.test(report); }
+      const claim=pipeline.claim(args.role); if(claim.error) result=claim; else { const report=await runSpecialist({apiKey,chatModel,toolsModel,githubToken,role:args.role,job:args.job,context:args.context,log,beforeWrite:auditSession.assertWrite}); result={role:args.role,skipped:claim.skipped,report}; if(args.role==='audit') auditPassed=/\b(no findings|no issues|clean audit|audit passed)\b/i.test(report) && !/\b(high|medium|low) severity\b/i.test(report); }
      } else if(call.function.name==='recordAuditIssue'){const issue=await auditSession.record(args);pipeline.recordIssue();result={recorded:true,issueId:issue.id};}
      else {await auditSession.assertWrite(args);result=await runTool(githubToken,call.function.name,args);}
     }catch(error){result={error:error.message};}
