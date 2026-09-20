@@ -1,0 +1,105 @@
+{
+  "name": "AstraJob",
+  "type": "object",
+  "description": "A queued Astra specialist assignment executed independently from chat.",
+  "properties": {
+    "conversationId": {
+      "type": "string"
+    },
+    "batchId": {
+      "type": "string"
+    },
+    "turn": {
+      "type": "number"
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "architect",
+        "logic",
+        "functions",
+        "integration",
+        "documentation",
+        "audit"
+      ]
+    },
+    "job": {
+      "type": "string"
+    },
+    "context": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "staged",
+        "queued",
+        "running",
+        "completed",
+        "failed",
+        "cancelled"
+      ],
+      "default": "staged"
+    },
+    "position": {
+      "type": "number"
+    },
+    "runToken": {
+      "type": "string"
+    },
+    "auditDecisionId": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "report": {
+      "type": "string"
+    },
+    "startedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "durationMs": {
+      "type": "number"
+    },
+    "error": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "conversationId",
+    "batchId",
+    "role",
+    "job",
+    "status",
+    "position",
+    "runToken"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
