@@ -22,5 +22,12 @@ export default function useAstraReferences() {
   const save = async values => { await invoke({ action: values.id ? 'update' : 'create', ...values }); await load(); };
   const remove = async id => { await invoke({ action: 'delete', id }); await load(); };
   const read = async id => (await invoke({ action: 'read', id })).content;
-  return { references, loading, busy, error, save, remove, read };
+  const ingest = async url => { await invokeFunction('ingestReference', { action: 'ingest', url }); await load(); };
+  const invokeFunction = async (name, payload) => {
+    setBusy(true); setError('');
+    try { const response = await base44.functions.invoke(name, payload); return response.data; }
+    catch (e) { setError(e.response?.data?.error || e.message); throw e; }
+    finally { setBusy(false); }
+  };
+  return { references, loading, busy, error, save, remove, read, ingest };
 }
