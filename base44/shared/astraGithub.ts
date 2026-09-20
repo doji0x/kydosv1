@@ -42,6 +42,19 @@ export async function createBranch(token, repoRef, branch = ASTRA_WORKING_BRANCH
   await github(token, `/repos/${owner}/${repo}/git/refs`, { method: 'POST', body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: ref.object.sha }) });
   return { branch, created: true, base };
 }
+export async function getBranchChecks(token, repoRef, branch = ASTRA_WORKING_BRANCH) {
+  const { owner, repo } = parseRepo(repoRef); const ref = await github(token, `/repos/${owner}/${repo}/git/ref/heads/${encodeURIComponent(branch)}`); const headSha = ref.object.sha;
+  const data = await github(token, `/repos/${owner}/${repo}/commits/${headSha}/check-runs?per_page=100`);
+  return { branch, headSha, checks: (data.check_runs || []).map(x => ({ name: x.name, status: x.status, conclusion: x.conclusion || '' })) };
+}
+export async function mergeTaskBranch(token, repoRef, sourceBranch) {
+  const { owner, repo } = parseRepo(repoRef); const source = String(sourceBranch || '').trim();
+  if (!source || source === ASTRA_WORKING_BRANCH || source === 'main' || source === 'master') throw new Error('Provide a separate task branch to integrate.');
+  const status = await getBranchChecks(token, repoRef, source); const passed = status.checks.length > 0 && status.checks.every(x => x.status === 'completed' && ['success', 'neutral', 'skipped'].includes(x.conclusion));
+  if (!passed) throw new Error('Task branch integration is blocked until its required checks pass.');
+  const result = await github(token, `/repos/${owner}/${repo}/merges`, { method: 'POST', body: JSON.stringify({ base: ASTRA_WORKING_BRANCH, head: source, commit_message: `Integrate ${source} into ${ASTRA_WORKING_BRANCH}` }) });
+  return { merged: !!result.merged, commit: result.sha || '', message: result.message || '', sourceBranch: source, targetBranch: ASTRA_WORKING_BRANCH, checks: status.checks };
+}
 export async function resetWorkingBranch(token, repoRef) {
   const { owner, repo } = parseRepo(repoRef); const base = await defaultBranch(token, repoRef);
   const ref = await github(token, `/repos/${owner}/${repo}/git/ref/heads/${encodeURIComponent(base)}`);

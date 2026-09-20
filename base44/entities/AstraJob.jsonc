@@ -1,7 +1,7 @@
 {
   "name": "AstraJob",
   "type": "object",
-  "description": "A durable Astra specialist assignment with resumable execution checkpoints.",
+  "description": "A durable Astra specialist assignment with bounded retries and resumable execution checkpoints.",
   "properties": {
     "jobUid": {
       "type": "string"
@@ -13,6 +13,9 @@
       "type": "string"
     },
     "batchId": {
+      "type": "string"
+    },
+    "milestoneId": {
       "type": "string"
     },
     "turn": {
@@ -52,6 +55,14 @@
     },
     "position": {
       "type": "number"
+    },
+    "attempt": {
+      "type": "number",
+      "default": 1
+    },
+    "maxAttempts": {
+      "type": "number",
+      "default": 3
     },
     "runToken": {
       "type": "string"
