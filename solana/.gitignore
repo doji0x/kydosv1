@@ -1,0 +1,10 @@
+# Future local program builds and validator state
+/target/
+/.anchor/
+/test-ledger/
+
+# Local configuration copies and any accidentally generated keypairs
+/config/*.local.json
+/keys/
+/keypairs/
+**/*-keypair.json
