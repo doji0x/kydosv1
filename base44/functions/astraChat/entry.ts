@@ -1,13 +1,13 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.48';
 import { secrets } from 'base44:runtime';
-import { ASTRA_WORKING_BRANCH, activityLabel, normalizeToolArgs, runTool, toolSchemas } from './tools.ts';
+import { ASTRA_WORKING_BRANCH, activityLabel, normalizeToolArgs, repositoryToolSchemas, runTool } from './tools.ts';
 import { buildActivityDigest, buildHistory, nextTurn, summarizeToolArgs, summarizeToolResult } from './memory.ts';
 import { crewOrder, crewRoles, runSpecialist } from './crew.ts';
 import { createPipeline } from './pipeline.ts';
 import { callOpenAi, resolveModel, resolveToolsModel } from '../../shared/astraOpenAi.ts';
 import { createAuditSession } from './auditSession.ts';
 
-const managerTools = [...toolSchemas.filter(x => x.function.name !== 'commitFile'),
+const managerTools = [...repositoryToolSchemas.filter(x => x.function.name !== 'commitFile'),
  {type:'function',function:{name:'assignJob',description:'Assign one scoped job to the next crew specialist.',parameters:{type:'object',properties:{role:{type:'string',enum:crewOrder},job:{type:'string'},context:{type:'string'}},required:['role','job','context']}}},
  {type:'function',function:{name:'recordAuditIssue',description:'Record an audit finding and stop work for owner approval.',parameters:{type:'object',properties:{severity:{type:'string',enum:['high','medium','low']},finding:{type:'string'},proposedFix:{type:'string'},repo:{type:'string'},branch:{type:'string'},filePaths:{type:'array',items:{type:'string'}}},required:['severity','finding','proposedFix','repo','branch','filePaths']}}}
 ];
@@ -41,9 +41,9 @@ export default async function(req: Request): Promise<Response> {
    for(const call of message.tool_calls){let args={};try{args=JSON.parse(call.function.arguments||'{}');}catch{} normalizeToolArgs(args); const started=Date.now();let result;
     try{
      if(call.function.name==='assignJob'){
-      const claim=pipeline.claim(args.role); if(claim.error) result=claim; else { const report=await runSpecialist({apiKey,chatModel,toolsModel,githubToken,role:args.role,job:args.job,context:args.context,log,beforeWrite:auditSession.assertWrite}); result={role:args.role,skipped:claim.skipped,report}; if(args.role==='audit') auditPassed=/\b(no findings|no issues|clean audit|audit passed)\b/i.test(report) && !/\b(high|medium|low) severity\b/i.test(report); }
+      const claim=pipeline.claim(args.role); if(claim.error) result=claim; else { const report=await runSpecialist({apiKey,chatModel,toolsModel,githubToken,base44,role:args.role,job:args.job,context:args.context,log,beforeWrite:auditSession.assertWrite}); result={role:args.role,skipped:claim.skipped,report}; if(args.role==='audit') auditPassed=/\b(no findings|no issues|clean audit|audit passed)\b/i.test(report) && !/\b(high|medium|low) severity\b/i.test(report); }
      } else if(call.function.name==='recordAuditIssue'){const issue=await auditSession.record(args);pipeline.recordIssue();result={recorded:true,issueId:issue.id};}
-     else {await auditSession.assertWrite(args);result=await runTool(githubToken,call.function.name,args);}
+     else {await auditSession.assertWrite(args);result=await runTool(githubToken,call.function.name,args,base44);}
     }catch(error){result={error:error.message};}
     await log({label:call.function.name==='assignJob'?`Assigning to ${crewRoles[args.role]?.title||args.role}: ${args.job}`:activityLabel(call.function.name,args),toolName:call.function.name,detail:`${summarizeToolArgs(args)} → ${summarizeToolResult(result)}`,durationMs:Date.now()-started,failed:!!result.error,error:result.error});
     messages.push({role:'tool',tool_call_id:call.id,content:JSON.stringify(result).slice(0,60000)});
