@@ -3,7 +3,7 @@ function headers(token) { return { authorization: `Bearer ${token}`, accept: 'ap
 async function github(token, path, options = {}) {
   const response = await fetch(`${apiBase}${path}`, { ...options, headers: { ...headers(token), ...(options.body ? { 'content-type': 'application/json' } : {}) } });
   const text = await response.text(); const body = text ? JSON.parse(text) : {};
-  if (!response.ok) throw new Error(`GitHub ${response.status}: ${body.message || text.slice(0, 200)}`);
+  if (!response.ok) throw Object.assign(new Error(`GitHub ${response.status}: ${body.message || text.slice(0, 200)}`), { status: response.status });
   return body;
 }
 export function parseRepo(value) {
@@ -35,6 +35,15 @@ export async function commitFile(token, repoRef, branch, path, content, message)
   const { owner, repo } = parseRepo(repoRef); if (!branch.startsWith('astra/')) throw new Error('Commits require an astra/* branch.');
   await createBranch(token, repoRef, branch); const current = await readFile(token, repoRef, path, branch).catch(() => null);
   const bytes = new TextEncoder().encode(content); let binary = ''; bytes.forEach(byte => { binary += String.fromCharCode(byte); });
-  const result = await github(token, `/repos/${owner}/${repo}/contents/${path.split('/').map(encodeURIComponent).join('/')}`, { method: 'PUT', body: JSON.stringify({ message, content: btoa(binary), branch, ...(current ? { sha: current.sha } : {}) }) });
+  const request = () => github(token, `/repos/${owner}/${repo}/contents/${path.split('/').map(encodeURIComponent).join('/')}`, { method: 'PUT', body: JSON.stringify({ message, content: btoa(binary), branch, ...(current ? { sha: current.sha } : {}) }) });
+  let result; let firstError;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try { result = await request(); break; }
+    catch (error) {
+      firstError ||= error;
+      if (![404, 409].includes(error.status) || attempt === 2) throw attempt === 2 ? firstError : error;
+      await new Promise(resolve => setTimeout(resolve, 700));
+    }
+  }
   return { path, branch, commit: result.commit?.sha, url: `https://github.com/${owner}/${repo}/compare/${await defaultBranch(token, repoRef)}...${branch}` };
 }
