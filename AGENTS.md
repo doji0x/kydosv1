@@ -32,3 +32,17 @@ npx skills add base44/skills
 - Prefer the existing Base44 CLI workflow over adding new npm scripts for Base44-specific tasks.
 - Reuse the existing SDK client and Vite plugin patterns before adding new Base44 integration paths.
 - Run the relevant checks from `package.json` before finishing code changes.
+
+---
+
+## Agent and Crew Workflow Conventions
+
+This project enforces structured crew-based workflow for all code, docs, and process improvements. Key conventions:
+
+- **Roles:** Must correspond to strong, explicit types (see base44/functions/astraChat/roles.ts) and follow boundaries for review, commit, and audit authority.
+- **Workflow objects:** All work passes as JobSpec, TaskPlan, SpecialistResult, ChangeProposal, or AuditFinding — see base44/functions/astraChat/contracts.ts for canonical structure.
+- **Review and approval:** No specialist may self-approve their own commits. Reviewer and approver roles must be clearly different and tracked.
+- **Audit:** All changes must finish with an explicit audit phase. Critical findings are recorded and never directly fixed without owner approval.
+- **Hand-off:** Crew must pass full file context and decisions to the next specialist, to eliminate blind spots and omissions between crew phases.
+
+See base44/functions/astraChat/roles.ts and contracts.ts for authoritative types and permissions.
