@@ -1,0 +1,22 @@
+{
+  "name": "AstraMemory",
+  "type": "object",
+  "properties": {
+    "conversationId": { "type": "string" },
+    "sourceMessageId": { "type": "string" },
+    "kind": { "type": "string", "enum": ["context", "decision", "preference", "constraint", "unfinished"] },
+    "text": { "type": "string" },
+    "sourceRole": { "type": "string" },
+    "evidence": { "type": "string", "enum": ["source-excerpt", "admin-curated"] },
+    "version": { "type": "number", "default": 1 },
+    "status": { "type": "string", "enum": ["active", "forgotten"], "default": "active" },
+    "previousText": { "type": "string" }
+  },
+  "required": ["conversationId", "sourceMessageId", "text", "kind"],
+  "rls": {
+    "read": { "user_condition": { "role": "admin" } },
+    "create": { "user_condition": { "role": "admin" } },
+    "update": { "user_condition": { "role": "admin" } },
+    "delete": { "user_condition": { "role": "admin" } }
+  }
+}
