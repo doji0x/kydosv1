@@ -66,11 +66,12 @@ export async function mergeTaskBranch(token, repoRef, sourceBranch) {
 export async function resetWorkingBranch() {
   throw new Error(`Reset disabled: preserve shared delivery branch ${ASTRA_WORKING_BRANCH}.`);
 }
-export async function commitFile(token, repoRef, branch, path, content, message) {
+export async function commitFile(token, repoRef, branch, path, content, message, expectedHeadSha) {
   const { owner, repo } = parseRepo(repoRef); if (branch !== ASTRA_WORKING_BRANCH) throw new Error(`Commits require ${ASTRA_WORKING_BRANCH}.`);
   await createBranch(token, repoRef, branch);
   const refPath = `/repos/${owner}/${repo}/git/ref/heads/${encodeURIComponent(branch)}`;
   const branchRef = await github(token, refPath); const parentSha = branchRef.object.sha;
+  if (expectedHeadSha && parentSha !== expectedHeadSha) throw new Error('The repository changed during this chat turn. Stop and review the new branch state before editing.');
   const parentCommit = await github(token, `/repos/${owner}/${repo}/git/commits/${parentSha}`);
   const blob = await github(token, `/repos/${owner}/${repo}/git/blobs`, { method: 'POST', body: JSON.stringify({ content, encoding: 'utf-8' }) });
   const tree = await github(token, `/repos/${owner}/${repo}/git/trees`, { method: 'POST', body: JSON.stringify({ base_tree: parentCommit.tree.sha, tree: [{ path, mode: '100644', type: 'blob', sha: blob.sha }] }) });
