@@ -2,13 +2,23 @@ import test, { before } from 'node:test';
 import assert from 'node:assert/strict';
 import * as anchor from '@coral-xyz/anchor';
 import { Keypair, PublicKey, SYSVAR_RENT_PUBKEY, SystemProgram, Transaction } from '@solana/web3.js';
-import { TOKEN_PROGRAM_ID, createMintToInstruction, getAccount, getMint } from '@solana/spl-token';
+import {
+  TOKEN_PROGRAM_ID,
+  createAssociatedTokenAccountIdempotentInstruction,
+  createMintToInstruction,
+  createTransferInstruction,
+  getAccount,
+  getAssociatedTokenAddress,
+  getMint,
+} from '@solana/spl-token';
 
 const METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
 const SCALE = 1_000_000n;
 const TOTAL = 1_000_000_000n * SCALE;
-const CURVE_ALLOCATION = 800_000_000n * SCALE;
-const LIQUIDITY_ALLOCATION = 200_000_000n * SCALE;
+const CURVE_ALLOCATION = 793_100_000n * SCALE;
+const LIQUIDITY_ALLOCATION = 206_900_000n * SCALE;
+const VIRTUAL_SOL_RESERVES = 30_000_000_000n;
+const GRADUATION_TARGET = 85_000_000_000n;
 const NAME = 'Kydos Test Coin';
 const SYMBOL = 'KYTEST';
 const URI = 'https://example.com/kydos-test.json';
@@ -57,8 +67,11 @@ test('creates the deterministic mint, curve and vault with canonical allocations
   assert.equal(BigInt(state.curveTokenAllocation.toString()), CURVE_ALLOCATION);
   assert.equal(BigInt(state.liquidityTokenAllocation.toString()), LIQUIDITY_ALLOCATION);
   assert.equal(BigInt(state.virtualTokenReserves.toString()), CURVE_ALLOCATION);
+  assert.equal(BigInt(state.virtualSolReserves.toString()), VIRTUAL_SOL_RESERVES);
   assert.equal(BigInt(state.realTokenReserves.toString()), CURVE_ALLOCATION);
   assert.equal(BigInt(state.realSolReserves.toString()), 0n);
+  assert.equal(BigInt(state.graduationTarget.toString()), GRADUATION_TARGET);
+  assert.equal(vaultState.amount, BigInt(state.realTokenReserves.toString()) + BigInt(state.liquidityTokenAllocation.toString()));
   assert.equal(state.graduated, false);
 });
 
@@ -71,6 +84,21 @@ test('creates canonical Metaplex metadata for the mint', async () => {
   assert.equal(readString(info.data, cursor), NAME);
   assert.equal(readString(info.data, cursor), SYMBOL);
   assert.equal(readString(info.data, cursor), URI);
+});
+
+test('rejects a creator-signed transfer from the Curve PDA vault', async () => {
+  const destination = await getAssociatedTokenAddress(mint.publicKey, provider.wallet.publicKey);
+  const transaction = new Transaction().add(
+    createAssociatedTokenAccountIdempotentInstruction(
+      provider.wallet.publicKey,
+      destination,
+      provider.wallet.publicKey,
+      mint.publicKey,
+    ),
+    createTransferInstruction(vault, destination, provider.wallet.publicKey, 1n),
+  );
+  await assert.rejects(provider.sendAndConfirm(transaction), /owner does not match|custom program error|authority/i);
+  assert.equal((await getAccount(provider.connection, vault)).amount, TOTAL);
 });
 
 test('permanently revokes mint and freeze authorities', async () => {

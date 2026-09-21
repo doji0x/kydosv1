@@ -1,8 +1,8 @@
 // Mirrors the checked-in lib.rs, NOT approved production economics.
 export const U64_MAX = (1n << 64n) - 1n;
-const VIRTUAL_SOL = 21_250_000_000n;
+const VIRTUAL_SOL = 30_000_000_000n;
 const TARGET = 85_000_000_000n;
-const LP_TOKENS = 200_000_000_000_000n;
+const LP_TOKENS = 206_900_000_000_000n;
 
 export function rawAmount(value, label = 'Amount') {
   if (typeof value !== 'bigint' && !(typeof value === 'string' && /^\d+$/.test(value))) {

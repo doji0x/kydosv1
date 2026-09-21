@@ -13,10 +13,10 @@ declare_id!("Fg6PaFpoGXkYsidMpWxTWqkZqvFmR6UJA4R9C3bZ9S2");
 pub const DECIMALS: u8 = 6;
 pub const SCALE: u64 = 1_000_000;
 pub const TOTAL_SUPPLY: u64 = 1_000_000_000 * SCALE;
-pub const CURVE_TOKEN_ALLOCATION: u64 = 800_000_000 * SCALE;
-pub const LIQUIDITY_TOKEN_ALLOCATION: u64 = 200_000_000 * SCALE;
+pub const CURVE_TOKEN_ALLOCATION: u64 = 793_100_000 * SCALE;
+pub const LIQUIDITY_TOKEN_ALLOCATION: u64 = 206_900_000 * SCALE;
 pub const VIRTUAL_TOKEN_RESERVES: u64 = CURVE_TOKEN_ALLOCATION;
-pub const VIRTUAL_SOL_RESERVES: u64 = 21_250_000_000;
+pub const VIRTUAL_SOL_RESERVES: u64 = 30_000_000_000;
 pub const GRADUATION_TARGET: u64 = 85_000_000_000;
 
 #[program]
@@ -66,6 +66,11 @@ pub mod kydos_launchpad {
             ),
             TOTAL_SUPPLY,
         )?;
+        ctx.accounts.vault.reload()?;
+        let tracked_reserves = curve.real_token_reserves
+            .checked_add(curve.liquidity_token_allocation)
+            .ok_or(ErrorCode::MathOverflow)?;
+        require_eq!(ctx.accounts.vault.amount, tracked_reserves, ErrorCode::InvalidCurve);
 
         create_metadata_accounts_v3(
             CpiContext::new_with_signer(
