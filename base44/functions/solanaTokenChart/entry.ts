@@ -2,16 +2,21 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.48';
 import { secrets } from 'base44:runtime';
 import { fetchHeliusTradePage } from '../../shared/heliusSolanaTrades.ts';
 
-function chartSeries(rows: any[]) {
-  const priced = rows.filter(row => row.status === 'confirmed' && row.block_time > 0 && row.sol_amount > 0 && row.token_amount > 0)
-    .map(row => ({ t: row.block_time, price: row.sol_amount / row.token_amount, side: row.side,
-      solAmount: row.sol_amount, tokenAmount: row.token_amount })).sort((a, b) => a.t - b.t);
-  if (!priced.length) return [];
-  const bucket = Math.max(1, Math.ceil((priced.at(-1).t - priced[0].t + 1) / 120));
-  const points = new Map<number, any>();
-  for (const point of priced) points.set(Math.floor(point.t / bucket), point);
-  return [...points.values()];
+const SOL_MINT = 'So11111111111111111111111111111111111111112';
+
+async function getFungibleAsset(endpoint: string, id: string) {
+  const response = await fetch(endpoint, { method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: `asset-${id}`, method: 'getAsset', params: { id, options: { showFungible: true } } }) });
+  if (!response.ok) throw new Error(`Helius asset request failed: ${response.status}`);
+  const data = await response.json();
+  if (data.error) throw new Error(data.error.message || 'Helius asset request failed');
+  return data.result;
 }
+
+const assetPrice = (asset: any) => {
+  const value = Number(asset?.token_info?.price_info?.price_per_token);
+  return Number.isFinite(value) && value >= 0 ? value : null;
+};
 
 export default async function(req: Request): Promise<Response> {
   try {
@@ -25,6 +30,7 @@ export default async function(req: Request): Promise<Response> {
     const pages = Math.min(5, Math.max(1, Number(input.pages) || 1));
     const apiKey = secrets.get('HELIUS_API_KEY') || secrets.get('HELIUS_PARSE_TRANSACTION_HISTORY_API_KEY');
     if (!apiKey) return Response.json({ error: 'Helius history key is missing' }, { status: 503 });
+    const rpcEndpoint = secrets.get('HELIUS_RPC_URL') || `https://mainnet.helius-rpc.com/?api-key=${apiKey}`;
     let before = input.before ? String(input.before) : undefined;
     let scanned = 0;
     for (let page = 0; page < pages; page++) {
@@ -53,7 +59,18 @@ export default async function(req: Request): Promise<Response> {
     }
     const trades = requested.map((row: any) => ({ signature: row.signature, blockTime: row.block_time,
       price: row.sol_amount / row.token_amount, side: row.side, solAmount: row.sol_amount, tokenAmount: row.token_amount }));
-    return Response.json({ trades, tradeCount: validRows.length, earliest: ordered[0]?.block_time || null,
+    const [tokenResult, solResult] = await Promise.allSettled([
+      getFungibleAsset(rpcEndpoint, mint), getFungibleAsset(rpcEndpoint, SOL_MINT),
+    ]);
+    const tokenAsset = tokenResult.status === 'fulfilled' ? tokenResult.value : null;
+    const solAsset = solResult.status === 'fulfilled' ? solResult.value : null;
+    const tokenInfo = tokenAsset?.token_info;
+    const marketInfo = { name: tokenAsset?.content?.metadata?.name || null,
+      symbol: tokenInfo?.symbol || tokenAsset?.content?.metadata?.symbol || null,
+      supply: tokenInfo?.supply == null ? null : String(tokenInfo.supply),
+      decimals: Number.isInteger(tokenInfo?.decimals) ? tokenInfo.decimals : null,
+      tokenUsdPrice: assetPrice(tokenAsset), solUsdPrice: assetPrice(solAsset) };
+    return Response.json({ trades, marketInfo, tradeCount: validRows.length, earliest: ordered[0]?.block_time || null,
       latest: ordered.at(-1)?.block_time || null, nextBefore: before || null, scanned });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
