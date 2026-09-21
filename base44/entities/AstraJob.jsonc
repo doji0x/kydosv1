@@ -1,7 +1,7 @@
 {
   "name": "AstraJob",
   "type": "object",
-  "description": "A durable Astra specialist assignment with bounded retries and resumable execution checkpoints.",
+  "description": "A durable Astra builder or auditor assignment with bounded retries and resumable execution checkpoints.",
   "properties": {
     "jobUid": {
       "type": "string"
@@ -24,13 +24,15 @@
     "role": {
       "type": "string",
       "enum": [
+        "builder",
+        "audit",
         "architect",
         "logic",
         "functions",
         "integration",
-        "documentation",
-        "audit"
-      ]
+        "documentation"
+      ],
+      "description": "Live roles are builder and audit; legacy values are retained for historical jobs."
     },
     "scope": {
       "type": "string"
