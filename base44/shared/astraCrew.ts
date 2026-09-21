@@ -2,7 +2,7 @@ import { callOpenAi } from './astraOpenAi.ts';
 import { ASTRA_WORKING_BRANCH, normalizeToolArgs, referenceToolSchemas, repositoryToolSchemas, runTool } from './astraTools.ts';
 import { ASTRA_LIMITS } from './astraOrchestration.ts';
 import { assertCrewRegistry, crewOrder, CrewRoles, getCrewRole } from './astraRoles.ts';
-const MAX_SPECIALIST_STEPS=48;
+const MAX_SPECIALIST_STEPS=400;
 export { crewOrder }; export const crewRoles=Object.fromEntries(CrewRoles.map(role=>[role.id,role]));
 export async function runSpecialist({apiKey,toolsModel,githubToken,base44,role,job,context,log,beforeWrite,recordAuditIssue,repoState,previousCheckpoint}){
  assertCrewRegistry();const spec=getCrewRole(role);if(!spec)throw new Error('Unknown specialist.');
