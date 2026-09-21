@@ -1,1 +1,98 @@
-import{Keypair,PublicKey,SystemProgram,SYSVAR_RENT_PUBKEY,Transaction,TransactionInstruction}from'@solana/web3.js';import{TOKEN_PROGRAM_ID,getAssociatedTokenAddress,createAssociatedTokenAccountInstruction}from'@solana/spl-token';export const PROGRAM_ID=new PublicKey('Fg6PaFpoGXkYsidMpWxTWqkZqvFmR6UJA4R9C3bZ9S2');const D={"initialize":[175,175,109,31,13,152,155,237],"buy":[102,6,61,18,1,218,235,234],"sell":[51,230,133,164,1,127,131,173]};const u64=n=>{const b=Buffer.alloc(8);b.writeBigUInt64LE(BigInt(n));return b};const str=s=>{const d=Buffer.from(s),l=Buffer.alloc(4);l.writeUInt32LE(d.length);return Buffer.concat([l,d])};const send=async(connection,wallet,tx,extra=[])=>{tx.feePayer=wallet.publicKey;tx.recentBlockhash=(await connection.getLatestBlockhash()).blockhash;if(extra.length)tx.partialSign(...extra);const signed=await wallet.signTransaction(tx);return connection.sendRawTransaction(signed.serialize())};const pdas=mint=>({curve:PublicKey.findProgramAddressSync([Buffer.from('curve'),mint.toBuffer()],PROGRAM_ID)[0],vault:PublicKey.findProgramAddressSync([Buffer.from('vault'),mint.toBuffer()],PROGRAM_ID)[0]});export async function createLaunch({connection,wallet,name,symbol,metadataUri}){const mint=Keypair.generate(),{curve,vault}=pdas(mint.publicKey),data=Buffer.concat([Buffer.from(D.initialize),str(name),str(symbol),str(metadataUri)]),ix=new TransactionInstruction({programId:PROGRAM_ID,keys:[{pubkey:wallet.publicKey,isSigner:true,isWritable:true},{pubkey:mint.publicKey,isSigner:true,isWritable:true},{pubkey:curve,isSigner:false,isWritable:true},{pubkey:vault,isSigner:false,isWritable:true},{pubkey:TOKEN_PROGRAM_ID,isSigner:false,isWritable:false},{pubkey:SystemProgram.programId,isSigner:false,isWritable:false},{pubkey:SYSVAR_RENT_PUBKEY,isSigner:false,isWritable:false}],data});const signature=await send(connection,wallet,new Transaction().add(ix),[mint]);return{signature,mint:mint.publicKey.toBase58(),curve:curve.toBase58()}}export async function ensureTraderAccount(connection,wallet,mint){const key=new PublicKey(mint),ata=await getAssociatedTokenAddress(key,wallet.publicKey);if(!await connection.getAccountInfo(ata))await send(connection,wallet,new Transaction().add(createAssociatedTokenAccountInstruction(wallet.publicKey,ata,wallet.publicKey,key)));return ata}export async function trade({connection,wallet,mint,side,amount,minOut=0}){const key=new PublicKey(mint),{curve,vault}=pdas(key),ata=await ensureTraderAccount(connection,wallet,key),data=Buffer.concat([Buffer.from(D[side]),u64(amount),u64(minOut)]),ix=new TransactionInstruction({programId:PROGRAM_ID,keys:[{pubkey:wallet.publicKey,isSigner:true,isWritable:true},{pubkey:curve,isSigner:false,isWritable:true},{pubkey:key,isSigner:false,isWritable:false},{pubkey:vault,isSigner:false,isWritable:true},{pubkey:ata,isSigner:false,isWritable:true},{pubkey:TOKEN_PROGRAM_ID,isSigner:false,isWritable:false},{pubkey:SystemProgram.programId,isSigner:false,isWritable:false}],data});return send(connection,wallet,new Transaction().add(ix))}
+import { Buffer } from 'buffer';
+import { Keypair, PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY, Transaction, TransactionInstruction } from '@solana/web3.js';
+import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress, createAssociatedTokenAccountIdempotentInstruction } from '@solana/spl-token';
+import { rawAmount, validateLaunch } from './market.js';
+
+// Source program identity only; not evidence of a deployment.
+export const PROGRAM_ID = new PublicKey('Fg6PaFpoGXkYsidMpWxTWqkZqvFmR6UJA4R9C3bZ9S2');
+const D = { initialize: [175,175,109,31,13,152,155,237], buy: [102,6,61,18,1,218,235,234], sell: [51,230,133,164,1,127,131,173] };
+const meta = (pubkey, isSigner = false, isWritable = false) => ({ pubkey, isSigner, isWritable });
+const u64 = value => { const b = Buffer.alloc(8); b.writeBigUInt64LE(rawAmount(value)); return b; };
+const str = value => { const b = Buffer.from(value, 'utf8'), length = Buffer.alloc(4); length.writeUInt32LE(b.length); return Buffer.concat([length, b]); };
+
+export function deriveMarketAddresses(mint) {
+  const key = new PublicKey(mint);
+  const [curve, bump] = PublicKey.findProgramAddressSync([Buffer.from('curve'), key.toBuffer()], PROGRAM_ID);
+  const [vault] = PublicKey.findProgramAddressSync([Buffer.from('vault'), key.toBuffer()], PROGRAM_ID);
+  return { curve, vault, bump };
+}
+
+export async function decodeMarket(data, mint) {
+  const b = Buffer.from(data);
+  const discriminator = new Uint8Array(await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode('account:Curve'))).slice(0, 8);
+  if (b.length !== 388 || !b.subarray(0, 8).equals(Buffer.from(discriminator))) throw new Error('Invalid Curve account layout');
+  let offset = 8;
+  const take = count => { if (offset + count > b.length) throw new Error('Truncated Curve account'); const result = b.subarray(offset, offset + count); offset += count; return result; };
+  const key = () => new PublicKey(take(32));
+  const text = max => { const length = take(4).readUInt32LE(); if (length > max) throw new Error('Invalid Curve string length'); return new TextDecoder('utf-8', { fatal: true }).decode(take(length)); };
+  const creator = key(), accountMint = key(), bump = take(1)[0], decimals = take(1)[0];
+  const name = text(32), symbol = text(10), metadataUri = text(200);
+  const totalSupply = take(8).readBigUInt64LE(), tokenReserve = take(8).readBigUInt64LE(), realSolReserve = take(8).readBigUInt64LE(), graduationTarget = take(8).readBigUInt64LE();
+  const graduated = take(1)[0];
+  if (!accountMint.equals(new PublicKey(mint)) || bump !== deriveMarketAddresses(mint).bump || graduated > 1) throw new Error('Curve mint, bump or flag mismatch');
+  return { creator, mint: accountMint, bump, decimals, name, symbol, metadataUri, totalSupply, tokenReserve, realSolReserve, graduationTarget, graduated: graduated === 1 };
+}
+
+export async function fetchMarket(connection, mint) {
+  const { curve, vault } = deriveMarketAddresses(mint);
+  const { value, context } = await connection.getAccountInfoAndContext(curve, 'confirmed');
+  if (!value) throw new Error('Market not found on this RPC');
+  if (!value.owner.equals(PROGRAM_ID) || value.executable) throw new Error('Invalid market account owner');
+  return { ...await decodeMarket(value.data, mint), curve, vault, slot: context.slot };
+}
+
+export async function sendTransaction(connection, wallet, tx, extra = []) {
+  if (!wallet.publicKey || typeof wallet.signTransaction !== 'function') throw new Error('Connect a signing wallet first');
+  const payer = new PublicKey(wallet.publicKey);
+  const latest = await connection.getLatestBlockhash('confirmed');
+  tx.feePayer = payer;
+  tx.recentBlockhash = latest.blockhash;
+  if (extra.length) tx.partialSign(...extra);
+  const signed = await wallet.signTransaction(tx);
+  if (!signed.serializeMessage().equals(tx.serializeMessage())) throw new Error('Wallet changed the transaction');
+  const signature = await connection.sendRawTransaction(signed.serialize(), { skipPreflight: false, preflightCommitment: 'confirmed', maxRetries: 3 });
+  let result;
+  try {
+    result = await connection.confirmTransaction({ signature, ...latest }, 'confirmed');
+  } catch (cause) {
+    const error = new Error('Confirmation unavailable. Check this signature before retrying; it may have landed.', { cause });
+    error.signature = signature;
+    throw error;
+  }
+  if (result.value.err) {
+    const error = new Error(`Transaction failed on chain: ${JSON.stringify(result.value.err)}`);
+    error.signature = signature;
+    throw error;
+  }
+  return signature;
+}
+
+export async function createLaunch({ connection, wallet, name, symbol, metadataUri }) {
+  validateLaunch({ name, symbol, metadataUri });
+  if (!wallet.publicKey) throw new Error('Connect a signing wallet first');
+  const mint = Keypair.generate(), { curve, vault } = deriveMarketAddresses(mint.publicKey);
+  const ix = new TransactionInstruction({ programId: PROGRAM_ID, keys: [
+    meta(wallet.publicKey, true, true), meta(mint.publicKey, true, true), meta(curve, false, true), meta(vault, false, true),
+    meta(TOKEN_PROGRAM_ID), meta(SystemProgram.programId), meta(SYSVAR_RENT_PUBKEY),
+  ], data: Buffer.concat([Buffer.from(D.initialize), str(name), str(symbol), str(metadataUri)]) });
+  const signature = await sendTransaction(connection, wallet, new Transaction().add(ix), [mint]);
+  return { signature, mint: mint.publicKey.toBase58(), curve: curve.toBase58() };
+}
+
+export async function buildTradeTransaction({ wallet, mint, side, amount, minOut }) {
+  if (!wallet.publicKey) throw new Error('Connect a signing wallet first');
+  if (side !== 'buy' && side !== 'sell') throw new Error('Choose buy or sell');
+  if (rawAmount(amount) === 0n || rawAmount(minOut, 'Minimum output') === 0n) throw new Error('Amount and minimum output must be positive');
+  const key = new PublicKey(mint), { curve, vault } = deriveMarketAddresses(key);
+  const ata = await getAssociatedTokenAddress(key, wallet.publicKey);
+  const ix = new TransactionInstruction({ programId: PROGRAM_ID, keys: [
+    meta(wallet.publicKey, true, true), meta(curve, false, true), meta(key), meta(vault, false, true), meta(ata, false, true),
+    meta(TOKEN_PROGRAM_ID), meta(SystemProgram.programId),
+  ], data: Buffer.concat([Buffer.from(D[side]), u64(amount), u64(minOut)]) });
+  // ATA creation and trade succeed or roll back together; no unconfirmed setup race.
+  return new Transaction().add(createAssociatedTokenAccountIdempotentInstruction(wallet.publicKey, ata, wallet.publicKey, key), ix);
+}
+
+export async function trade(args) {
+  return sendTransaction(args.connection, args.wallet, await buildTradeTransaction(args));
+}
