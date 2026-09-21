@@ -6,7 +6,7 @@ const githubReadTools=repositoryToolSchemas.filter(tool=>['listRepoTree','readFi
 
 export async function runManagerWithGithub({apiKey,model,messages,responseFormat,githubToken,base44}){
  const history=[...messages];
- for(let step=0;step<12;step++){
+ for(let step=0;step<100;step++){
   const message=await callOpenAi({apiKey,model,messages:history,tools:githubReadTools,responseFormat});history.push(message);
   if(!message.tool_calls?.length)return message;
   for(const call of message.tool_calls){
