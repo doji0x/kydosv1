@@ -14,7 +14,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: {node-version: 20}
-      - uses: dtolnay/rust-toolchain@1.79.0
+      - uses: dtolnay/rust-toolchain@1.90.0
       - uses: swatinem/rust-cache@v2
         with: {workspaces: solana}
       - name: Install Solana 2.1.21
@@ -31,6 +31,12 @@ jobs:
       - name: Host account validation tests (no validator or deployment)
         working-directory: solana
         run: cargo test -p kydos_launchpad --test account_validation
+      - name: Align Anchor and Solana dependency graph
+        working-directory: solana
+        run: |
+          cargo update -p anchor-spl --precise 0.31.1
+          cargo update -p anchor-lang --precise 0.31.1
+          cargo update -p solana-program --precise 2.1.21
       - working-directory: solana
         run: anchor build
       - uses: actions/upload-artifact@v4

@@ -1,0 +1,35 @@
+name: Astra delivery contracts
+
+on:
+  push:
+    branches: [main, 'astra/latest']
+    paths:
+      - 'base44/shared/astra*.ts'
+      - 'base44/functions/astraChat/**'
+      - 'base44/functions/astraWorker/**'
+      - 'base44/workflows/Run Astra Specialist.jsonc'
+      - 'tests/astra-delivery.test.mjs'
+      - '.github/workflows/astra-delivery.yml'
+  pull_request:
+    branches: [main, 'astra/latest']
+    paths:
+      - 'base44/shared/astra*.ts'
+      - 'base44/functions/astraChat/**'
+      - 'base44/functions/astraWorker/**'
+      - 'base44/workflows/Run Astra Specialist.jsonc'
+      - 'tests/astra-delivery.test.mjs'
+      - '.github/workflows/astra-delivery.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  delivery-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.18.0'
+      - run: node --test tests/astra-delivery.test.mjs
