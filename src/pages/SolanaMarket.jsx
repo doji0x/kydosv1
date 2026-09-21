@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useSolanaWallet } from '@/lib/SolanaWalletContext';
-import { fetchMarket, fetchBalances, trade } from '@/lib/solana/client';
+import { fetchMarket, fetchBalances, trade, estimateTradeCosts } from '@/lib/solana/client';
 import { developmentConnection } from '@/lib/solana/development';
 import { formatAmount, parseAmount, quoteTrade, transactionError } from '@/lib/solana/market';
 import { Activity, useActivity } from '@/lib/solana/Activity';
@@ -22,6 +22,7 @@ function Market({ mint, wallet }) {
   const [loading, setLoading] = useState(false), [loadError, setLoadError] = useState('');
   const [side, setSide] = useState('buy'), [amount, setAmount] = useState(''), [bps, setBps] = useState('');
   const [busy, setBusy] = useState(false), [outcome, setOutcome] = useState(null);
+  const [estimate, setEstimate] = useState(null), [retry, setRetry] = useState(0);
   const generation = useRef(0), lock = useRef(false);
   const refresh = useCallback(async () => {
     const request = ++generation.current;
@@ -39,20 +40,36 @@ function Market({ mint, wallet }) {
   useEffect(() => { if (confirmed) { setAmount(''); refresh(); } }, [confirmed, refresh]);
   const [now, setNow] = useState(Date.now());
   useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(timer); }, []);
-  const stale = market && now - market.loadedAt > 30000;
+  const stale = Boolean(market && now - market.loadedAt > 30000);
   let quote, quoteError = '';
   try {
     if (market && amount) {
       if (!/^\d+$/.test(bps)) throw new Error('Enter integer slippage basis points (100 bps = 1%)');
       quote = quoteTrade(market, side, parseAmount(amount, side === 'buy' ? 9 : market.decimals), Number(bps));
-      if (balances && quote.input > (side === 'buy' ? balances.sol : balances.tokens)) throw new Error('Input exceeds confirmed balance');
+      // Keep the quote for a SOL shortfall preview, but still block submission.
+      if (balances && quote.input > (side === 'buy' ? balances.sol : balances.tokens)) quoteError = 'Input exceeds confirmed balance';
     }
   } catch (e) { quoteError = e.message; quote = null; }
   const blocked = busy || activity.blocked;
+  const validEstimate = Boolean(quote && balances && wallet.connected && walletId && rpc.connection && !stale && !loading);
+  const estimateKey = JSON.stringify([walletId, wallet.connected, mint, side, amount, bps, quote?.input.toString(), quote?.minOut.toString(), market?.loadedAt, stale, loading, retry, busy]);
+  useEffect(() => {
+    let cancelled = false;
+    setEstimate(null);
+    if (validEstimate && !busy) {
+      estimateTradeCosts({ connection: rpc.connection, wallet, mint, side, amount: quote.input, minOut: quote.minOut }).then(
+        costs => { if (!cancelled) setEstimate({ key: estimateKey, costs }); },
+        error => { if (!cancelled) setEstimate({ key: estimateKey, error: transactionError(error) }); },
+      );
+    }
+    return () => { cancelled = true; };
+  }, [estimateKey, validEstimate, rpc.connection]);
+  const currentEstimate = estimate?.key === estimateKey ? estimate : null;
+  const costs = currentEstimate?.costs;
   const submit = async e => {
     e.preventDefault();
-    if (lock.current || blocked || !quote || !balances || !market || !wallet.connected || Date.now() - market.loadedAt > 30000) return;
-    lock.current = true; setBusy(true); setOutcome('Approve in your wallet. Recovery is persisted before broadcast.');
+    if (lock.current || blocked || !costs?.sufficient || quoteError || !quote || !balances || !market || !wallet.connected || Date.now() - market.loadedAt > 30000) return;
+    lock.current = true; setBusy(true); setOutcome('Rechecking costs before wallet approval. Recovery is persisted before broadcast.');
     try {
       await trade({ connection: rpc.connection, wallet, mint, side, amount: quote.input, minOut: quote.minOut });
       setOutcome('Confirmed. Refreshing balances and market; quotes are not receipts.');
@@ -91,9 +108,20 @@ function Market({ mint, wallet }) {
           <p>Estimated accepted input: {formatAmount(quote.acceptedInput, side === 'buy' ? 9 : market.decimals)}</p>
           {quote.acceptedInput !== quote.input && <p>The threshold caps estimated input; the instruction still authorizes up to your entered input if reserves change.</p>}
           {quote.willGraduate && <p>This snapshot predicts the program graduation flag will be set.</p>}
-          <p>Excludes fees and possible token-account rent. Balance snapshots do not guarantee funds at execution. Minimum output is never silently repriced.</p>
+          <p>Cost estimates include network fees and required account rent, with the full authorized buy input. Sale proceeds cannot pay upfront fees. RPC snapshots can change; costs are rechecked before signing. Minimum output is never silently repriced.</p>
         </div>}
-        <Button type="submit" disabled={blocked || !wallet.connected || !balances || !quote || stale || loading}>{busy ? 'Awaiting transaction…' : 'Submit development trade'}</Button>
+        {validEstimate && !busy && !currentEstimate && <p role="status">Estimating transaction costs…</p>}
+        {currentEstimate?.error && <p role="alert">Cost estimate unavailable: {currentEstimate.error}</p>}
+        {costs && <dl className="text-sm space-y-1">
+          {side === 'buy' && <><dt>Full authorized buy input</dt><dd>{formatAmount(costs.inputLamports, 9)} SOL</dd></>}
+          <dt>Estimated network fee</dt><dd>{formatAmount(costs.networkFeeLamports, 9)} SOL</dd>
+          <dt>Account rent</dt><dd>{formatAmount(costs.rentLamports, 9)} SOL</dd>
+          <dt>Total required</dt><dd>{formatAmount(costs.requiredLamports, 9)} SOL</dd>
+          <dt>Available</dt><dd>{formatAmount(costs.balanceLamports, 9)} SOL</dd>
+          <dt>Shortfall</dt><dd>{formatAmount(costs.shortfallLamports, 9)} SOL</dd>
+        </dl>}
+        <Button type="button" variant="outline" disabled={!validEstimate || busy} onClick={() => setRetry(value => value + 1)}>Refresh cost estimate</Button>
+        <Button type="submit" disabled={blocked || !wallet.connected || !balances || !quote || Boolean(quoteError) || stale || loading || !costs?.sufficient}>{busy ? 'Awaiting transaction…' : 'Submit development trade'}</Button>
       </form>
     </>}
     {outcome && <p role="status">{outcome}</p>}
