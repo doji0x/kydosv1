@@ -53,7 +53,34 @@ export async function createBranch(token, repoRef, branch = ASTRA_WORKING_BRANCH
 export async function getBranchChecks(token, repoRef, branch = ASTRA_WORKING_BRANCH) {
   const { owner, repo } = parseRepo(repoRef); const ref = await github(token, `/repos/${owner}/${repo}/git/ref/heads/${encodeURIComponent(branch)}`); const headSha = ref.object.sha;
   const data = await github(token, `/repos/${owner}/${repo}/commits/${headSha}/check-runs?per_page=100`);
-  return { branch, headSha, checks: (data.check_runs || []).map(x => ({ name: x.name, status: x.status, conclusion: x.conclusion || '' })) };
+  return { branch, headSha, checks: (data.check_runs || []).map(x => ({ id: x.id, name: x.name, status: x.status, conclusion: x.conclusion || '', url: x.html_url || '', summary: x.output?.summary || '', text: x.output?.text || '' })) };
+}
+export async function listCommits(token, repoRef, branch = ASTRA_WORKING_BRANCH, limit = 20) {
+  const { owner, repo } = parseRepo(repoRef); const count = Math.min(50, Math.max(1, Number(limit) || 20));
+  const rows = await github(token, `/repos/${owner}/${repo}/commits?sha=${encodeURIComponent(branch)}&per_page=${count}`);
+  return { branch, commits: rows.map(x => ({ sha: x.sha, message: x.commit?.message || '', author: x.commit?.author?.name || '', date: x.commit?.author?.date || '', url: x.html_url || '' })) };
+}
+export async function compareRefs(token, repoRef, base, head = ASTRA_WORKING_BRANCH) {
+  const { owner, repo } = parseRepo(repoRef); const safeBase = String(base || '').trim();
+  if (!safeBase || !/^[\w./-]+$/.test(safeBase) || !/^[\w./-]+$/.test(head)) throw new Error('Provide valid comparison refs.');
+  const data = await github(token, `/repos/${owner}/${repo}/compare/${encodeURIComponent(safeBase)}...${encodeURIComponent(head)}`);
+  return { base: safeBase, head, status: data.status, aheadBy: data.ahead_by, behindBy: data.behind_by, totalCommits: data.total_commits,
+    commits: (data.commits || []).slice(0, 50).map(x => ({ sha: x.sha, message: x.commit?.message || '', date: x.commit?.author?.date || '' })),
+    files: (data.files || []).slice(0, 100).map(x => ({ path: x.filename, status: x.status, additions: x.additions, deletions: x.deletions, changes: x.changes, patch: String(x.patch || '').slice(0, 12000) })) };
+}
+export async function getCiLogs(token, repoRef, branch = ASTRA_WORKING_BRANCH, runId) {
+  const { owner, repo } = parseRepo(repoRef); let run;
+  if (runId) run = await github(token, `/repos/${owner}/${repo}/actions/runs/${encodeURIComponent(String(runId))}`);
+  else { const data = await github(token, `/repos/${owner}/${repo}/actions/runs?branch=${encodeURIComponent(branch)}&per_page=1`); run = data.workflow_runs?.[0]; }
+  if (!run) return { branch, run: null, jobs: [] };
+  const jobsData = await github(token, `/repos/${owner}/${repo}/actions/runs/${run.id}/jobs?per_page=100`);
+  const checks = await getBranchChecks(token, repoRef, branch);
+  return { branch, run: { id: run.id, name: run.name, headSha: run.head_sha, status: run.status, conclusion: run.conclusion || '', event: run.event, url: run.html_url || '', createdAt: run.created_at, updatedAt: run.updated_at },
+    jobs: (jobsData.jobs || []).map(x => ({ id: x.id, name: x.name, status: x.status, conclusion: x.conclusion || '', url: x.html_url || '', steps: (x.steps || []).map(step => ({ name: step.name, status: step.status, conclusion: step.conclusion || '', number: step.number })) })), checks: checks.checks };
+}
+export async function inspectWriteAccess(token, repoRef, branch = ASTRA_WORKING_BRANCH) {
+  const { owner, repo } = parseRepo(repoRef); const [details, ref] = await Promise.all([github(token, `/repos/${owner}/${repo}`), github(token, `/repos/${owner}/${repo}/git/ref/heads/${encodeURIComponent(branch)}`)]);
+  return { repo: repoRef, branch, headSha: ref.object.sha, canPush: details.permissions?.push === true, canMaintain: details.permissions?.maintain === true, canAdmin: details.permissions?.admin === true, verifiedWithoutWrite: true };
 }
 export async function mergeTaskBranch(token, repoRef, sourceBranch) {
   const { owner, repo } = parseRepo(repoRef); const source = String(sourceBranch || '').trim();

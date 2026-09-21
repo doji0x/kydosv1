@@ -1,9 +1,9 @@
 import { callOpenAi } from '../../shared/astraOpenAi.ts';
 import { referenceToolSchemas, repositoryToolSchemas, runTool } from '../../shared/astraTools.ts';
-import { ASTRA_WORKING_BRANCH, commitFile, getBranchChecks, listRepoTree, readFile } from '../../shared/astraGithub.ts';
+import { ASTRA_WORKING_BRANCH, commitFile, compareRefs, getBranchChecks, getCiLogs, inspectWriteAccess, listCommits, listRepoTree, readFile } from '../../shared/astraGithub.ts';
 import { ASTRA_LIMITS } from '../../shared/astraOrchestration.ts';
 
-const chatTools=[...repositoryToolSchemas.filter(tool=>['listRepoTree','readFile','checkBranchStatus','commitFile'].includes(tool.function.name)),...referenceToolSchemas];
+const chatTools=[...repositoryToolSchemas.filter(tool=>['listRepoTree','readFile','checkBranchStatus','listCommits','compareRefs','getCiLogs','inspectWriteAccess','commitFile'].includes(tool.function.name)),...referenceToolSchemas];
 const repo='doji0x/kydosv1';
 export async function runManagerWithGithub({apiKey,model,messages,responseFormat,githubToken,base44,headSha,log}){
  const history=[...messages],readPaths=new Set(),started=Date.now();let expectedHead=headSha;
@@ -24,8 +24,12 @@ export async function runManagerWithGithub({apiKey,model,messages,responseFormat
      try{result=await readFile(githubToken,repo,args.path,ASTRA_WORKING_BRANCH);if(!result.truncated&&JSON.stringify(result).length<=ASTRA_LIMITS.toolOutput)readPaths.add(args.path);else {readPaths.delete(args.path);result={error:'This file exceeds the complete chat-read limit and cannot safely be rewritten from a partial read.',path:args.path,truncated:true};}}
      catch(error){if(error.status===404){readPaths.add(args.path);result={path:args.path,exists:false};}else throw error;}
     }else if(name==='listRepoTree')result=await listRepoTree(githubToken,repo,ASTRA_WORKING_BRANCH);
-    else if(name==='checkBranchStatus')result=await getBranchChecks(githubToken,repo,args.sourceBranch||ASTRA_WORKING_BRANCH);
-    else if(name==='commitFile'){
+     else if(name==='checkBranchStatus')result=await getBranchChecks(githubToken,repo,args.sourceBranch||ASTRA_WORKING_BRANCH);
+     else if(name==='listCommits')result=await listCommits(githubToken,repo,ASTRA_WORKING_BRANCH,args.limit);
+     else if(name==='compareRefs')result=await compareRefs(githubToken,repo,args.base,ASTRA_WORKING_BRANCH);
+     else if(name==='getCiLogs')result=await getCiLogs(githubToken,repo,ASTRA_WORKING_BRANCH,args.runId);
+     else if(name==='inspectWriteAccess')result=await inspectWriteAccess(githubToken,repo,ASTRA_WORKING_BRANCH);
+     else if(name==='commitFile'){
      if(!readPaths.has(args.path))throw new Error('Read the complete file first, or verify that the new path does not exist.');
      if(typeof args.content!=='string'||args.content.length>120000||typeof args.message!=='string'||!args.message.trim())throw new Error('Provide complete file contents up to 120,000 characters and a commit message.');
      const active=await base44.entities.AstraJob.filter({status:'running'},'created_date',1);
