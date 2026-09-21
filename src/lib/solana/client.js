@@ -2,9 +2,12 @@ import { Buffer } from 'buffer';
 import { Keypair, PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY, Transaction, TransactionInstruction } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress, createAssociatedTokenAccountIdempotentInstruction } from '@solana/spl-token';
 import { rawAmount, validateLaunch } from './market.js';
+import { encodeSignature, outcomeError } from './transactions.js';
 
 // Source program identity only; not evidence of a deployment.
 export const PROGRAM_ID = new PublicKey('Fg6PaFpoGXkYsidMpWxTWqkZqvFmR6UJA4R9C3bZ9S2');
+// Anchor/Borsh: discriminator + keys + bytes + length-prefixed strings + u64s + bool.
+export const CURVE_SPACE = 8 + 32 + 32 + 1 + 1 + 4 + 32 + 4 + 10 + 4 + 200 + 8 * 4 + 1;
 const D = { initialize: [175,175,109,31,13,152,155,237], buy: [102,6,61,18,1,218,235,234], sell: [51,230,133,164,1,127,131,173] };
 const meta = (pubkey, isSigner = false, isWritable = false) => ({ pubkey, isSigner, isWritable });
 const u64 = value => { const b = Buffer.alloc(8); b.writeBigUInt64LE(rawAmount(value)); return b; };
@@ -20,7 +23,7 @@ export function deriveMarketAddresses(mint) {
 export async function decodeMarket(data, mint) {
   const b = Buffer.from(data);
   const discriminator = new Uint8Array(await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode('account:Curve'))).slice(0, 8);
-  if (b.length !== 388 || !b.subarray(0, 8).equals(Buffer.from(discriminator))) throw new Error('Invalid Curve account layout');
+  if (b.length !== CURVE_SPACE || !b.subarray(0, 8).equals(Buffer.from(discriminator))) throw new Error('Invalid Curve account layout');
   let offset = 8;
   const take = count => { if (offset + count > b.length) throw new Error('Truncated Curve account'); const result = b.subarray(offset, offset + count); offset += count; return result; };
   const key = () => new PublicKey(take(32));
@@ -30,6 +33,7 @@ export async function decodeMarket(data, mint) {
   const totalSupply = take(8).readBigUInt64LE(), tokenReserve = take(8).readBigUInt64LE(), realSolReserve = take(8).readBigUInt64LE(), graduationTarget = take(8).readBigUInt64LE();
   const graduated = take(1)[0];
   if (!accountMint.equals(new PublicKey(mint)) || bump !== deriveMarketAddresses(mint).bump || graduated > 1) throw new Error('Curve mint, bump or flag mismatch');
+  // Short strings leave allocation slack AFTER serialized fields, not fixed-width gaps.
   return { creator, mint: accountMint, bump, decimals, name, symbol, metadataUri, totalSupply, tokenReserve, realSolReserve, graduationTarget, graduated: graduated === 1 };
 }
 
@@ -48,22 +52,22 @@ export async function sendTransaction(connection, wallet, tx, extra = []) {
   tx.feePayer = payer;
   tx.recentBlockhash = latest.blockhash;
   if (extra.length) tx.partialSign(...extra);
+  // Snapshot before calling the provider: wallets may mutate the same object.
+  const message = Buffer.from(tx.serializeMessage());
   const signed = await wallet.signTransaction(tx);
-  if (!signed.serializeMessage().equals(tx.serializeMessage())) throw new Error('Wallet changed the transaction');
-  const signature = await connection.sendRawTransaction(signed.serialize(), { skipPreflight: false, preflightCommitment: 'confirmed', maxRetries: 3 });
+  if (!signed.serializeMessage().equals(message)) throw new Error('Wallet changed the transaction');
+  const wire = signed.serialize(); // Verify required signatures before attempting submission.
+  const signature = encodeSignature(signed.signature);
   let result;
   try {
+    const returned = await connection.sendRawTransaction(wire, { skipPreflight: false, preflightCommitment: 'confirmed', maxRetries: 3 });
+    if (returned !== signature) throw new Error('RPC returned a different signature');
     result = await connection.confirmTransaction({ signature, ...latest }, 'confirmed');
   } catch (cause) {
-    const error = new Error('Confirmation unavailable. Check this signature before retrying; it may have landed.', { cause });
-    error.signature = signature;
-    throw error;
+    // Even sendRawTransaction can time out AFTER forwarding the signed bytes.
+    throw outcomeError(cause, signature);
   }
-  if (result.value.err) {
-    const error = new Error(`Transaction failed on chain: ${JSON.stringify(result.value.err)}`);
-    error.signature = signature;
-    throw error;
-  }
+  if (result.value.err) throw outcomeError(result.value.err, signature, 'failed');
   return signature;
 }
 
@@ -75,8 +79,13 @@ export async function createLaunch({ connection, wallet, name, symbol, metadataU
     meta(wallet.publicKey, true, true), meta(mint.publicKey, true, true), meta(curve, false, true), meta(vault, false, true),
     meta(TOKEN_PROGRAM_ID), meta(SystemProgram.programId), meta(SYSVAR_RENT_PUBKEY),
   ], data: Buffer.concat([Buffer.from(D.initialize), str(name), str(symbol), str(metadataUri)]) });
-  const signature = await sendTransaction(connection, wallet, new Transaction().add(ix), [mint]);
-  return { signature, mint: mint.publicKey.toBase58(), curve: curve.toBase58() };
+  try {
+    const signature = await sendTransaction(connection, wallet, new Transaction().add(ix), [mint]);
+    return { signature, mint: mint.publicKey.toBase58(), curve: curve.toBase58() };
+  } catch (error) {
+    error.mint = mint.publicKey.toBase58();
+    throw error;
+  }
 }
 
 export async function buildTradeTransaction({ wallet, mint, side, amount, minOut }) {
