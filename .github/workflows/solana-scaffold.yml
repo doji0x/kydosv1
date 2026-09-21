@@ -34,8 +34,8 @@ jobs:
       - name: Align Anchor and Solana dependency graph
         working-directory: solana
         run: |
-          cargo update -p anchor-lang --precise 0.31.1
           cargo update -p anchor-spl --precise 0.31.1
+          cargo update -p anchor-lang --precise 0.31.1
           cargo update -p solana-program --precise 2.1.21
       - working-directory: solana
         run: anchor build
