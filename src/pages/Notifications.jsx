@@ -4,27 +4,19 @@ import { base44 } from "@/api/base44Client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { useMe } from "@/lib/MeContext";
-import { fetchNotifications, markSeen } from "@/lib/notifications";
+import { markSeen } from "@/lib/notifications";
+import { useNotificationsFeed } from "@/hooks/useNotificationsFeed";
 import NotificationRow from "@/components/notifications/NotificationRow";
 
 const TABS = [["all", "All"], ["mentions", "Mentions"], ["likes", "Likes"]];
 
 export default function Notifications() {
   const { me } = useMe();
-  const [items, setItems] = useState(null);
+  const items = useNotificationsFeed(me);
   const [tab, setTab] = useState("all");
 
   useEffect(() => {
-    if (!me) return;
-    const load = () => fetchNotifications(me).then(setItems);
-    load();
-    markSeen();
-    const unsubs = [
-      base44.entities.PostLike.subscribe(load),
-      base44.entities.Post.subscribe(load),
-      base44.entities.Follow.subscribe(load),
-    ];
-    return () => unsubs.forEach((u) => u());
+    if (me) markSeen();
   }, [me]);
 
   if (me === undefined) return <div className="p-4 space-y-3">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-16 rounded-xl" />)}</div>;

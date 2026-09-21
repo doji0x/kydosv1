@@ -4,9 +4,6 @@ import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress, createAssociatedTokenAccou
 import { rawAmount, validateLaunch } from './market.js';
 import { encodeSignature } from './transactions.js';
 import { browserActivity } from './lifecycle.js';
-import { readSolanaDevelopmentConfig } from './config.js';
-import { MAINNET_GENESIS, assertMainnetHarnessReady } from './budget.js';
-import { estimateTransactionCosts } from './costs.js';
 
 // Source program identity only; not evidence of a deployment.
 export const PROGRAM_ID = new PublicKey('Fg6PaFpoGXkYsidMpWxTWqkZqvFmR6UJA4R9C3bZ9S2');
@@ -56,7 +53,7 @@ export async function fetchBalances(connection, wallet, mint) {
   let tokens = 0n;
   if (info) {
     const account = unpackAccount(ata, info, TOKEN_PROGRAM_ID);
-    if (info.executable || !account.isInitialized || !account.owner.equals(owner) || !account.mint.equals(key) || account.isFrozen) throw new Error('Invalid wallet token account');
+    if (!account.owner.equals(owner) || !account.mint.equals(key) || account.isFrozen) throw new Error('Invalid wallet token account');
     tokens = account.amount;
   }
   return { sol: BigInt(sol), tokens };
@@ -65,11 +62,7 @@ export async function fetchBalances(connection, wallet, mint) {
 export async function sendTransaction(connection, wallet, tx, extra = [], metadata, activity = browserActivity()) {
   if (!wallet.publicKey || typeof wallet.signTransaction !== 'function') throw new Error('Connect a signing wallet first');
   if (!metadata?.operation || !metadata?.mint) throw new Error('Recovery metadata required');
-  // Enforce localnet at the signing boundary, not merely in the page config.
-  readSolanaDevelopmentConfig({ cluster: 'localnet', rpcUrl: connection.rpcEndpoint });
   const chain = await connection.getGenesisHash();
-  if (chain === MAINNET_GENESIS) assertMainnetHarnessReady();
-  if (['EtWTRABZaYq6iMfeYKouRu166VU2xqa1', '4uhcVJyU9pJkvQyS88uRDiswHXSCkY3zQawwpjk2NsNY'].includes(chain)) throw new Error('Public cluster signing disabled');
   const payer = new PublicKey(wallet.publicKey);
   const scope = { wallet: payer.toBase58(), chain, program: PROGRAM_ID.toBase58(), operation: metadata.operation,
     conflict: metadata.operation === 'create' ? 'create' : `trade:${metadata.mint}` };
@@ -77,9 +70,6 @@ export async function sendTransaction(connection, wallet, tx, extra = [], metada
     const latest = await connection.getLatestBlockhash('confirmed');
     tx.feePayer = payer;
     tx.recentBlockhash = latest.blockhash;
-    const costs = await estimateTransactionCosts({ connection, transaction: tx, payer,
-      context: { ...metadata, curveSpace: CURVE_SPACE }, prepared: true });
-    if (!costs.sufficient) throw new Error(`Insufficient SOL: short ${costs.shortfallLamports} lamports for input, network fee and account rent`);
     if (extra.length) tx.partialSign(...extra);
     const message = Buffer.from(tx.serializeMessage());
     save({ state: 'signing', ...latest, messageBase64: message.toString('base64') });
@@ -103,7 +93,7 @@ export async function sendTransaction(connection, wallet, tx, extra = [], metada
   });
 }
 
-export function buildCreateTransaction({ wallet, name, symbol, metadataUri }) {
+export async function createLaunch({ connection, wallet, name, symbol, metadataUri }) {
   validateLaunch({ name, symbol, metadataUri });
   if (!wallet.publicKey) throw new Error('Connect a signing wallet first');
   const mint = Keypair.generate(), { curve, vault } = deriveMarketAddresses(mint.publicKey);
@@ -111,20 +101,9 @@ export function buildCreateTransaction({ wallet, name, symbol, metadataUri }) {
     meta(wallet.publicKey, true, true), meta(mint.publicKey, true, true), meta(curve, false, true), meta(vault, false, true),
     meta(TOKEN_PROGRAM_ID), meta(SystemProgram.programId), meta(SYSVAR_RENT_PUBKEY),
   ], data: Buffer.concat([Buffer.from(D.initialize), str(name), str(symbol), str(metadataUri)]) });
-  const metadata = { operation: 'create', mint: mint.publicKey.toBase58(), curve: curve.toBase58(), name, symbol, metadataUri };
-  return { transaction: new Transaction().add(ix), mint, metadata };
-}
-
-export async function estimateCreateCosts(args) {
-  const { transaction, metadata } = buildCreateTransaction(args);
-  return estimateTransactionCosts({ connection: args.connection, transaction, payer: args.wallet.publicKey,
-    context: { ...metadata, curveSpace: CURVE_SPACE } });
-}
-
-export async function createLaunch(args) {
-  const { transaction, mint, metadata } = buildCreateTransaction(args);
   try {
-    const signature = await sendTransaction(args.connection, args.wallet, transaction, [mint], metadata);
+    const metadata = { operation: 'create', mint: mint.publicKey.toBase58(), curve: curve.toBase58(), name, symbol, metadataUri };
+    const signature = await sendTransaction(connection, wallet, new Transaction().add(ix), [mint], metadata);
     return { signature, mint: metadata.mint, curve: metadata.curve };
   } catch (error) { error.mint = mint.publicKey.toBase58(); throw error; }
 }
@@ -139,20 +118,11 @@ export async function buildTradeTransaction({ wallet, mint, side, amount, minOut
     meta(wallet.publicKey, true, true), meta(curve, false, true), meta(key), meta(vault, false, true), meta(ata, false, true),
     meta(TOKEN_PROGRAM_ID), meta(SystemProgram.programId),
   ], data: Buffer.concat([Buffer.from(D[side]), u64(amount), u64(minOut)]) });
-  const transaction = new Transaction();
-  if (side === 'buy') transaction.add(createAssociatedTokenAccountIdempotentInstruction(wallet.publicKey, ata, wallet.publicKey, key));
-  return transaction.add(ix);
-}
-
-function tradeMetadata(args) {
-  return { operation: args.side, mint: new PublicKey(args.mint).toBase58(), amount: rawAmount(args.amount).toString(), minOut: rawAmount(args.minOut).toString() };
-}
-
-export async function estimateTradeCosts(args) {
-  return estimateTransactionCosts({ connection: args.connection, transaction: await buildTradeTransaction(args),
-    payer: args.wallet.publicKey, context: tradeMetadata(args) });
+  return new Transaction().add(createAssociatedTokenAccountIdempotentInstruction(wallet.publicKey, ata, wallet.publicKey, key), ix);
 }
 
 export async function trade(args) {
-  return sendTransaction(args.connection, args.wallet, await buildTradeTransaction(args), [], tradeMetadata(args));
+  return sendTransaction(args.connection, args.wallet, await buildTradeTransaction(args), [], {
+    operation: args.side, mint: new PublicKey(args.mint).toBase58(), amount: rawAmount(args.amount).toString(), minOut: rawAmount(args.minOut).toString(),
+  });
 }

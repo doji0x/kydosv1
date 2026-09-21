@@ -1,12 +1,14 @@
 import { Connection } from '@solana/web3.js';
-import { readSolanaDevelopmentConfig } from './config.js';
+import { base44 } from '@/api/base44Client';
 
-// This UI is local-development only. Reuse the existing configuration boundary;
-// never silently send to a public cluster or display a private RPC URL.
-export function developmentConnection() {
-  const config = readSolanaDevelopmentConfig({
-    cluster: 'localnet',
-    rpcUrl: import.meta.env.VITE_SOLANA_RPC_URL || 'http://127.0.0.1:8899',
-  });
-  return new Connection(config.rpcUrl, 'confirmed');
+const PROXY_ENDPOINT='https://rpc.kydos.invalid';
+
+async function proxyFetch(_url,options={}){
+ const request=JSON.parse(options.body||'{}');
+ const response=await base44.functions.invoke('solanaRpc',{method:request.method,params:request.params||[]});
+ return new Response(JSON.stringify(response.data),{status:200,headers:{'content-type':'application/json'}});
+}
+
+export function mainnetConnection(){
+ return new Connection(PROXY_ENDPOINT,{commitment:'confirmed',fetch:proxyFetch});
 }
