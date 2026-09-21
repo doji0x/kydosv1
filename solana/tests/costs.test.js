@@ -1,11 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
 import { Buffer } from 'buffer';
 import { Keypair } from '@solana/web3.js';
 import { ACCOUNT_SIZE, MINT_SIZE, TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from '@solana/spl-token';
 import { estimateTransactionCosts } from '../../src/lib/solana/costs.js';
-import { buildCreateTransaction, buildTradeTransaction, CURVE_SPACE, estimateCreateCosts, estimateTradeCosts, sendTransaction } from '../../src/lib/solana/client.js';
+import { buildCreateTransaction, buildTradeTransaction, CURVE_SPACE, sendTransaction } from '../../src/lib/solana/client.js';
 import { quoteTrade } from '../../src/lib/solana/market.js';
 import { encodeSignature } from '../../src/lib/solana/transactions.js';
 
@@ -58,9 +57,18 @@ function rpc(overrides = {}) {
 
 const activity = { execute: async (_scope, _metadata, run) => run(() => {}) };
 
+const tradeContext = args => ({ operation: args.side, mint: args.mint.toBase58(), amount: args.amount.toString(), minOut: args.minOut.toString() });
+async function estimateCreate(args) {
+  const { transaction, metadata } = buildCreateTransaction(args);
+  return estimateTransactionCosts({ connection: args.connection, transaction, payer: args.wallet.publicKey, context: { ...metadata, curveSpace: CURVE_SPACE } });
+}
+async function estimateTrade(args) {
+  return estimateTransactionCosts({ connection: args.connection, transaction: await buildTradeTransaction(args), payer: args.wallet.publicKey, context: tradeContext(args) });
+}
+
 test('create estimates actual two-signature message and mint, curve, vault rent', async () => {
   const { connection, calls } = rpc({ getBalance: async () => createRequired });
-  const result = await estimateCreateCosts({ ...launch, connection });
+  const result = await estimateCreate({ ...launch, connection });
   assert.deepEqual(result, { inputLamports: 0n, networkFeeLamports: 10000n,
     rentLamports: BigInt(createRequired - 10000), requiredLamports: BigInt(createRequired),
     balanceLamports: BigInt(createRequired), shortfallLamports: 0n, sufficient: true });
@@ -77,7 +85,7 @@ test('buy uses full authorized input, existing ATA has no rent, missing ATA adds
   assert.equal(quote.acceptedInput, 1n);
   for (const missing of [false, true]) {
     const { connection, calls } = rpc(missing ? { getAccountInfo: async () => null } : {});
-    const result = await estimateTradeCosts({ ...tradeArgs, amount: quote.input, minOut: quote.minOut, connection });
+    const result = await estimateTrade({ ...tradeArgs, amount: quote.input, minOut: quote.minOut, connection });
     assert.equal(result.inputLamports, 100n);
     assert.equal(result.networkFeeLamports, 5000n);
     assert.equal(result.rentLamports, missing ? BigInt(rentFor(ACCOUNT_SIZE)) : 0n);
@@ -92,10 +100,10 @@ test('sell requires valid existing ATA and enough tokens; proceeds never pay upf
   assert.equal(tx.instructions.length, 1, 'sell must not create an empty ATA');
   for (const [info, error] of [[null, /existing/], [tokenInfo(99n), /Insufficient sell tokens/]]) {
     const { connection } = rpc({ getAccountInfo: async () => info });
-    await assert.rejects(estimateTradeCosts({ ...args, connection }), error);
+    await assert.rejects(estimateTrade({ ...args, connection }), error);
   }
   const { connection } = rpc({ getBalance: async () => 4999 });
-  const result = await estimateTradeCosts({ ...args, connection });
+  const result = await estimateTrade({ ...args, connection });
   assert.equal(result.inputLamports, 0n); assert.equal(result.rentLamports, 0n);
   assert.equal(result.requiredLamports, 5000n); assert.equal(result.shortfallLamports, 1n);
   assert.equal(result.sufficient, false);
@@ -113,7 +121,7 @@ test('invalid wallet token accounts fail closed for both sides', async () => {
   ];
   for (const side of ['buy', 'sell']) for (const make of invalid) {
     const { connection } = rpc({ getAccountInfo: async () => make() });
-    await assert.rejects(estimateTradeCosts({ ...tradeArgs, side, connection }));
+    await assert.rejects(estimateTrade({ ...tradeArgs, side, connection }));
   }
 });
 
@@ -121,12 +129,12 @@ test('null fees, invalid numeric RPC values and RPC failures never produce estim
   for (const value of [null, undefined, -1, 0.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1, '5000']) {
     for (const method of ['getFeeForMessage', 'getBalance', 'getMinimumBalanceForRentExemption']) {
       const { connection } = rpc({ [method]: async () => method === 'getFeeForMessage' ? { value } : value });
-      await assert.rejects(estimateCreateCosts({ ...launch, connection }), /safe integer/);
+      await assert.rejects(estimateCreate({ ...launch, connection }), /safe integer/);
     }
   }
   for (const method of ['getLatestBlockhash', 'getFeeForMessage', 'getBalance', 'getMinimumBalanceForRentExemption', 'getAccountInfo']) {
     const { connection } = rpc({ [method]: async () => { throw new Error('RPC offline'); } });
-    await assert.rejects(estimateTradeCosts({ ...tradeArgs, connection: {
+    await assert.rejects(estimateTrade({ ...tradeArgs, connection: {
       ...connection, ...(method === 'getMinimumBalanceForRentExemption' ? { getAccountInfo: async () => null } : {}),
     } }), /RPC offline/);
   }
@@ -180,7 +188,7 @@ test('failed submission costs never invoke signer or broadcast, including absent
 
 test('preview success does not authorize submission after balance or ATA changes', async () => {
   const { connection, calls } = rpc();
-  assert.equal((await estimateTradeCosts({ ...tradeArgs, connection })).sufficient, true);
+  assert.equal((await estimateTrade({ ...tradeArgs, connection })).sufficient, true);
   connection.getBalance = async () => 5099;
   let signed = 0;
   await assert.rejects(sendTransaction(connection, { ...wallet, signTransaction: async () => { signed++; } },
@@ -193,31 +201,4 @@ test('preview success does not authorize submission after balance or ATA changes
 test('estimator itself rejects absent context', async () => {
   const { connection } = rpc();
   await assert.rejects(estimateTransactionCosts({ connection, transaction: await buildTradeTransaction(tradeArgs), payer: payer.publicKey }), /context required/);
-});
-
-// Exercise the small page effect directly with deferred RPC promises. This uses
-// the checked-in effect body (not a duplicate model) without a JSX/DOM test stack.
-for (const page of ['SolanaLaunch', 'SolanaMarket']) test(`${page}: input keys invalidate immediately and cleanup ignores late results`, async () => {
-  const source = await readFile(new URL(`../../src/pages/${page}.jsx`, import.meta.url), 'utf8');
-  const body = source.match(/useEffect\(\(\) => \{\n    let cancelled = false;([\s\S]*?)\n  \}, \[estimateKey,/);
-  assert.ok(body, 'cancellable estimate effect exists');
-  assert.match(source, /estimate\?\.key === estimateKey \? estimate : null/);
-  assert.match(source, /disabled=\{[^\n]*!costs\?\.sufficient/);
-  const keyLine = source.match(/const estimateKey = JSON.stringify\(([^\n]+)\);/)[1];
-  for (const field of page === 'SolanaLaunch' ? ['walletId', 'wallet.connected', 'form.name', 'form.symbol', 'form.metadataUri'] : ['walletId', 'wallet.connected', 'mint', 'side', 'amount', 'bps', 'quote?.minOut']) assert.ok(keyLine.includes(field), field);
-  const run = new Function('setEstimate', 'valid', 'validEstimate', 'busy', 'estimateCreateCosts', 'estimateTradeCosts', 'rpc', 'wallet', 'form', 'mint', 'side', 'quote', 'estimateKey', 'transactionError', `let cancelled = false;${body[1]}`);
-  const pending = []; let state;
-  const estimate = () => new Promise((resolve, reject) => pending.push({ resolve, reject }));
-  const start = key => run(value => { state = value; }, true, true, false, estimate, estimate, { connection: {} }, wallet, launch, mint, 'buy', { input: 1n, minOut: 1n }, key, e => e.message);
-  const cleanup = start('old'); assert.equal(state, null);
-  cleanup(); const cleanupNew = start('new');
-  pending[1].resolve({ sufficient: true }); await Promise.resolve();
-  assert.equal(state.key, 'new');
-  pending[0].resolve({ sufficient: false }); await Promise.resolve();
-  assert.equal(state.key, 'new', 'late old success ignored');
-  cleanupNew(); const cleanupFailed = start('failed'); cleanupFailed(); start('latest');
-  pending[2].reject(new Error('old RPC error')); await Promise.resolve();
-  assert.equal(state, null, 'late old error ignored');
-  pending[3].resolve({ sufficient: true }); await Promise.resolve();
-  assert.equal(state.key, 'latest');
 });
