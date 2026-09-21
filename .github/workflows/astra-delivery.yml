@@ -7,8 +7,12 @@ on:
       - 'base44/shared/astra*.ts'
       - 'base44/functions/astraChat/**'
       - 'base44/functions/astraWorker/**'
+      - 'base44/functions/astraReference/**'
+      - 'base44/functions/ingestReference/**'
+      - 'base44/entities/AstraReference.jsonc'
+      - 'src/hooks/useAstraReferences.js'
       - 'base44/workflows/Run Astra Specialist.jsonc'
-      - 'tests/astra-delivery.test.mjs'
+      - 'tests/astra-*.test.mjs'
       - '.github/workflows/astra-delivery.yml'
   pull_request:
     branches: [main, 'astra/latest']
@@ -16,8 +20,12 @@ on:
       - 'base44/shared/astra*.ts'
       - 'base44/functions/astraChat/**'
       - 'base44/functions/astraWorker/**'
+      - 'base44/functions/astraReference/**'
+      - 'base44/functions/ingestReference/**'
+      - 'base44/entities/AstraReference.jsonc'
+      - 'src/hooks/useAstraReferences.js'
       - 'base44/workflows/Run Astra Specialist.jsonc'
-      - 'tests/astra-delivery.test.mjs'
+      - 'tests/astra-*.test.mjs'
       - '.github/workflows/astra-delivery.yml'
   workflow_dispatch:
 
@@ -32,4 +40,4 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22.18.0'
-      - run: node --test tests/astra-delivery.test.mjs
+      - run: node --test tests/astra-delivery.test.mjs tests/astra-references.test.mjs

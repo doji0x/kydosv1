@@ -4,7 +4,7 @@
 
 This is a Base44 app repository. Treat it as user-owned application code, keep changes focused on the user's request, and preserve existing project conventions.
 
-Start with `README.md` for local setup, environment variables, and publish workflow.
+For setup, environment, or publishing work, start with `README.md`. Do not reread setup documentation for unrelated tasks.
 
 ## Astra continuity: start here
 
@@ -14,6 +14,17 @@ Start with `README.md` for local setup, environment variables, and publish workf
 - Put the resulting delivery SHA and post-edit check state in the final chat handoff. Git history identifies the checkpoint's own commit; do not make recursive commits just to write its SHA into itself.
 - After the owner merges to `main`, re-inspect the actual delivery tip and merge evidence. Do not assume the old SHA, check results, or branch relationship remains current.
 - Direct Astra chat work has no Builder delegation. The crew conventions below describe legacy/specialist infrastructure; they do not authorize creating jobs or imposing an unsolicited audit on direct chat work. Audit only on request. This documentation does not change deployed orchestration.
+
+## Focused work system: read by task, not by repository
+
+- Use `docs/astra-work-state.json` as the small task router and exact progress record. Read it when selecting/resuming work, not repeatedly during the same turn. It is navigation/evidence, not executable orchestration or permission to resume an old request.
+- Begin with one outcome, its acceptance requirement, and a short touched-file list. Use the relevant route only; do not read every route. Default to at most five initial task-specific files beyond the startup records. This is a soft scope budget, never a reason to skip necessary safety checks.
+- Do not list the entire repository when the entry point is known. Read a direct dependency only to answer a concrete question: import/caller behavior, a relevant diff, failing check, or acceptance requirement. State a brief reason when expanding scope; do not ask the owner to approve routine necessary reads.
+- Reuse current-turn reads while their content remains current. Always read files before editing, including an absence check for a new path; refresh if the branch/file changes. A changed file invalidates relevant conclusions and affected dependencies, not all repository knowledge. Stop on unexpected concurrent changes instead of overwriting them.
+- Inspect the relevant baseline diff once per resume. Completed commits are evidence, not a fresh task list. Do not repeat completed implementation or research because a turn timed out. If old checkpoints lag, reconcile them once from known commits and record the next exact step.
+- For library work, store actual id/resolved URL, content hash, reviewed ranges, next offset and finding location in the work state. Follow pagination to completion for an all-documents request; use expectedHash on subsequent ranges. Restart only the changed document on a hash mismatch. Never invent historical hashes/cursors or treat search results as a complete inventory.
+- Work in bounded batches that leave time to save progress. Before a handoff/turn boundary, persist the exact unfinished step and cursor. Keep substantive findings in `docs/reference-index.md`, design in `docs/launchpad-build-spec.md` when created, and short human status in the rolling checkpoint. Do not duplicate findings into multiple logs.
+- After edits, inspect available checks on the resulting delivery SHA. Do not repeatedly poll absent/pending checks without a reason. Distinguish tests executed from CI inspected and checks not run. Update records once per useful milestone, not per tool call.
 
 ## Base44 References
 

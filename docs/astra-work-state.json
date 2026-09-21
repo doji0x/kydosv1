@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "purpose": "Small navigation and resume record; not a repository inventory, execution engine, authorization, or passing-check claim.",
+  "owner": "Astra direct chat",
+  "delivery_branch": "astra/latest",
+  "observed_source_sha": "e683d20589587aa2601828bf519b162189a80265",
+  "observed_upstream_sha": "1409cc3ee56be4678447a7e2e4ba53e53281dd97",
+  "active_task": {
+    "id": "focused-continuity",
+    "request": "Conversation #29: build a simpler system that avoids redundant repository reading",
+    "status": "implemented-in-this-change",
+    "scope": ["AGENTS.md", "docs/astra-delivery-checkpoint.md", "docs/astra-work-state.json"],
+    "acceptance": "Resume by task and changed paths, preserve completed work, record exact research cursors, and expand reading only for a concrete dependency.",
+    "next_action": "Report resulting delivery SHA and inspected checks; owner plans merge to main. Do not restart unrelated research in this milestone."
+  },
+  "read_policy": {
+    "startup": ["check delivery HEAD/checks", "read AGENTS.md", "read rolling checkpoint", "read this state only when selecting or resuming a task"],
+    "default_task_file_budget": 5,
+    "budget_kind": "Soft limit on initial task-specific reads, excluding startup records; never skip a safety-critical dependency to satisfy it.",
+    "expand_only_for": ["a named import or caller needed for the change", "a relevant changed path", "a failing check", "an unresolved acceptance requirement"],
+    "avoid": ["whole-tree listing when a task entry point is known", "reading every task entry point upfront", "re-reading unchanged content already available in the current turn", "restarting completed library pages", "repeated status polling without a concrete reason"],
+    "invalidate": "A changed path invalidates its cached conclusions and affected dependencies, not the entire repository. Re-read touched files before editing; stop on unexpected concurrent changes.",
+    "research_rule": "For an all-documents request, finish all inventory pages and document ranges, but checkpoint each bounded batch instead of rereading completed ranges."
+  },
+  "task_routes": {
+    "reference-research": {
+      "start": ["docs/reference-index.md"],
+      "only_if_implementation_changes": ["base44/shared/astraReferences.ts", "base44/functions/astraReference/entry.ts", "base44/functions/ingestReference/entry.ts"],
+      "focused_check": "node --test tests/astra-references.test.mjs"
+    },
+    "chat-tool-access": {
+      "start": ["base44/functions/astraChat/githubChat.ts", "base44/shared/astraTools.ts"],
+      "only_if_needed": ["base44/shared/astraGithub.ts", "base44/functions/astraChat/entry.ts"],
+      "focused_check": "node --test tests/astra-delivery.test.mjs"
+    },
+    "solana-transactions": {
+      "start": ["src/lib/solana/client.js"],
+      "only_if_needed": ["src/lib/solana/lifecycle.js", "src/lib/solana/budget.js", "src/lib/solana/costs.js"],
+      "evidence_status": "Navigation hints from prior handoff; current behavior and checks must be verified only when this task resumes."
+    },
+    "solana-program": {
+      "start": ["solana/programs/kydos_launchpad/src/lib.rs", "solana/programs/kydos_launchpad/Cargo.toml"],
+      "evidence_status": "Read program and direct dependencies only for a program task; do not repeat program review for documentation work."
+    }
+  },
+  "unfinished_work": [
+    {
+      "id": "library-and-build-spec",
+      "status": "partial-not-active-in-this-milestone",
+      "completed_evidence": {
+        "retrieval_implementation_delivery_sha": "f900d6d296a94e67b40894b381bfaaf80dc45f1e",
+        "reference_tests_commit": "0a94da3e33b815f405988f490e89728666de8240",
+        "ci_wiring_commit": "cea16c134d763fea12ca9c2be5d2501d25a21d07",
+        "partial_index_commit": "e683d20589587aa2601828bf519b162189a80265"
+      },
+      "next_action": "Use the now-exposed paginated library tools; inventory from offset 0 because no trustworthy prior cursor exists. Read docs/reference-index.md once to reuse existing findings. Verify docs/launchpad-build-spec.md exists before treating its link as a completed artifact.",
+      "inventory": {"status": "not-completely-enumerated", "next_offset": 0, "complete": false},
+      "documents": [],
+      "document_cursor_shape": {"id_or_resolved_url": "required", "content_sha256": "required", "reviewed_ranges": [], "next_offset": 0, "complete": false, "finding_location": "docs/reference-index.md#section"},
+      "cursor_rules": "Store actual tool-returned offsets and hashes only. Pass the prior hash on continuation; restart the affected document on hash mismatch. next_offset=null establishes completion only after all preceding ranges were reviewed. No historical hashes or offsets have been invented. Persist progress after each bounded batch and before handoff."
+    }
+  ],
+  "verification": {
+    "delivery_checks_at_source": [],
+    "tests_executed_in_this_task": [],
+    "limitations": ["No shell or test execution tool", "No branch merge tool", "No deployment or wallet-signing tool", "No live-job or local-working-tree inspection"],
+    "upstream_note": "Comparison from observed main to delivery reports diverged, 3 delivery commits and 2 upstream commits. Do not infer integration or copy main blindly. This milestone does not depend on the upstream-only changes."
+  },
+  "maintenance": "Update this record in place at a bounded work milestone, not after every read. Keep detailed source findings in the reference index, approved design in the build specification, and human handoff in the rolling checkpoint. Remove completed task detail once durable evidence is linked. Final delivery SHA belongs in chat, not a recursive self-SHA commit."
+}
