@@ -1,4 +1,4 @@
-import { compactForModel } from '../../shared/astraOrchestration.ts';
+import { compactForModel } from '../../shared/astraLimits.ts';
 export function nextTurn(rows) { return rows.filter(x => x.role === 'user').length + 1; }
 export function buildHistory(rows) { return rows.filter(x => x.role !== 'activity').map(x => { const value=x.role === 'user' ? `[#${x.turn}] ${x.content}` : x.content; return { role:x.role, content:compactForModel(value,`astra-message:${x.id}`).content }; }); }
 export function buildActivityDigest(rows) { const text = rows.filter(x => x.role === 'activity').map(x => `- ${x.content}${x.detail ? ` (${x.detail})` : ''}`).join('\n'); return text ? `Earlier activity:\n${text.slice(-4000)}` : ''; }

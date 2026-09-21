@@ -40,36 +40,6 @@
         "resolved"
       ],
       "default": "pending"
-    },
-    "messageId": {
-      "type": "string"
-    },
-    "parentIssueId": {
-      "type": "string"
-    },
-    "supersededBy": {
-      "type": "string"
-    },
-    "runId": {
-      "type": "string"
-    },
-    "runStatus": {
-      "type": "string",
-      "enum": [
-        "running",
-        "completed",
-        "failed"
-      ]
-    },
-    "runError": {
-      "type": "string"
-    },
-    "decidedBy": {
-      "type": "string"
-    },
-    "decidedAt": {
-      "type": "string",
-      "format": "date-time"
     }
   },
   "required": [

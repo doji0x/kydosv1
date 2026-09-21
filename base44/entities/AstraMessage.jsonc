@@ -38,21 +38,10 @@
     "repo": {
       "type": "string"
     },
-    "jobId": {
-      "type": "string"
-    },
-    "specialistRole": {
-      "type": "string"
-    },
     "activityType": {
       "type": "string",
       "enum": [
-        "specialist_start",
-        "reasoning",
-        "tool",
-        "report",
-        "specialist_complete",
-        "specialist_failed"
+        "tool"
       ]
     },
     "status": {

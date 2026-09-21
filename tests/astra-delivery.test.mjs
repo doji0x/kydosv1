@@ -84,22 +84,12 @@ test('commit preserves parent tree and surfaces ref conflicts without force or r
   assert.deepEqual(calls.at(-1).body, { sha: 'candidate', force: false });
 });
 
-test('manager and specialists consume the same delivery policy', async () => {
-  for (const path of ['base44/shared/astraCrew.ts', 'base44/functions/astraChat/entry.ts']) {
-    const source = await readFile(new URL(`../${path}`, import.meta.url), 'utf8');
-    assert.match(source, /import \{ ASTRA_DELIVERY_POLICY \} from/);
-    assert.ok(source.includes('${ASTRA_DELIVERY_POLICY}'));
-  }
-  for (const requirement of ['astra/latest', 'checkpoints', 'changed files', 'resulting astra/latest commit SHA', 'Never force', 'interrupt running jobs', 'main-branch', 'blocked delivery']) {
+test('direct chat builder consumes the delivery policy', async () => {
+  const source = await readFile(new URL('../base44/functions/astraChat/entry.ts', import.meta.url), 'utf8');
+  assert.match(source, /import \{ ASTRA_DELIVERY_POLICY \} from/);
+  assert.ok(source.includes('${ASTRA_DELIVERY_POLICY}'));
+  for (const requirement of ['astra/latest', 'changed files', 'delivery SHA', 'Never force', 'blocked delivery']) {
     assert.ok(ASTRA_DELIVERY_POLICY.includes(requirement), requirement);
   }
-});
-
-test('Base44 queued-job trigger still invokes the existing worker contract', async () => {
-  const workflow = JSON.parse(await readFile(new URL('../base44/workflows/Run Astra Specialist.jsonc', import.meta.url), 'utf8'));
-  assert.equal(workflow.trigger.config.entity_name, 'AstraJob');
-  assert.equal(workflow.trigger.condition, '${ .trigger.data.status == "queued" and (.trigger.old_data.status // "") != "queued" }');
-  const call = workflow.definition.do[0].run_specialist;
-  assert.equal(call.with.function_name, 'astraWorker');
-  assert.deepEqual(call.with.args, { jobId: '${ .trigger.entity_id }', runToken: '${ .trigger.data.runToken }' });
+  assert.doesNotMatch(source, /AstraJob|specialist jobs|Builder delegation/);
 });

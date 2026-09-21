@@ -24,6 +24,10 @@ export function documentQuality(content: string): string {
   return /<!doctype\s+html|<html[\s>]|<head[\s>]|<body[\s>]/i.test(content) ? 'html-shell' : content.trim() ? 'readable-unreviewed' : 'empty';
 }
 
+export function htmlToReadableText(html: string): string {
+  return html.replace(/<(script|style|noscript|svg)[^>]*>[\s\S]*?<\/\1>/gi,' ').replace(/<(br|\/p|\/div|\/li|\/h[1-6]|\/tr)>/gi,'\n').replace(/<[^>]+>/g,' ').replace(/&nbsp;/gi,' ').replace(/&amp;/gi,'&').replace(/&lt;/gi,'<').replace(/&gt;/gi,'>').replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'").replace(/[ \t]+/g,' ').replace(/\n\s*\n\s*\n+/g,'\n\n').trim();
+}
+
 export async function boundedText(response: Response): Promise<string> {
   if (Number(response.headers.get('content-length') || 0) > MAX_REFERENCE_BYTES) throw new Error('Document exceeds 1 MB.');
   if (!response.body) throw new Error('Document is empty.');
@@ -54,12 +58,13 @@ export async function fetchPublicDocument(value: string, fetcher = fetch) {
   const url = publicDocumentUrl(value);
   // No arbitrary hosts, auth headers, cookies, redirects, or private signed URLs.
   // Approved domains remain a trust boundary; enforce network egress policy in deployment too.
-  const response = await fetcher(url.toString(), { redirect: 'error', credentials: 'omit', signal: AbortSignal.timeout(15000), headers: { accept: 'text/markdown,text/plain,application/json' } });
+  const response = await fetcher(url.toString(), { redirect: 'error', credentials: 'omit', signal: AbortSignal.timeout(15000), headers: { accept: 'text/html,text/markdown,text/plain,application/json' } });
   if (!response.ok) throw new Error(`Document returned HTTP ${response.status}.`);
   const type = (response.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
-  if (!['text/plain', 'text/markdown', 'text/x-markdown', 'application/json', 'application/octet-stream'].includes(type)) throw new Error('Use raw Markdown, text, source or JSON; HTML pages are not accepted.');
-  const content = await boundedText(response);
-  if (documentQuality(content) !== 'readable-unreviewed') throw new Error('Empty or HTML document; supply the raw source instead.');
+  if (!['text/html', 'text/plain', 'text/markdown', 'text/x-markdown', 'application/json', 'application/octet-stream'].includes(type)) throw new Error('Use an HTML, Markdown, text, source or JSON document.');
+  const rawContent = await boundedText(response);
+  const content = type === 'text/html' || documentQuality(rawContent) === 'html-shell' ? htmlToReadableText(rawContent) : rawContent;
+  if (documentQuality(content) !== 'readable-unreviewed') throw new Error('Document has no readable text.');
   const parts = url.pathname.split('/');
   return { content, source_url: value, resolved_url: url.toString(), publisher: url.hostname === 'raw.githubusercontent.com' ? `${parts[1]}/${parts[2]}` : url.hostname, source_version: url.hostname === 'raw.githubusercontent.com' ? parts[3] : 'unversioned', retrieved_at: new Date().toISOString(), content_sha256: await contentHash(content), content_type: type, quality: 'readable-unreviewed', license: 'unverified' };
 }
