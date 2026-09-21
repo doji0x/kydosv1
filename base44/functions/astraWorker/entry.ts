@@ -15,6 +15,7 @@ export default async function(req:Request):Promise<Response>{const base44=create
  try{
   job=await base44.asServiceRole.entities.AstraJob.get(String(input.jobId||'')).catch(()=>null);if(!job)return Response.json({error:'Job not found.'},{status:404});
   const user=await base44.auth.me().catch(()=>null);const tokenAuthorized=String(input.runToken||'')===job.runToken;if(user?.role!=='admin'&&!tokenAuthorized){console.warn('astra worker authorization rejected',{jobId:job.jobUid||job.id});return Response.json({error:'Forbidden.',workerVersion:ASTRA_WORKER_VERSION},{status:403});}
+  if(job.role==='builder')return Response.json({ok:false,status:'disabled',error:'Builder has been retired. Request implementation directly in Astra chat.',workerVersion:ASTRA_WORKER_VERSION},{status:410});
   console.info('astra worker authorized',{jobId:job.jobUid||job.id,status:job.status,via:user?.role==='admin'?'admin':'runToken',workerVersion:ASTRA_WORKER_VERSION});
   if(input.dispatchOnly===true){if(job.status!=='queued')return Response.json({ok:true,status:job.status||'unknown',workerVersion:ASTRA_WORKER_VERSION});dispatchQueued(base44,job);return Response.json({ok:true,status:'dispatch_requested',jobId:job.jobUid,workerVersion:ASTRA_WORKER_VERSION},{status:202});}
   if(job.status!=='queued')return Response.json({ok:true,status:job.status||'unknown',workerVersion:ASTRA_WORKER_VERSION});
