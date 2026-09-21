@@ -89,19 +89,3 @@
     ]}}
   ]
 }
-    ], "args": [{"name":"name","type":"string"},{"name":"symbol","type":"string"},{"name":"metadata_uri","type":"string"}] },
-    { "name": "buy", "discriminator": [102,6,61,18,1,218,235,234], "accounts": [
-      {"name":"trader","writable":true,"signer":true}, {"name":"curve","writable":true}, {"name":"mint"}, {"name":"vault","writable":true}, {"name":"trader_tokens","writable":true}, {"name":"token_program"}, {"name":"system_program"}
-    ], "args": [{"name":"sol_in","type":"u64"},{"name":"min_tokens_out","type":"u64"}] },
-    { "name": "sell", "discriminator": [51,230,133,164,1,127,131,173], "accounts": [
-      {"name":"trader","writable":true,"signer":true}, {"name":"curve","writable":true}, {"name":"mint"}, {"name":"vault","writable":true}, {"name":"trader_tokens","writable":true}, {"name":"token_program"}, {"name":"system_program"}
-    ], "args": [{"name":"tokens_in","type":"u64"},{"name":"min_sol_out","type":"u64"}] }
-  ],
-  "types": [{"name":"Curve","type":{"kind":"struct","fields":[
-    {"name":"creator","type":"pubkey"}, {"name":"mint","type":"pubkey"},
-    {"name":"bump","type":"u8"}, {"name":"decimals","type":"u8"},
-    {"name":"name","type":"string"}, {"name":"symbol","type":"string"}, {"name":"metadata_uri","type":"string"},
-    {"name":"total_supply","type":"u64"}, {"name":"token_reserve","type":"u64"},
-    {"name":"real_sol_reserve","type":"u64"}, {"name":"graduation_target","type":"u64"}, {"name":"graduated","type":"bool"}
-  ]}}]
-}
