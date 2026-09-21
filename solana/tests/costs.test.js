@@ -4,7 +4,7 @@ import { Buffer } from 'buffer';
 import { Keypair } from '@solana/web3.js';
 import { ACCOUNT_SIZE, MINT_SIZE, TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from '@solana/spl-token';
 import { estimateTransactionCosts } from '../../src/lib/solana/costs.js';
-import { buildCreateTransaction, buildTradeTransaction, CURVE_SPACE, sendTransaction } from '../../src/lib/solana/client.js';
+import { buildCreateTransaction, buildTradeTransaction, CURVE_SPACE, METADATA_SPACE, sendTransaction } from '../../src/lib/solana/client.js';
 import { quoteTrade } from '../../src/lib/solana/market.js';
 import { encodeSignature } from '../../src/lib/solana/transactions.js';
 
@@ -13,7 +13,7 @@ const wallet = { publicKey: payer.publicKey };
 const launch = { wallet, name: 'Test', symbol: 'T', metadataUri: 'https://example.com/token.json' };
 const tradeArgs = { wallet, mint, side: 'buy', amount: 100n, minOut: 1n };
 const rentFor = size => size * 10;
-const createRequired = 10000 + rentFor(MINT_SIZE) + rentFor(CURVE_SPACE) + rentFor(ACCOUNT_SIZE);
+const createRequired = 10000 + rentFor(MINT_SIZE) + rentFor(CURVE_SPACE) + rentFor(ACCOUNT_SIZE) + rentFor(METADATA_SPACE);
 
 function tokenInfo(tokens = 100n) {
   const data = Buffer.alloc(ACCOUNT_SIZE);
@@ -59,8 +59,8 @@ const activity = { execute: async (_scope, _metadata, run) => run(() => {}) };
 
 const tradeContext = args => ({ operation: args.side, mint: args.mint.toBase58(), amount: args.amount.toString(), minOut: args.minOut.toString() });
 async function estimateCreate(args) {
-  const { transaction, metadata } = buildCreateTransaction(args);
-  return estimateTransactionCosts({ connection: args.connection, transaction, payer: args.wallet.publicKey, context: { ...metadata, curveSpace: CURVE_SPACE } });
+  const { transaction, metadata } = await buildCreateTransaction(args);
+  return estimateTransactionCosts({ connection: args.connection, transaction, payer: args.wallet.publicKey, context: { ...metadata, curveSpace: CURVE_SPACE, metadataSpace: METADATA_SPACE } });
 }
 async function estimateTrade(args) {
   return estimateTransactionCosts({ connection: args.connection, transaction: await buildTradeTransaction(args), payer: args.wallet.publicKey, context: tradeContext(args) });
@@ -72,7 +72,7 @@ test('create estimates actual two-signature message and mint, curve, vault rent'
   assert.deepEqual(result, { inputLamports: 0n, networkFeeLamports: 10000n,
     rentLamports: BigInt(createRequired - 10000), requiredLamports: BigInt(createRequired),
     balanceLamports: BigInt(createRequired), shortfallLamports: 0n, sufficient: true });
-  assert.deepEqual(calls.rents, [MINT_SIZE, CURVE_SPACE, ACCOUNT_SIZE]);
+  assert.deepEqual(calls.rents, [MINT_SIZE, CURVE_SPACE, ACCOUNT_SIZE, METADATA_SPACE]);
   assert.equal(calls.fees[0].header.numRequiredSignatures, 2);
   assert.ok(calls.fees[0].accountKeys[0].equals(payer.publicKey));
   assert.equal(calls.blockhashes, 1);
@@ -141,7 +141,7 @@ test('null fees, invalid numeric RPC values and RPC failures never produce estim
 });
 
 test('submission checks refreshed actual transaction before signer/broadcast; exact balance succeeds', async () => {
-  const built = buildCreateTransaction(launch);
+  const built = await buildCreateTransaction({ ...launch, connection: rpc().connection });
   let signed = 0, feeMessage;
   const { connection, calls } = rpc({
     getBalance: async () => createRequired,
@@ -165,7 +165,7 @@ test('failed submission costs never invoke signer or broadcast, including absent
     { getMinimumBalanceForRentExemption: async () => { throw new Error('RPC offline'); } },
   ];
   for (const overrides of cases) {
-    const built = buildCreateTransaction(launch), { connection, calls } = rpc(overrides);
+    const { connection, calls } = rpc(overrides), built = await buildCreateTransaction({ ...launch, connection });
     let signed = 0;
     await assert.rejects(sendTransaction(connection, { ...wallet, signTransaction: async () => { signed++; } },
       built.transaction, [built.mint], built.metadata, activity));

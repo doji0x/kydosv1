@@ -38,9 +38,12 @@ fn maximum_existing_string_fields_fit_the_allocated_curve_account() {
     // Fixture values exercise serialization only; they are not token policies.
     let curve = Curve {
         creator: Pubkey::new_unique(), mint: Pubkey::new_unique(), bump: 255,
-        decimals: 0, name: "n".repeat(32), symbol: "s".repeat(10),
-        metadata_uri: "u".repeat(200), total_supply: 0, token_reserve: 0,
-        real_sol_reserve: 0, graduation_target: 0, graduated: false,
+        decimals: 6, name: "n".repeat(32), symbol: "s".repeat(10),
+        metadata_uri: "u".repeat(200), total_supply: 0,
+        curve_token_allocation: 0, liquidity_token_allocation: 0,
+        virtual_token_reserves: 0, virtual_sol_reserves: 0,
+        real_token_reserves: 0, real_sol_reserves: 0,
+        graduation_target: 0, graduated: false,
     };
     let mut bytes = Vec::new();
     curve.try_serialize(&mut bytes).unwrap();

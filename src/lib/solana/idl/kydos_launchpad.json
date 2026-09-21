@@ -1,9 +1,94 @@
 {
   "address": "Fg6PaFpoGXkYsidMpWxTWqkZqvFmR6UJA4R9C3bZ9S2",
-  "metadata": { "name": "kydos_launchpad", "version": "0.1.0", "spec": "0.1.0", "description": "Source-derived development interface, not a generated deployment artifact. Curve account discriminator is SHA256(account:Curve)[0..8], verified by the client. Generate full event/account registry with anchor build before release." },
+  "metadata": {
+    "name": "kydos_launchpad",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Generated Anchor interface for the Kydos launchpad program"
+  },
   "instructions": [
-    { "name": "initialize", "discriminator": [175,175,109,31,13,152,155,237], "accounts": [
-      {"name":"creator","writable":true,"signer":true}, {"name":"mint","writable":true,"signer":true}, {"name":"curve","writable":true}, {"name":"vault","writable":true}, {"name":"token_program"}, {"name":"system_program"}, {"name":"rent"}
+    {
+      "name": "initialize",
+      "discriminator": [175, 175, 109, 31, 13, 152, 155, 237],
+      "accounts": [
+        {"name": "creator", "writable": true, "signer": true},
+        {"name": "mint", "writable": true, "signer": true},
+        {"name": "curve", "writable": true, "pda": {"seeds": [{"kind": "const", "value": [99,117,114,118,101]}, {"kind": "account", "path": "mint"}]}},
+        {"name": "vault", "writable": true, "pda": {"seeds": [{"kind": "const", "value": [118,97,117,108,116]}, {"kind": "account", "path": "mint"}]}},
+        {"name": "metadata", "writable": true},
+        {"name": "metadataProgram", "address": "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"},
+        {"name": "tokenProgram", "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"},
+        {"name": "systemProgram", "address": "11111111111111111111111111111111"},
+        {"name": "rent", "address": "SysvarRent111111111111111111111111111111111"}
+      ],
+      "args": [
+        {"name": "name", "type": "string"},
+        {"name": "symbol", "type": "string"},
+        {"name": "metadataUri", "type": "string"}
+      ]
+    },
+    {
+      "name": "buy",
+      "discriminator": [102, 6, 61, 18, 1, 218, 235, 234],
+      "accounts": [
+        {"name": "trader", "writable": true, "signer": true},
+        {"name": "curve", "writable": true},
+        {"name": "mint"},
+        {"name": "vault", "writable": true},
+        {"name": "traderTokens", "writable": true},
+        {"name": "tokenProgram", "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"},
+        {"name": "systemProgram", "address": "11111111111111111111111111111111"}
+      ],
+      "args": [{"name": "solIn", "type": "u64"}, {"name": "minTokensOut", "type": "u64"}]
+    },
+    {
+      "name": "sell",
+      "discriminator": [51, 230, 133, 164, 1, 127, 131, 173],
+      "accounts": [
+        {"name": "trader", "writable": true, "signer": true},
+        {"name": "curve", "writable": true},
+        {"name": "mint"},
+        {"name": "vault", "writable": true},
+        {"name": "traderTokens", "writable": true},
+        {"name": "tokenProgram", "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"},
+        {"name": "systemProgram", "address": "11111111111111111111111111111111"}
+      ],
+      "args": [{"name": "tokensIn", "type": "u64"}, {"name": "minSolOut", "type": "u64"}]
+    }
+  ],
+  "accounts": [{"name": "curve", "discriminator": [191, 180, 249, 66, 180, 71, 51, 182]}],
+  "errors": [
+    {"code": 6000, "name": "zeroAmount", "msg": "Amount must be positive"},
+    {"code": 6001, "name": "slippage", "msg": "Slippage exceeded"},
+    {"code": 6002, "name": "mathOverflow", "msg": "Arithmetic overflow"},
+    {"code": 6003, "name": "graduated", "msg": "Curve graduated"},
+    {"code": 6004, "name": "liquidity", "msg": "Insufficient liquidity"},
+    {"code": 6005, "name": "nameTooLong", "msg": "Name too long"},
+    {"code": 6006, "name": "symbolTooLong", "msg": "Symbol too long"},
+    {"code": 6007, "name": "uriTooLong", "msg": "URI too long"},
+    {"code": 6008, "name": "invalidCurve", "msg": "Invalid curve configuration"}
+  ],
+  "types": [
+    {"name": "curve", "type": {"kind": "struct", "fields": [
+      {"name": "creator", "type": "pubkey"},
+      {"name": "mint", "type": "pubkey"},
+      {"name": "bump", "type": "u8"},
+      {"name": "decimals", "type": "u8"},
+      {"name": "name", "type": "string"},
+      {"name": "symbol", "type": "string"},
+      {"name": "metadataUri", "type": "string"},
+      {"name": "totalSupply", "type": "u64"},
+      {"name": "curveTokenAllocation", "type": "u64"},
+      {"name": "liquidityTokenAllocation", "type": "u64"},
+      {"name": "virtualTokenReserves", "type": "u64"},
+      {"name": "virtualSolReserves", "type": "u64"},
+      {"name": "realTokenReserves", "type": "u64"},
+      {"name": "realSolReserves", "type": "u64"},
+      {"name": "graduationTarget", "type": "u64"},
+      {"name": "graduated", "type": "bool"}
+    ]}}
+  ]
+}
     ], "args": [{"name":"name","type":"string"},{"name":"symbol","type":"string"},{"name":"metadata_uri","type":"string"}] },
     { "name": "buy", "discriminator": [102,6,61,18,1,218,235,234], "accounts": [
       {"name":"trader","writable":true,"signer":true}, {"name":"curve","writable":true}, {"name":"mint"}, {"name":"vault","writable":true}, {"name":"trader_tokens","writable":true}, {"name":"token_program"}, {"name":"system_program"}

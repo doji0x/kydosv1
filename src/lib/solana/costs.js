@@ -26,7 +26,8 @@ export async function estimateTransactionCosts({ connection, transaction, payer,
   let rentLamports = 0n;
   if (context.operation === 'create') {
     if (!Number.isSafeInteger(context.curveSpace) || context.curveSpace <= 0) throw new Error('Curve account size required');
-    rentLamports = await rent(MINT_SIZE) + await rent(context.curveSpace) + await rent(ACCOUNT_SIZE);
+    if (!Number.isSafeInteger(context.metadataSpace) || context.metadataSpace <= 0) throw new Error('Metadata account size required');
+    rentLamports = await rent(MINT_SIZE) + await rent(context.curveSpace) + await rent(ACCOUNT_SIZE) + await rent(context.metadataSpace);
   } else {
     const ata = await getAssociatedTokenAddress(mint, owner);
     const info = await connection.getAccountInfo(ata, 'confirmed');
