@@ -7,8 +7,8 @@ const chatTools=[...repositoryToolSchemas.filter(tool=>['listRepoTree','readFile
 const repo='doji0x/kydosv1';
 export async function runManagerWithGithub({apiKey,model,messages,responseFormat,githubToken,base44,headSha,log}){
  const history=[...messages],readPaths=new Set(),started=Date.now();let expectedHead=headSha;
- for(let step=0;step<100;step++){
-  if(Date.now()-started>240000)return {content:JSON.stringify({reply:'This chat turn reached its time limit. Completed operations are recorded above; ask me to continue the remaining work.'})};
+ for(let step=0;step<250;step++){
+  if(Date.now()-started>285000)return {content:JSON.stringify({reply:'This chat turn reached its time limit. Completed operations are recorded above; ask me to continue the remaining work.'})};
   const message=await callOpenAi({apiKey,model,messages:history,tools:chatTools,responseFormat});history.push(message);
   if(!message.tool_calls?.length)return message;
   for(const call of message.tool_calls){
