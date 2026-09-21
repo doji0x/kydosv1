@@ -1,0 +1,84 @@
+// Mirrors the checked-in lib.rs, NOT approved production economics.
+export const U64_MAX = (1n << 64n) - 1n;
+const VIRTUAL_SOL = 21_250_000_000n;
+const TARGET = 85_000_000_000n;
+const LP_TOKENS = 200_000_000_000_000n;
+
+export function rawAmount(value, label = 'Amount') {
+  if (typeof value !== 'bigint' && !(typeof value === 'string' && /^\d+$/.test(value))) {
+    throw new Error(`${label} must be an integer string or bigint`);
+  }
+  const amount = BigInt(value);
+  if (amount < 0n || amount > U64_MAX) throw new Error(`${label} is outside u64 range`);
+  return amount;
+}
+
+export function parseAmount(value, decimals) {
+  if (!Number.isInteger(decimals) || decimals < 0 || decimals > 9) throw new Error('Invalid decimals');
+  if (typeof value !== 'string' || !/^\d+(\.\d+)?$/.test(value)) throw new Error('Enter a decimal amount without exponents');
+  const [whole, fraction = ''] = value.split('.');
+  if (fraction.length > decimals) throw new Error(`Use at most ${decimals} decimal places`);
+  return rawAmount(whole + fraction.padEnd(decimals, '0'));
+}
+
+export function formatAmount(value, decimals) {
+  const text = rawAmount(value).toString().padStart(decimals + 1, '0');
+  if (!decimals) return text;
+  const fraction = text.slice(-decimals).replace(/0+$/, '');
+  return text.slice(0, -decimals) + (fraction ? `.${fraction}` : '');
+}
+
+export function validateLaunch({ name, symbol, metadataUri }) {
+  for (const [label, value, max] of [['Name', name, 32], ['Symbol', symbol, 10], ['Metadata URI', metadataUri, 200]]) {
+    if (typeof value !== 'string' || !value.trim()) throw new Error(`${label} is required`);
+    if (new TextEncoder().encode(value).length > max) throw new Error(`${label} exceeds ${max} UTF-8 bytes`);
+  }
+  let uri;
+  try { uri = new URL(metadataUri); } catch { throw new Error('Use a hosted metadata URI'); }
+  if (!['https:', 'ipfs:', 'ar:'].includes(uri.protocol) || uri.username || uri.password) {
+    throw new Error('Use HTTPS, IPFS or Arweave metadata without credentials');
+  }
+}
+
+export function quoteTrade(market, side, amount, slippageBps) {
+  if (!['buy', 'sell'].includes(side)) throw new Error('Choose buy or sell');
+  const input = rawAmount(amount);
+  if (input === 0n) throw new Error('Amount must be positive');
+  if (!Number.isInteger(slippageBps) || slippageBps < 0 || slippageBps >= 10000) {
+    throw new Error('Slippage must be an integer from 0 to 9999 basis points');
+  }
+  const sol = rawAmount(market.realSolReserve);
+  const tokens = rawAmount(market.tokenReserve);
+  if (market.decimals !== 6 || rawAmount(market.graduationTarget) !== TARGET || typeof market.graduated !== 'boolean') {
+    throw new Error('Unsupported market contract');
+  }
+  if (!market.graduated && sol >= TARGET) throw new Error('Invalid ungraduated reserves');
+  const acceptedInput = side === 'buy' && !market.graduated && input > TARGET - sol ? TARGET - sol : input;
+  const x = sol + (market.graduated ? 0n : VIRTUAL_SOL);
+  let output;
+  if (side === 'buy') {
+    output = !market.graduated && sol + acceptedInput === TARGET
+      ? tokens - LP_TOKENS
+      : tokens - (x * tokens / (x + acceptedInput));
+    rawAmount(sol + acceptedInput, 'Resulting SOL reserve');
+  } else {
+    output = x - (x * tokens / (tokens + input));
+    rawAmount(tokens + input, 'Resulting token reserve');
+    if (output > sol) throw new Error('Insufficient real SOL liquidity');
+  }
+  rawAmount(output, 'Output');
+  if (output === 0n) throw new Error('Amount produces no output');
+  // Round the minimum UP: never allow more loss than the selected tolerance.
+  const minOut = (output * BigInt(10000 - slippageBps) + 9999n) / 10000n;
+  return Object.freeze({ side, input, acceptedInput, output, minOut,
+    willGraduate: !market.graduated && side === 'buy' && sol + acceptedInput === TARGET });
+}
+
+export function transactionError(error) {
+  if (error?.signature) return `Transaction ${error.signature}: ${error.message}`;
+  if (error?.code === 4001 || /reject/i.test(error?.message || '')) return 'Wallet request rejected. Nothing was submitted by this action.';
+  const messages = ['Amount must be positive', 'Slippage exceeded; refresh the quote', 'Arithmetic overflow', 'Curve cannot accept this buy', 'Insufficient liquidity', 'Name too long', 'Symbol too long', 'Metadata URI too long'];
+  const match = /custom program error: 0x([0-9a-f]+)/i.exec(error?.message || '');
+  const code = error?.error?.errorCode?.number ?? (match ? parseInt(match[1], 16) : undefined);
+  return messages[code - 6000] || error?.message || 'Transaction failed';
+}
