@@ -1,0 +1,7 @@
+import React from 'react';
+import { Rocket } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card,CardContent,CardDescription,CardHeader,CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+
+export default function AdminLaunchForm({form,setForm,busy,onSubmit}){const set=key=>event=>setForm({...form,[key]:event.target.value});return <Card className="border-primary/20 bg-card/80"><CardHeader><CardTitle>Token details</CardTitle><CardDescription>The protected server wallet will sign and fund this mainnet transaction.</CardDescription></CardHeader><CardContent><form className="space-y-4" onSubmit={onSubmit}><label className="space-y-2 text-sm font-medium">Name<Input required maxLength={32} value={form.name} disabled={busy} onChange={set('name')} placeholder="Kydos Test Coin"/></label><label className="space-y-2 text-sm font-medium">Ticker<Input required maxLength={10} value={form.symbol} disabled={busy} onChange={set('symbol')} className="uppercase" placeholder="KYTEST"/></label><label className="space-y-2 text-sm font-medium">Metadata URI<Input required value={form.metadataUri} disabled={busy} onChange={set('metadataUri')} placeholder="https://…/metadata.json"/></label><Button className="w-full gold-glow" disabled={busy} type="submit"><Rocket className="h-4 w-4"/>{busy?'Creating on mainnet…':'Create token on mainnet'}</Button></form></CardContent></Card>}
