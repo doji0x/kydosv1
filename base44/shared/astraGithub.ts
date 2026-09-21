@@ -12,6 +12,16 @@ export function parseRepo(value) {
   if (!match) throw new Error('Use owner/repo form.'); return { owner: match[1], repo: match[2] };
 }
 async function defaultBranch(token, repoRef) { const { owner, repo } = parseRepo(repoRef); return (await github(token, `/repos/${owner}/${repo}`)).default_branch; }
+export async function inspectRepoState(token, repoRef, branch = ASTRA_WORKING_BRANCH) {
+  const { owner, repo } = parseRepo(repoRef); const base = await defaultBranch(token, repoRef);
+  await createBranch(token, repoRef, branch);
+  const [baseRef, headRef, comparison] = await Promise.all([
+    github(token, `/repos/${owner}/${repo}/git/ref/heads/${encodeURIComponent(base)}`),
+    github(token, `/repos/${owner}/${repo}/git/ref/heads/${encodeURIComponent(branch)}`),
+    github(token, `/repos/${owner}/${repo}/compare/${encodeURIComponent(base)}...${encodeURIComponent(branch)}`).catch(() => ({ files: [] }))
+  ]);
+  return { branch, baseCommitSha: baseRef.object.sha, headSha: headRef.object.sha, changedFiles: (comparison.files || []).slice(0, 100).map(file => file.filename) };
+}
 export async function listRepoTree(token, repoRef, branch) {
   const { owner, repo } = parseRepo(repoRef); const ref = branch || await defaultBranch(token, repoRef);
   const tree = await github(token, `/repos/${owner}/${repo}/git/trees/${encodeURIComponent(ref)}?recursive=1`);
@@ -34,14 +44,25 @@ export async function createBranch(token, repoRef, branch = ASTRA_WORKING_BRANCH
   try {
     await github(token, `/repos/${owner}/${repo}/git/refs`, { method: 'POST', body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: ref.object.sha }) });
   } catch (error) {
-    // A concurrent specialist may have created it. Never reset or retry a write.
     if (error.status !== 422) throw error;
     const concurrent = await github(token, refPath);
     return { branch, created: false, base, commit: concurrent.object.sha };
   }
   return { branch, created: true, base, commit: ref.object.sha };
 }
-// Fail closed for legacy callers as well as removing the model-visible tool.
+export async function getBranchChecks(token, repoRef, branch = ASTRA_WORKING_BRANCH) {
+  const { owner, repo } = parseRepo(repoRef); const ref = await github(token, `/repos/${owner}/${repo}/git/ref/heads/${encodeURIComponent(branch)}`); const headSha = ref.object.sha;
+  const data = await github(token, `/repos/${owner}/${repo}/commits/${headSha}/check-runs?per_page=100`);
+  return { branch, headSha, checks: (data.check_runs || []).map(x => ({ name: x.name, status: x.status, conclusion: x.conclusion || '' })) };
+}
+export async function mergeTaskBranch(token, repoRef, sourceBranch) {
+  const { owner, repo } = parseRepo(repoRef); const source = String(sourceBranch || '').trim();
+  if (!source || source === ASTRA_WORKING_BRANCH || source === 'main' || source === 'master') throw new Error('Provide a separate task branch to integrate.');
+  const status = await getBranchChecks(token, repoRef, source); const passed = status.checks.length > 0 && status.checks.every(x => x.status === 'completed' && ['success', 'neutral', 'skipped'].includes(x.conclusion));
+  if (!passed) throw new Error('Task branch integration is blocked until its required checks pass.');
+  const result = await github(token, `/repos/${owner}/${repo}/merges`, { method: 'POST', body: JSON.stringify({ base: ASTRA_WORKING_BRANCH, head: source, commit_message: `Integrate ${source} into ${ASTRA_WORKING_BRANCH}` }) });
+  return { merged: !!result.merged, commit: result.sha || '', message: result.message || '', sourceBranch: source, targetBranch: ASTRA_WORKING_BRANCH, checks: status.checks };
+}
 export async function resetWorkingBranch() {
   throw new Error(`Reset disabled: preserve shared delivery branch ${ASTRA_WORKING_BRANCH}.`);
 }

@@ -1,3 +1,9 @@
 import { useEffect,useState } from 'react';
 import { base44 } from '@/api/base44Client';
-export default function useAstraJobLog(){const [jobs,setJobs]=useState([]),[loading,setLoading]=useState(true);useEffect(()=>{base44.entities.AstraMessage.filter({role:'activity',toolName:'assignJob'},'-created_date',200).then(rows=>{setJobs(rows.map(row=>({id:row.id,conversationId:row.conversationId,at:row.created_date,durationMs:row.durationMs,role:row.content.replace(/^Assigning to /,'').split(':')[0],job:row.content.split(':').slice(1).join(':').trim(),detail:row.detail,failed:row.content.includes('failed')})));setLoading(false)})},[]);return{jobs,loading};}
+const staleMs=15*60*1000;
+export function visibleState(job){if(!job?.status)return'unknown';if(job.status==='running'&&Date.now()-new Date(job.heartbeatAt||job.startedAt||0).getTime()>staleMs)return'unknown';if(job.status==='completed'&&!job.resultRecordedAt)return'unknown';return job.status;}
+export default function useAstraJobLog(){
+ const [jobs,setJobs]=useState([]),[loading,setLoading]=useState(true);
+ useEffect(()=>{const load=()=>base44.entities.AstraJob.list('-created_date',200).then(rows=>{setJobs(rows.map(job=>({...job,visibleState:visibleState(job)})));setLoading(false)});load();const off=base44.entities.AstraJob.subscribe(load);return off},[]);
+ return{jobs,loading};
+}

@@ -19,14 +19,16 @@ function responsesTools(tools = []) {
   return tools.map(tool => ({ type: 'function', name: tool.function.name, description: tool.function.description, parameters: tool.function.parameters }));
 }
 export async function callOpenAi({ apiKey, model, messages, tools, responseFormat }) {
+  const payload = { model, input: responsesInput(messages), ...(tools?.length ? { tools: responsesTools(tools), tool_choice: 'auto', parallel_tool_calls: false } : {}), ...(responseFormat ? { text: { format: responseFormat } } : {}) };
+  const body = JSON.stringify(payload);
+  if (body.length > 800000) throw new Error('Astra model payload exceeds the 800,000-character safety limit; continue from a compact checkpoint.');
   for (let attempt = 0; ; attempt++) {
     const response = await fetch('https://api.openai.com/v1/responses', {
-      method: 'POST', headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' },
-      body: JSON.stringify({ model, input: responsesInput(messages), ...(tools?.length ? { tools: responsesTools(tools), tool_choice: 'auto', parallel_tool_calls: false } : {}), ...(responseFormat ? { text: { format: responseFormat } } : {}) })
+      method: 'POST', headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' }, body
     });
     if (response.ok) return normalizeResponse(await response.json());
-    const body = await response.json().catch(() => ({}));
-    const detail = body.error?.message || `OpenAI ${response.status}`;
+    const errorBody = await response.json().catch(() => ({}));
+    const detail = errorBody.error?.message || `OpenAI ${response.status}`;
     if (response.status !== 429 || attempt >= maxAttempts - 1) throw new Error(detail);
     const retryAfterSeconds = Number(response.headers.get('retry-after'));
     const retryAfterMs = Number.isFinite(retryAfterSeconds) && retryAfterSeconds >= 0 ? retryAfterSeconds * 1000 : 0;

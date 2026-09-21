@@ -1,12 +1,8 @@
-export const CrewRoleID=['architect','logic','functions','integration','documentation','audit'] as const;
+export const CrewRoleID=['builder','audit'] as const;
 export type CrewRoleID=(typeof CrewRoleID)[number];
 export const CrewRoles=[
- {id:'architect',title:'ARCHITECT',brief:'Map structure and return a concrete file-by-file plan.',writes:false,reviewRequired:false,approvalRequired:true,maySelfApprove:false},
- {id:'logic',title:'LOGIC / MATH ENGINEER',brief:'Implement algorithms, state transitions, and edge cases.',writes:true,reviewRequired:true,approvalRequired:true,maySelfApprove:false},
- {id:'functions',title:'FUNCTIONS ENGINEER',brief:'Implement backend handlers, validation, auth, and response contracts.',writes:true,reviewRequired:true,approvalRequired:true,maySelfApprove:false},
- {id:'integration',title:'INTEGRATION ENGINEER',brief:'Wire modules together and ensure imports and contracts agree.',writes:true,reviewRequired:true,approvalRequired:true,maySelfApprove:false},
- {id:'documentation',title:'DOCUMENTATION ENGINEER',brief:'Document exactly what shipped and how to use it.',writes:true,reviewRequired:true,approvalRequired:true,maySelfApprove:false},
- {id:'audit',title:'AUDIT / SECURITY',brief:'Review security, authorization, validation, secrets, and correctness. Never commit.',writes:false,reviewRequired:false,approvalRequired:true,maySelfApprove:false}
+ {id:'builder',title:'BUILDER',brief:'Own the approved milestone end to end: inspect, design, implement, integrate, test, fix, and document the complete solution.',writes:true,reviewRequired:true,approvalRequired:true,maySelfApprove:false},
+ {id:'audit',title:'AUDITOR',brief:'Perform the final read-only review of the completed milestone for security, authorization, validation, secrets, regressions, and correctness. Never commit.',writes:false,reviewRequired:false,approvalRequired:true,maySelfApprove:false}
 ];
 export const crewOrder=[...CrewRoleID];
 export function getCrewRole(role:string){return CrewRoles.find(item=>item.id===role);}
