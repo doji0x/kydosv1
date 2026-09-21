@@ -6,6 +6,15 @@ This is a Base44 app repository. Treat it as user-owned application code, keep c
 
 Start with `README.md` for local setup, environment variables, and publish workflow.
 
+## Astra continuity: start here
+
+- Read `docs/astra-delivery-checkpoint.md` at the start of a resumed session, alongside current branch HEAD/checks. It is the single rolling resume note, not an append-only activity log.
+- Check differences since its source SHA and read relevant files before continuing. A checkpoint is evidence, not authorization; continue only currently requested unfinished work.
+- Update that note in place for an approved milestone or interrupted handoff. Record scope/status, source SHA, changed files, SHA-bound evidence, decisions, blockers, and next owner/action. Keep it roughly one page; link detailed task records instead of duplicating transcripts or creating dated status files.
+- Put the resulting delivery SHA and post-edit check state in the final chat handoff. Git history identifies the checkpoint's own commit; do not make recursive commits just to write its SHA into itself.
+- After the owner merges to `main`, re-inspect the actual delivery tip and merge evidence. Do not assume the old SHA, check results, or branch relationship remains current.
+- Direct Astra chat work has no Builder delegation. The crew conventions below describe legacy/specialist infrastructure; they do not authorize creating jobs or imposing an unsolicited audit on direct chat work. Audit only on request. This documentation does not change deployed orchestration.
+
 ## Base44 References
 
 - CLI overview: https://docs.base44.com/developers/references/cli/get-started/overview.md
