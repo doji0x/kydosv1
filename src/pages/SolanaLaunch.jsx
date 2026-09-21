@@ -1,5 +1,4 @@
 import React, { useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useSolanaWallet } from '@/lib/SolanaWalletContext';
@@ -36,7 +35,6 @@ export default function SolanaLaunch() {
     } finally { lock.current = false; setBusy(false); }
   };
   return <main className="mx-auto max-w-xl px-4 py-8 pb-24 space-y-5">
-    <Link to="/launch" className="text-xs text-muted-foreground">Robinhood launch</Link>
     <h1 className="text-3xl font-semibold">Launch on Solana</h1>
     <p className="text-sm text-muted-foreground">Local development against the existing program, not approved economics or production readiness. Loopback RPC only; disposable test funds only. Existing hosted metadata URI required. This does not deploy a program or implement external migration.</p>
     {rpc.error && <p role="alert">{rpc.error}</p>}
