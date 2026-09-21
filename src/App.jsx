@@ -27,6 +27,7 @@ import ResetPassword from '@/pages/ResetPassword';
 import OAuthConsent from '@/pages/OAuthConsent';
 import AdminAstra from '@/pages/AdminAstra';
 import SolanaLaunch from '@/pages/SolanaLaunch';
+import SolanaMarket from '@/pages/SolanaMarket';
 import { SolanaWalletProvider } from '@/lib/SolanaWalletContext';
 
 const AuthenticatedApp = () => {
@@ -60,6 +61,7 @@ const AuthenticatedApp = () => {
         <Route path="/" element={<Home />} />
         <Route path="/launch" element={<Launch />} />
         <Route path="/launch/solana" element={<SolanaLaunch />} />
+        <Route path="/solana/:mint" element={<SolanaMarket />} />
         <Route path="/token/:id" element={<TokenDetail />} />
         <Route path="/rh/:address" element={<RhTokenDetail />} />
         <Route path="/forum" element={<Forum />} />
