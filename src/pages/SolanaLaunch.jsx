@@ -1,10 +1,10 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useSolanaWallet } from '@/lib/SolanaWalletContext';
-import { createLaunch } from '@/lib/solana/client';
+import { createLaunch, estimateCreateCosts } from '@/lib/solana/client';
 import { developmentConnection } from '@/lib/solana/development';
-import { transactionError, validateLaunch } from '@/lib/solana/market';
+import { formatAmount, transactionError, validateLaunch } from '@/lib/solana/market';
 import { Activity, useActivity } from '@/lib/solana/Activity';
 
 export default function SolanaLaunch() {
@@ -15,17 +15,35 @@ export default function SolanaLaunch() {
   const [form, setForm] = useState({ name: '', symbol: '', metadataUri: '' });
   const [busy, setBusy] = useState(false);
   const [outcome, setOutcome] = useState(null);
+  const [estimate, setEstimate] = useState(null), [retry, setRetry] = useState(0);
   const lock = useRef(false);
   const set = key => e => setForm(previous => ({ ...previous, [key]: e.target.value }));
   const blocked = busy || activity.blocked || !rpc.connection;
+  let valid = false;
+  try { validateLaunch(form); valid = Boolean(wallet.connected && walletId && rpc.connection); } catch { /* Incomplete form: no RPC estimate. */ }
+  const estimateKey = JSON.stringify([walletId, wallet.connected, form.name, form.symbol, form.metadataUri, retry, busy]);
+  useEffect(() => {
+    let cancelled = false;
+    setEstimate(null);
+    if (valid && !busy) {
+      estimateCreateCosts({ connection: rpc.connection, wallet, ...form }).then(
+        costs => { if (!cancelled) setEstimate({ key: estimateKey, costs }); },
+        error => { if (!cancelled) setEstimate({ key: estimateKey, error: transactionError(error) }); },
+      );
+    }
+    return () => { cancelled = true; };
+  }, [estimateKey, valid, rpc.connection]);
+  // Key comparison hides the previous estimate during render, before effect cleanup.
+  const currentEstimate = estimate?.key === estimateKey ? estimate : null;
+  const costs = currentEstimate?.costs;
   const connect = async () => {
     try { await wallet.connect(); } catch (e) { setOutcome({ wallet: walletId, message: transactionError(e) }); }
   };
   const submit = async e => {
     e.preventDefault();
-    if (lock.current || blocked || !wallet.connected) return;
+    if (lock.current || blocked || !wallet.connected || !costs?.sufficient) return;
     lock.current = true; setBusy(true);
-    setOutcome({ wallet: walletId, message: 'Approve in your wallet. Recovery metadata will be saved before broadcast.' });
+    setOutcome({ wallet: walletId, message: 'Rechecking costs before wallet approval. Recovery metadata will be saved before broadcast.' });
     try {
       validateLaunch(form);
       await createLaunch({ connection: rpc.connection, wallet, ...form });
@@ -44,7 +62,18 @@ export default function SolanaLaunch() {
       <label className="block">Hosted metadata URI (200 UTF-8 bytes maximum)<Input required value={form.metadataUri} disabled={blocked} onChange={set('metadataUri')} placeholder="https://.../metadata.json" /></label>
       {!wallet.connected && <Button type="button" variant="outline" disabled={busy} onClick={connect}>Connect Phantom</Button>}
       {wallet.connected && <p className="break-all text-xs">Wallet: {walletId}</p>}
-      <Button type="submit" disabled={blocked || !wallet.connected}>{busy ? 'Awaiting transaction…' : 'Create development token'}</Button>
+      {valid && !busy && !currentEstimate && <p role="status">Estimating transaction costs…</p>}
+      {currentEstimate?.error && <p role="alert">Cost estimate unavailable: {currentEstimate.error}</p>}
+      {costs && <dl className="text-sm space-y-1">
+        <dt>Estimated network fee</dt><dd>{formatAmount(costs.networkFeeLamports, 9)} SOL</dd>
+        <dt>Account rent (mint, curve and vault)</dt><dd>{formatAmount(costs.rentLamports, 9)} SOL</dd>
+        <dt>Total required</dt><dd>{formatAmount(costs.requiredLamports, 9)} SOL</dd>
+        <dt>Available</dt><dd>{formatAmount(costs.balanceLamports, 9)} SOL</dd>
+        <dt>Shortfall</dt><dd>{formatAmount(costs.shortfallLamports, 9)} SOL</dd>
+      </dl>}
+      <p className="text-xs text-muted-foreground">Confirmed RPC estimates include the message network fee and required account rent. Balances and fees can change; the actual transaction is checked again before signing. No extra SOL buffer is added.</p>
+      <Button type="button" variant="outline" disabled={!valid || busy} onClick={() => setRetry(value => value + 1)}>Refresh cost estimate</Button>
+      <Button type="submit" disabled={blocked || !wallet.connected || !costs?.sufficient}>{busy ? 'Awaiting transaction…' : 'Create development token'}</Button>
     </form>
     {outcome?.wallet === walletId && <p role="status">{outcome.message}</p>}
     <Activity activity={activity} connection={rpc.connection} />
