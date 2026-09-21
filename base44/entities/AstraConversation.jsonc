@@ -1,0 +1,19 @@
+{
+  "name": "AstraConversation",
+  "type": "object",
+  "properties": {
+    "conversationId": { "type": "string" },
+    "title": { "type": "string" },
+    "lastAt": { "type": "string" },
+    "summary": { "type": "string" },
+    "sourceMessageId": { "type": "string" },
+    "deleted": { "type": "boolean", "default": false }
+  },
+  "required": ["conversationId"],
+  "rls": {
+    "read": { "user_condition": { "role": "admin" } },
+    "create": { "user_condition": { "role": "admin" } },
+    "update": { "user_condition": { "role": "admin" } },
+    "delete": { "user_condition": { "role": "admin" } }
+  }
+}
