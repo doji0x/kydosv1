@@ -58,7 +58,8 @@ export async function fetchPublicDocument(value: string, fetcher = fetch) {
   const url = publicDocumentUrl(value);
   // No arbitrary hosts, auth headers, cookies, redirects, or private signed URLs.
   // Approved domains remain a trust boundary; enforce network egress policy in deployment too.
-  const response = await fetcher(url.toString(), { redirect: 'error', credentials: 'omit', signal: AbortSignal.timeout(15000), headers: { accept: 'text/html,text/markdown,text/plain,application/json' } });
+  const response = await fetcher(url.toString(), { redirect: 'manual', credentials: 'omit', signal: AbortSignal.timeout(15000), headers: { accept: 'text/html,text/markdown,text/plain,application/json' } });
+  if (response.status >= 300 && response.status < 400) throw new Error('Document redirects are not accepted.');
   if (!response.ok) throw new Error(`Document returned HTTP ${response.status}.`);
   const type = (response.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
   if (!['text/html', 'text/plain', 'text/markdown', 'text/x-markdown', 'application/json', 'application/octet-stream'].includes(type)) throw new Error('Use an HTML, Markdown, text, source or JSON document.');

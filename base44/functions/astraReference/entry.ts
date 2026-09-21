@@ -63,7 +63,8 @@ export default async function(req: Request): Promise<Response> {
       if (!record) return Response.json({ error: 'Reference not found.' }, { status: 404 });
       const signed = await base44.asServiceRole.integrations.Core.CreateFileSignedUrl({ file_uri: record.file_uri, expires_in: 300 });
       // Only the platform-generated private-storage URL is used here; it is never returned to the model.
-      const fileResponse = await fetch(signed.signed_url, { signal: AbortSignal.timeout(15000), redirect: 'error' });
+      const fileResponse = await fetch(signed.signed_url, { signal: AbortSignal.timeout(15000), redirect: 'manual' });
+      if (fileResponse.status >= 300 && fileResponse.status < 400) throw new Error('Stored reference redirected unexpectedly.');
       if (!fileResponse.ok) throw new Error('Could not read the stored reference.');
       const content = await boundedText(fileResponse), hash = await contentHash(content);
       if ((record.content_sha256 && record.content_sha256 !== hash) || (input.expectedHash && input.expectedHash !== hash)) throw new Error('Reference changed or failed integrity validation; restart the read.');
