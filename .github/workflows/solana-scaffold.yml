@@ -28,6 +28,9 @@ jobs:
       - run: npm install --ignore-scripts --no-audit --no-fund
       - run: npm --prefix solana run check
       - run: npm --prefix solana test
+      - name: Host account validation tests (no validator or deployment)
+        working-directory: solana
+        run: cargo test -p kydos_launchpad --test account_validation
       - working-directory: solana
         run: anchor build
       - uses: actions/upload-artifact@v4
