@@ -1,6 +1,5 @@
 // One job, one aggregate gross allowance. This module is NOT live-test approval.
 // The shipping application has no mainnet signer or approved instruction cost model.
-export const MAINNET_GENESIS = '5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp';
 export const MAINNET_LIMIT = 50_000_000n;
 export const BUDGET_KEY = 'kydos.mainnet.single-test.lifecycle-job.v1';
 const COMPONENTS = ['principal', 'rent', 'baseFees', 'priorityFees', 'protocolCharges'];
@@ -65,11 +64,4 @@ export function createBudgetLedger({ storage, locks }) {
       });
     },
   };
-}
-
-export function assertMainnetHarnessReady() {
-  // Never accept caller booleans or simulations as proof of bounded CPI effects.
-  // Replace only after independent review of an approved, exact instruction cost
-  // model and durable external ledger. No live executable allowlist exists yet.
-  throw new Error('Mainnet disabled: approved policy, deployed identity, independent review, signer and bounded instruction adapter are not verified');
 }

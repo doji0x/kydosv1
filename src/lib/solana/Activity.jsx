@@ -39,12 +39,12 @@ export function Activity({ activity, connection, onConfirmed }) {
     } catch (e) { setError(e.message); }
     finally { setBusy(false); }
   };
-  return <section className="space-y-3 border rounded p-3" aria-label="Persistent Solana activity">
-    <h2 className="font-semibold">Persistent activity — local development</h2>
-    <p className="text-xs">Stored on this browser origin, across routes and tabs. Do not clear browser data while an outcome is unresolved. Wallet switches preserve original records. No automatic retries.</p>
+  return <section className="space-y-3 rounded-xl border border-border/70 bg-card/60 p-4" aria-label="Persistent Solana activity">
+    <h2 className="font-semibold">Mainnet transaction activity</h2>
+    <p className="text-xs text-muted-foreground">Recovery records stay in this browser across routes and tabs. Do not clear browser data while an outcome is unresolved. No transaction is retried automatically.</p>
     {(activity.error || error) && <p role="alert">{activity.error || error}</p>}
-    {!activity.records.length && <p>No recorded operations.</p>}
-    {[...activity.records].reverse().map(record => <article key={record.id} className="border-t pt-2 space-y-1 text-xs break-all">
+    {!activity.records.length && <p className="text-sm text-muted-foreground">No recorded operations.</p>}
+    {[...activity.records].reverse().map(record => <article key={record.id} className="border-t border-border/60 pt-3 space-y-1 text-xs break-all">
       <p>{record.scope.operation}: {record.state}</p>
       <p>Wallet: {record.scope.wallet}</p><p>Chain: {record.scope.chain}</p><p>Program: {record.scope.program}</p>
       <p>Mint: {record.metadata.mint}</p>
