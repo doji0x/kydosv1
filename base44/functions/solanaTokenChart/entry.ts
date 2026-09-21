@@ -20,13 +20,15 @@ export default async function(req: Request): Promise<Response> {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     const input = await req.json();
     const mint = String(input.mint || '').trim();
+    const sinceValue = input.since == null ? null : input.since;
+    const sinceTime = Number(sinceValue);
     const pages = Math.min(5, Math.max(1, Number(input.pages) || 1));
     const apiKey = secrets.get('HELIUS_API_KEY') || secrets.get('HELIUS_PARSE_TRANSACTION_HISTORY_API_KEY');
     if (!apiKey) return Response.json({ error: 'Helius history key is missing' }, { status: 503 });
     let before = input.before ? String(input.before) : undefined;
     let scanned = 0;
     for (let page = 0; page < pages; page++) {
-      const result = await fetchHeliusTradePage({ mint, apiKey, before, limit: 100 });
+      const result = await fetchHeliusTradePage({ mint, apiKey, before, limit: sinceValue ? 50 : 100 });
       scanned += result.scanned;
       const existing = result.signatures.length ? await base44.asServiceRole.entities.SolanaTrade.filter({ mint, signature: { $in: result.signatures } }) : [];
       const bySignature = new Map(existing.map((row: any) => [row.signature, row]));
@@ -43,10 +45,16 @@ export default async function(req: Request): Promise<Response> {
     const rows = await base44.asServiceRole.entities.SolanaTrade.filter({ mint }, '-block_time', 500);
     const validRows = rows.filter((row: any) => row.status === 'confirmed' && row.block_time > 0 && row.sol_amount > 0 && row.token_amount > 0);
     const ordered = [...validRows].sort((a: any, b: any) => a.block_time - b.block_time);
-    const sample = validRows.slice(0, 12).map((row: any) => ({ signature: row.signature, side: row.side,
-      solAmount: row.sol_amount, tokenAmount: row.token_amount, blockTime: row.block_time }));
-    return Response.json({ series: chartSeries(ordered), tradeCount: validRows.length, earliest: ordered[0]?.block_time || null,
-      latest: ordered.at(-1)?.block_time || null, nextBefore: before || null, scanned, sample });
+    let requested = ordered;
+    if (Number.isFinite(sinceTime) && sinceTime > 0) requested = ordered.filter((row: any) => row.block_time >= sinceTime);
+    else if (typeof sinceValue === 'string') {
+      const marker = ordered.find((row: any) => row.signature === sinceValue);
+      if (marker) requested = ordered.filter((row: any) => row.block_time >= marker.block_time);
+    }
+    const trades = requested.map((row: any) => ({ signature: row.signature, blockTime: row.block_time,
+      price: row.sol_amount / row.token_amount, side: row.side, solAmount: row.sol_amount, tokenAmount: row.token_amount }));
+    return Response.json({ trades, tradeCount: validRows.length, earliest: ordered[0]?.block_time || null,
+      latest: ordered.at(-1)?.block_time || null, nextBefore: before || null, scanned });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
