@@ -23,6 +23,9 @@
     "turn": {
       "type": "number"
     },
+    "step": {
+      "type": "number"
+    },
     "toolName": {
       "type": "string"
     },
