@@ -1,7 +1,7 @@
 const maxAttempts = 6;
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 export function resolveModel(value) { return String(value || '').trim() || 'gpt-6-astra'; }
-export function resolveToolsModel(value) { return resolveModel(value); }
+export function resolveToolsModel(value) { return String(value || '').trim() || 'xhigh'; }
 function normalizeResponse(data) {
   const output = data.output || [];
   const content = data.output_text || output.flatMap(item => item.content || []).filter(item => item.type === 'output_text').map(item => item.text || '').join('\n');
