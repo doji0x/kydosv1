@@ -1,34 +1,34 @@
 # Astra continuity checkpoint
 
-This is the single current resume note for Astra. Update it in place after an approved work milestone or before handing off interrupted work; do not append chat transcripts or create another dated status document. Git history preserves previous states. This document records evidence, not permission to resume old requests.
+Single rolling human handoff. Update in place; no transcripts or dated status files. This is evidence, not permission to resume old work. Machine-readable task routes and research cursors live in [astra-work-state.json](astra-work-state.json); source findings belong in [reference-index.md](reference-index.md).
 
-## Resume protocol
+## Minimal resume
 
-1. Read `AGENTS.md`, this checkpoint, and current branch HEAD/checks. Compare changes since the recorded source SHA before trusting old conclusions.
-2. Read only the relevant changed files and linked task evidence. Re-read every file before editing. Stop on unexpected changes or unclear ownership.
-3. Continue only unfinished, currently authorized work. Do not recreate completed changes, dispatch builder jobs, or infer active jobs from old messages.
-4. On handoff, replace the status below with scope/status, source SHA, files, evidence, blockers, and next owner/action. Keep this note roughly one page; link detailed evidence rather than duplicate it.
-5. Report the resulting delivery commit SHA in the final chat handoff. The commit containing the checkpoint is its version identifier; do not create another commit merely to embed its own SHA. After a merge, inspect actual HEAD and the merge diff, not the old branch label.
+1. Check current delivery HEAD/checks; read `AGENTS.md` and this note once. Read work state only when selecting/resuming a task.
+2. Compare against the source SHA below once; separate already-completed changes from unfinished work. After an owner merge, verify upstream evidence rather than assuming branch labels moved.
+3. Pick one outcome and its task route. Start with no more than five task-specific files (soft limit); expand only for a concrete dependency, relevant diff, failing check or acceptance gap. No whole-repository scan.
+4. Read touched files before editing; reuse current-turn content unless changed. Stop on unexpected concurrent edits. Save actual research hashes/offsets after bounded batches, before the turn ends.
+5. Report delivery SHA/checks in chat, not a recursive self-SHA commit. Update this note and work state at useful milestones, not after every read.
 
 ## Current handoff
 
-- **Scope/status:** repository continuity documentation implemented; no runtime, wallet, transaction, or orchestration behavior changed. Owner requested streamlined logging before their merge to `main` (conversation request #23).
-- **Owner/delivery:** Astra acts directly in chat on `astra/latest`. No builder delegation. Owner plans the merge to `main`; no merge or deployment performed here.
-- **Source/base inspected:** `bac5073e93bcc1c3b37eff8a9e1d047c9e2cdf0e`. Latest upstream integration is PR #9, containing tooling commit `e38dbfe35247e02b6aba30918f715cf8744e1938`.
-- **Changed files in this milestone:** `docs/astra-delivery-checkpoint.md`, `AGENTS.md`.
-- **Verified evidence:** branch status, recent commits, repository reads, and comparison from `50b56e92454085d6628e7f580fe645b26b889e06` to the source HEAD. That comparison changes `base44/functions/astraChat/{entry.ts,githubChat.ts}` and `base44/shared/{astraCrew.ts,astraGithub.ts,astraTools.ts}`; it is tooling work, not Solana readiness evidence.
-- **Checks:** inspected GitHub `delivery-contracts: success` on the source SHA ([run 35565529656](https://github.com/doji0x/kydosv1/actions/runs/35565529656)). No shell or tests executed in this documentation task. Post-edit checks and exact delivery SHA belong in the final handoff; never transfer the source pass to a new SHA. The delivery workflow path filters exclude these documentation files.
-- **Access/limitations:** repository read and guarded commit tools are callable. Reference search/read tools are exposed but not exercised in this task. No shell, branch-merge, deployment, wallet-signing, or live-job inspection tool is available here. Deployed Base44 configuration and wallet availability are unverified. Git commits do not publish the app.
+- **Scope/status:** conversation #29 focused continuity system implemented. Added task-to-file routes, soft read budget, targeted invalidation rules, exact research cursor format and a recovered unfinished-work pointer. These are durable working instructions and state, not automated runtime enforcement.
+- **Owner:** Astra direct chat on `astra/latest`; no Builder delegation. Owner plans merge to `main`.
+- **Source/base:** `e683d20589587aa2601828bf519b162189a80265`. Observed upstream `main`: `1409cc3ee56be4678447a7e2e4ba53e53281dd97`. Comparison reports diverged: 3 delivery commits / 2 upstream commits. No upstream integration attempted; current documentation changes do not depend on upstream-only work. Merge compatibility is not verified by these tools.
+- **Changed files:** `AGENTS.md`, `docs/astra-work-state.json`, this checkpoint. No application, deployed orchestration, wallet or transaction changes.
+- **Evidence:** current branch/upstream status, baseline comparison, and reads limited to existing instructions/checkpoint plus absence check for the new state file. No tree scan or repeat library research. Previous checkpoint was stale at request #23; this update preserves completed reference work instead of restarting it.
+- **Checks:** no checks reported on source HEAD. No tests executed (no shell available); these are documentation/process records. Inspect final HEAD checks and report in chat; upstream passing checks do not establish a pass on delivery.
+- **Access:** repository tools, paginated library inventory/search/read and approved raw public-document fetch are now callable. The older reference index's unavailable-tool statements are historical, not current capability claims. Library completeness and deployed Base44 behavior remain unverified. No shell, merge, deployment, wallet-signing or live-job inspection tools.
 
-## Decisions and safety boundaries to preserve
+## Boundaries retained
 
-- Product: independent Solana launchpad using the provided framework, not pump.fun's SDK. Legacy `archive/` code is reference-only.
-- Build the implementation before transaction verification; do not represent source inspection or mock/unit checks as successful on-chain execution.
-- Owner authorized a maximum of **0.05 SOL (50,000,000 lamports) per test**. The subsequently accepted initial plan limits live execution to **one funded test total**, with principal, rent, network/priority fees and protocol charges inside that allowance. No automatic replacement/retry spending, deployment, upgrade, or additional funded test is authorized by this note (conversation #14–15).
-- Mainnet must wait for the implemented spending guard, bounded costs, explicit enablement, verified target program, and readiness checks. Wallet availability alone is not readiness.
+- Independent Solana launchpad using provided framework; no pump.fun SDK. Existing economics are not automatically owner-approved. Legacy `archive/` is reference-only.
+- Build before transaction verification; mock/unit checks and source inspection do not prove on-chain success.
+- Maximum **0.05 SOL (50,000,000 lamports) per test**, with the accepted initial plan limited to **one funded test total**, including principal, rent, network/priority fees and protocol charges. No automatic replacement/retry spending, deployments, upgrades or additional funded tests.
+- Mainnet remains gated by integrated spending enforcement, bounded costs, explicit enablement, verified target program and readiness checks. Prior handoff reports unwired budget/missing enablement/unverified deployment; not re-audited or fixed here.
 
-## Unfinished work and next owner
+## Next action
 
-- **Next owner: repository owner** — review and merge this documentation milestone when ready. Astra must re-inspect HEAD after the merge before further authorized implementation.
-- **Next engineering action, when requested:** verify the current Solana client/lifecycle/budget integration against source and SHA-bound checks. The other agent's handoff in conversation #20 reports an unwired aggregate budget, missing explicit live-test enablement, and unverified deployment. These are reported blockers, not freshly verified findings in this documentation task; do not silently mark them fixed.
-- Recover existing library decisions before changing economics. `solana/implementation-resume.md`, `solana/creation-checkpoint.md`, and `solana/creation-resume-handoff.md` are historical task evidence, not current approval or check results. `docs/astra-reconciliation-2026-09-21.md` describes historical worker behavior, not permission to schedule jobs now.
+- **Owner:** review/merge this process milestone as planned. Astra must verify actual delivery/upstream state afterward; no merge or deployment is claimed.
+- **Astra, when research resumes:** follow `library-and-build-spec` in work state. Retrieval implementation, reference helper tests, CI wiring and partial index already have exact commit evidence there. Do not recreate them. Inventory cursor starts at 0 because previous legacy search did not establish a complete inventory; no invented progress markers. Verify existence of `docs/launchpad-build-spec.md` before treating the index's link as completed work. Research and launchpad implementation were not resumed during this milestone.
+- **Blockers/limits:** complete research/specification still outstanding; test execution and branch merging are unavailable in this session. No known blocker to using this focused-read system immediately.
