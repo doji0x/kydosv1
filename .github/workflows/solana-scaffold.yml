@@ -1,0 +1,37 @@
+name: Solana Anchor
+on:
+  push:
+    branches: [astra/latest]
+    paths: ['solana/**','src/lib/solana/**','src/lib/SolanaWalletContext.jsx','src/pages/SolanaLaunch.jsx','base44/functions/indexSolanaTransactions/**','base44/functions/solanaRpc/**','base44/entities/SolanaTrade.jsonc','package.json','.github/workflows/solana-scaffold.yml']
+  pull_request:
+    branches: [main]
+    paths: ['solana/**','src/lib/solana/**','src/lib/SolanaWalletContext.jsx','src/pages/SolanaLaunch.jsx','base44/functions/indexSolanaTransactions/**','base44/functions/solanaRpc/**','base44/entities/SolanaTrade.jsonc','package.json','.github/workflows/solana-scaffold.yml']
+permissions: {contents: read}
+jobs:
+  anchor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: 20}
+      - uses: dtolnay/rust-toolchain@1.79.0
+      - uses: swatinem/rust-cache@v2
+        with: {workspaces: solana}
+      - name: Install Solana 2.1.21
+        run: |
+          sh -c "$(curl -sSfL https://release.anza.xyz/v2.1.21/install)"
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
+      - name: Install Anchor 0.31.1
+        run: |
+          cargo install --git https://github.com/coral-xyz/anchor --tag v0.31.1 anchor-cli --locked
+          anchor --version
+      - run: npm install --ignore-scripts --no-audit --no-fund
+      - run: npm --prefix solana run check
+      - run: npm --prefix solana test
+      - name: Host account validation tests (no validator or deployment)
+        working-directory: solana
+        run: cargo test -p kydos_launchpad --test account_validation
+      - working-directory: solana
+        run: anchor build
+      - uses: actions/upload-artifact@v4
+        with: {name: kydos-anchor-artifacts, path: 'solana/target/{idl,types,deploy}'}

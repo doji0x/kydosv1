@@ -1,0 +1,9 @@
+{
+  "name": "kydos-solana",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node --check ../src/lib/solana/client.js && node --check ../src/lib/solana/config.js",
+    "test": "node --test tests/*.test.js"
+  }
+}
