@@ -1,12 +1,14 @@
 import { Buffer } from 'buffer';
 import { Keypair, PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY, Transaction, TransactionInstruction } from '@solana/web3.js';
-import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress, createAssociatedTokenAccountIdempotentInstruction } from '@solana/spl-token';
+import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress, createAssociatedTokenAccountIdempotentInstruction, unpackAccount } from '@solana/spl-token';
 import { rawAmount, validateLaunch } from './market.js';
-import { encodeSignature, outcomeError } from './transactions.js';
+import { encodeSignature } from './transactions.js';
+import { browserActivity } from './lifecycle.js';
+import { readSolanaDevelopmentConfig } from './config.js';
+import { MAINNET_GENESIS, assertMainnetHarnessReady } from './budget.js';
 
 // Source program identity only; not evidence of a deployment.
 export const PROGRAM_ID = new PublicKey('Fg6PaFpoGXkYsidMpWxTWqkZqvFmR6UJA4R9C3bZ9S2');
-// Anchor/Borsh: discriminator + keys + bytes + length-prefixed strings + u64s + bool.
 export const CURVE_SPACE = 8 + 32 + 32 + 1 + 1 + 4 + 32 + 4 + 10 + 4 + 200 + 8 * 4 + 1;
 const D = { initialize: [175,175,109,31,13,152,155,237], buy: [102,6,61,18,1,218,235,234], sell: [51,230,133,164,1,127,131,173] };
 const meta = (pubkey, isSigner = false, isWritable = false) => ({ pubkey, isSigner, isWritable });
@@ -45,30 +47,56 @@ export async function fetchMarket(connection, mint) {
   return { ...await decodeMarket(value.data, mint), curve, vault, slot: context.slot };
 }
 
-export async function sendTransaction(connection, wallet, tx, extra = []) {
-  if (!wallet.publicKey || typeof wallet.signTransaction !== 'function') throw new Error('Connect a signing wallet first');
-  const payer = new PublicKey(wallet.publicKey);
-  const latest = await connection.getLatestBlockhash('confirmed');
-  tx.feePayer = payer;
-  tx.recentBlockhash = latest.blockhash;
-  if (extra.length) tx.partialSign(...extra);
-  // Snapshot before calling the provider: wallets may mutate the same object.
-  const message = Buffer.from(tx.serializeMessage());
-  const signed = await wallet.signTransaction(tx);
-  if (!signed.serializeMessage().equals(message)) throw new Error('Wallet changed the transaction');
-  const wire = signed.serialize(); // Verify required signatures before attempting submission.
-  const signature = encodeSignature(signed.signature);
-  let result;
-  try {
-    const returned = await connection.sendRawTransaction(wire, { skipPreflight: false, preflightCommitment: 'confirmed', maxRetries: 3 });
-    if (returned !== signature) throw new Error('RPC returned a different signature');
-    result = await connection.confirmTransaction({ signature, ...latest }, 'confirmed');
-  } catch (cause) {
-    // Even sendRawTransaction can time out AFTER forwarding the signed bytes.
-    throw outcomeError(cause, signature);
+export async function fetchBalances(connection, wallet, mint) {
+  const owner = new PublicKey(wallet), key = new PublicKey(mint);
+  const ata = await getAssociatedTokenAddress(key, owner);
+  const [sol, info] = await Promise.all([connection.getBalance(owner, 'confirmed'), connection.getAccountInfo(ata, 'confirmed')]);
+  if (!Number.isSafeInteger(sol) || sol < 0) throw new Error('SOL balance is not a safe integer');
+  let tokens = 0n;
+  if (info) {
+    const account = unpackAccount(ata, info, TOKEN_PROGRAM_ID);
+    if (!account.owner.equals(owner) || !account.mint.equals(key) || account.isFrozen) throw new Error('Invalid wallet token account');
+    tokens = account.amount;
   }
-  if (result.value.err) throw outcomeError(result.value.err, signature, 'failed');
-  return signature;
+  return { sol: BigInt(sol), tokens };
+}
+
+export async function sendTransaction(connection, wallet, tx, extra = [], metadata, activity = browserActivity()) {
+  if (!wallet.publicKey || typeof wallet.signTransaction !== 'function') throw new Error('Connect a signing wallet first');
+  if (!metadata?.operation || !metadata?.mint) throw new Error('Recovery metadata required');
+  // Enforce localnet at the signing boundary, not merely in the page config.
+  readSolanaDevelopmentConfig({ cluster: 'localnet', rpcUrl: connection.rpcEndpoint });
+  const chain = await connection.getGenesisHash();
+  if (chain === MAINNET_GENESIS) assertMainnetHarnessReady();
+  if (['EtWTRABZaYq6iMfeYKouRu166VU2xqa1', '4uhcVJyU9pJkvQyS88uRDiswHXSCkY3zQawwpjk2NsNY'].includes(chain)) throw new Error('Public cluster signing disabled');
+  const payer = new PublicKey(wallet.publicKey);
+  const scope = { wallet: payer.toBase58(), chain, program: PROGRAM_ID.toBase58(), operation: metadata.operation,
+    conflict: metadata.operation === 'create' ? 'create' : `trade:${metadata.mint}` };
+  return activity.execute(scope, metadata, async save => {
+    const latest = await connection.getLatestBlockhash('confirmed');
+    tx.feePayer = payer;
+    tx.recentBlockhash = latest.blockhash;
+    if (extra.length) tx.partialSign(...extra);
+    const message = Buffer.from(tx.serializeMessage());
+    save({ state: 'signing', ...latest, messageBase64: message.toString('base64') });
+    const signed = await wallet.signTransaction(tx);
+    if (!Buffer.from(signed.serializeMessage()).equals(message)) throw new Error('Wallet changed the transaction');
+    const wire = signed.serialize(); // Required signatures verified before any submission.
+    const signature = encodeSignature(signed.signature);
+    // Both writes must succeed and read back BEFORE the only broadcast call.
+    save({ state: 'signed', signature });
+    if (await connection.getGenesisHash() !== chain) throw new Error('RPC chain changed before submission');
+    save({ state: 'submitting' });
+    const returned = await connection.sendRawTransaction(wire, { skipPreflight: false, preflightCommitment: 'confirmed', maxRetries: 0 });
+    if (returned !== signature) throw new Error('RPC returned a different signature');
+    const result = await connection.confirmTransaction({ signature, ...latest }, 'confirmed');
+    if (result.value.err) {
+      save({ state: 'failed', message: 'Confirmed on-chain failure' });
+      throw new Error('Transaction failed on chain');
+    }
+    save({ state: 'confirmed', message: 'Confirmed on chain' });
+    return signature;
+  });
 }
 
 export async function createLaunch({ connection, wallet, name, symbol, metadataUri }) {
@@ -80,12 +108,10 @@ export async function createLaunch({ connection, wallet, name, symbol, metadataU
     meta(TOKEN_PROGRAM_ID), meta(SystemProgram.programId), meta(SYSVAR_RENT_PUBKEY),
   ], data: Buffer.concat([Buffer.from(D.initialize), str(name), str(symbol), str(metadataUri)]) });
   try {
-    const signature = await sendTransaction(connection, wallet, new Transaction().add(ix), [mint]);
-    return { signature, mint: mint.publicKey.toBase58(), curve: curve.toBase58() };
-  } catch (error) {
-    error.mint = mint.publicKey.toBase58();
-    throw error;
-  }
+    const metadata = { operation: 'create', mint: mint.publicKey.toBase58(), curve: curve.toBase58(), name, symbol, metadataUri };
+    const signature = await sendTransaction(connection, wallet, new Transaction().add(ix), [mint], metadata);
+    return { signature, mint: metadata.mint, curve: metadata.curve };
+  } catch (error) { error.mint = mint.publicKey.toBase58(); throw error; }
 }
 
 export async function buildTradeTransaction({ wallet, mint, side, amount, minOut }) {
@@ -98,10 +124,11 @@ export async function buildTradeTransaction({ wallet, mint, side, amount, minOut
     meta(wallet.publicKey, true, true), meta(curve, false, true), meta(key), meta(vault, false, true), meta(ata, false, true),
     meta(TOKEN_PROGRAM_ID), meta(SystemProgram.programId),
   ], data: Buffer.concat([Buffer.from(D[side]), u64(amount), u64(minOut)]) });
-  // ATA creation and trade succeed or roll back together; no unconfirmed setup race.
   return new Transaction().add(createAssociatedTokenAccountIdempotentInstruction(wallet.publicKey, ata, wallet.publicKey, key), ix);
 }
 
 export async function trade(args) {
-  return sendTransaction(args.connection, args.wallet, await buildTradeTransaction(args));
+  return sendTransaction(args.connection, args.wallet, await buildTradeTransaction(args), [], {
+    operation: args.side, mint: new PublicKey(args.mint).toBase58(), amount: rawAmount(args.amount).toString(), minOut: rawAmount(args.minOut).toString(),
+  });
 }
