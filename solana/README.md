@@ -58,6 +58,44 @@ configuration and the outstanding spending/readiness safeguards. This change
 neither deploys the program nor authorizes funded tests. No private RPC URL or
 signing key belongs in browser configuration.
 
+## Launch form and public metadata
+
+The launch form accepts an image, name, ticker, optional description and an
+optional initial buy (default 0 SOL). Advanced options retain a manually supplied
+HTTPS/IPFS/Arweave URI and slippage setting (default 1%).
+
+Configure **PINATA_JWT** in Base44's server secret manager and deploy the
+`launchMetadata` function to enable image uploads. The Pinata credential needs
+`org:files:write`; it must never be a `VITE_*` variable. The authenticated endpoint
+issues image-only upload URLs valid for 60 seconds, restricted to the declared
+file size (maximum 5 MB) and PNG/JPEG/WebP type. Metadata JSON is constructed and
+uploaded on the server; only public IPFS URIs are used by the launch. Metadata
+contains name, symbol, description and the image's IPFS URI. Keep the pinned
+files available; a content address alone is not a permanence guarantee.
+
+Uploads occur before wallet signing. Rejecting a launch leaves uploaded files
+in storage. The browser reuses the uploaded image/metadata while the form is
+unchanged, including after wallet rejection. No private keys or signed transaction
+bytes are sent to the upload endpoint.
+
+Review reads the actual RPC genesis hash (mainnet/devnet supported) and checks
+that the configured Kydos and Metaplex programs are executable. It displays
+purchase input, rent, network fee and estimated/minimum tokens. The same mint and
+instructions are retained for signing; fresh fees/balance and network are checked
+again. An increased total requires another review. Executable-account checks do
+not verify that the deployed program binary matches the reviewed source.
+
+Creation plus an optional buy uses one transaction: compute limit, initialize,
+creator ATA creation, buy. Zero buy omits the last two instructions. The wallet
+signs once after the mint's partial signature. Packet size is checked before
+signing; the client never splits the transaction. The 600,000-CU limit is an
+execution ceiling, not a measured requirement; no priority fee is added here.
+Measure/simulate the deployed instruction before the deferred creation test.
+
+Phantom must run in a standalone HTTPS/localhost page, not an iframe preview.
+Changing Phantom's displayed cluster does not reconfigure HELIUS_RPC_URL. Local
+validator suites remain separate from this mainnet/devnet UI.
+
 ## Checks
 
 From the repository root, install the locked dependencies and run:

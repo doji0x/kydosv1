@@ -3,7 +3,8 @@ const Context = createContext(null);
 
 export function SolanaWalletProvider({ children }) {
   const [publicKey, setPublicKey] = useState(null);
-  const phantom = typeof window !== 'undefined' && window.solana?.isPhantom ? window.solana : null;
+  const injected = typeof window !== 'undefined' ? window.phantom?.solana ?? window.solana : null;
+  const phantom = injected?.isPhantom ? injected : null;
   useEffect(() => {
     if (!phantom) return;
     const changed = key => setPublicKey(key || null);

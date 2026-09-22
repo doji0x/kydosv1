@@ -127,3 +127,23 @@ subsequent milestones. No live-readiness claim follows from these host tests.
 - Account constraints: https://www.anchor-lang.com/docs/references/account-constraints
 
 No Pump SDK, Pump program call or source implementation is added.
+
+## Approved follow-up: launch interaction
+
+The owner approved initial create-and-buy, image/metadata uploads and a review UI
+on the same branch. The transaction builder reuses Kydos initialize and buy, with
+a creator ATA between them; a zero initial buy remains create-only. Quotes use
+this specification's integer math. Cost estimates include the full authorized
+buy and the extra ATA rent. The prepared mint remains in memory from review to
+signing. Rejection preserves form/upload data; unresolved submissions retain the
+existing journal lock and are never replaced automatically.
+
+Public image/JSON storage uses Pinata with a server-only PINATA_JWT and an
+authenticated Base44 endpoint. Uploads are outside the atomic Solana transaction.
+Setup, network checks, cost review and remaining deployment prerequisites are in
+[solana/README.md](../solana/README.md#launch-form-and-public-metadata).
+
+Source references: [Pinata signed uploads](https://docs.pinata.cloud/api-reference/endpoint/create-signed-upload-url),
+[public uploads](https://docs.pinata.cloud/files/uploading-files), and
+[Phantom provider detection](https://docs.phantom.com/solana/detecting-the-provider).
+No live upload, Phantom signing or token creation is part of local validation.
