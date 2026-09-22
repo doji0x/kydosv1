@@ -23,7 +23,7 @@ export async function estimateTransactionCosts({ connection, transaction, payer,
   const networkFeeLamports = rpcInteger(fee?.value, 'Network fee');
   const balanceLamports = rpcInteger(await connection.getBalance(owner, 'confirmed'), 'SOL balance');
   const rent = async size => rpcInteger(await connection.getMinimumBalanceForRentExemption(size, 'confirmed'), 'Account rent');
-  let rentLamports = 0n;
+  let rentLamports = 0n, metadataFeeLamports = 0n;
   if (context.operation === 'create') {
     if (!Number.isSafeInteger(context.curveSpace) || context.curveSpace <= 0) throw new Error('Curve account size required');
     if (!Number.isSafeInteger(context.feePolicySpace) || context.feePolicySpace <= 0) throw new Error('Fee policy account size required');
@@ -31,6 +31,10 @@ export async function estimateTransactionCosts({ connection, transaction, payer,
     rentLamports = await rent(MINT_SIZE) + await rent(context.curveSpace) + await rent(context.feePolicySpace) + await rent(ACCOUNT_SIZE) + await rent(context.metadataSpace);
     // The mint is new, so the optional creator buy needs a new associated token account.
     if (amount > 0n) rentLamports += await rent(ACCOUNT_SIZE);
+    // Token Metadata create_metadata_accounts_v3 charges this levy in addition
+    // to metadata rent. Use the cluster's rent schedule, not a fixed SOL amount.
+    // mpl-token-metadata/src/state/fee.rs: get_create_fee (revision 353d01be).
+    metadataFeeLamports = await rent(1308) + 5440n;
   } else {
     const ata = await getAssociatedTokenAddress(mint, owner);
     const info = await connection.getAccountInfo(ata, 'confirmed');
@@ -48,7 +52,7 @@ export async function estimateTransactionCosts({ connection, transaction, payer,
   // The submitted buy limit already includes the 1% fee. Do not add it twice.
   // Budget the full input limit; do not credit sell proceeds or a final-fill cap.
   const inputLamports = context.operation === 'buy' || context.operation === 'create' ? amount : 0n;
-  const requiredLamports = inputLamports + networkFeeLamports + rentLamports;
+  const requiredLamports = inputLamports + networkFeeLamports + rentLamports + metadataFeeLamports;
   const shortfallLamports = requiredLamports > balanceLamports ? requiredLamports - balanceLamports : 0n;
-  return { inputLamports, networkFeeLamports, rentLamports, requiredLamports, balanceLamports, shortfallLamports, sufficient: shortfallLamports === 0n };
+  return { inputLamports, networkFeeLamports, rentLamports, metadataFeeLamports, requiredLamports, balanceLamports, shortfallLamports, sufficient: shortfallLamports === 0n };
 }

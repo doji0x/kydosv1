@@ -8,6 +8,7 @@ import { rawAmount, validateLaunch } from './market.js';
 import { encodeSignature, confirmTransactionHttp } from './transactions.js';
 import { browserActivity } from './lifecycle.js';
 import { estimateTransactionCosts } from './costs.js';
+import { explainFundingError, requireTransactionFunds, simulateLaunchBeforeSigning } from './preflight.js';
 import { CURVE_TOKENS } from './curveMath.js';
 import { quoteWithFees, TREASURY_ADDRESS, validateFeePolicy } from './fees.js';
 
@@ -106,7 +107,8 @@ export async function sendTransaction(connection, wallet, tx, extra = [], metada
     tx.recentBlockhash = latest.blockhash;
     const costs = await estimateTransactionCosts({ connection, transaction: tx, payer,
       context: { ...metadata, curveSpace: CURVE_SPACE, feePolicySpace: FEE_POLICY_SPACE, metadataSpace: METADATA_SPACE }, prepared: true });
-    if (!costs.sufficient) throw new Error(`Insufficient SOL: short ${costs.shortfallLamports} lamports for input, network fee and account rent`);
+    const funding = { chain, payer, costs };
+    requireTransactionFunds(funding);
     if (options.maxCostLamports !== undefined && costs.requiredLamports > options.maxCostLamports) {
       throw new Error('Estimated cost increased. Review the launch again.');
     }
@@ -114,11 +116,20 @@ export async function sendTransaction(connection, wallet, tx, extra = [], metada
     // Enforce the legacy packet size before asking the wallet to sign. Never split
     // a create-and-buy into separate transactions to make it fit.
     tx.serialize({ requireAllSignatures: false, verifySignatures: false });
+    if (metadata.operation === 'create') {
+      stage('simulating');
+      await simulateLaunchBeforeSigning(connection, tx, funding);
+      if (await connection.getGenesisHash() !== chain) throw new Error('Network changed before signing. Review the launch again.');
+    }
+    if (!wallet.publicKey?.equals(payer)) throw new Error('Wallet changed before signing. Review the launch again.');
     if (extra.length) tx.partialSign(...extra);
     const message = Buffer.from(tx.serializeMessage());
     save({ state: 'signing', ...latest, messageBase64: message.toString('base64') });
     stage('signing');
-    const signed = await wallet.signTransaction(tx);
+    let signed;
+    try { signed = await wallet.signTransaction(tx); }
+    catch (error) { throw explainFundingError(error, funding, 'Phantom'); }
+    if (!wallet.publicKey?.equals(payer)) throw new Error('Wallet changed during signing. Review the launch again.');
     if (!Buffer.from(signed.serializeMessage()).equals(message)) throw new Error('Wallet changed the transaction');
     const wire = signed.serialize(); // Required signatures verified before any submission.
     const signature = encodeSignature(signed.signature);

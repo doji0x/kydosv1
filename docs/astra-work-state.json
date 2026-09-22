@@ -2,36 +2,32 @@
   "schema_version": 1,
   "purpose": "Small navigation and resume record; not a repository inventory, execution engine, authorization, or passing-check claim.",
   "owner": "Codex",
-  "delivery_branch": "codex/damm-v2-adapter",
-  "observed_source_sha": "9eb9da645fd65bb99db941e6d31039c0bfc4dc38",
-  "observed_upstream_sha": "9eb9da645fd65bb99db941e6d31039c0bfc4dc38",
+  "delivery_branch": "codex/launch-funding-preflight",
+  "observed_source_sha": "bf3da2756fd48918d37defd31e030c7b647a0afe",
+  "observed_upstream_sha": "bf3da2756fd48918d37defd31e030c7b647a0afe",
   "active_task": {
-    "id": "damm-v2-adapter-foundation",
-    "request": "Tackle the next milestone after the merged curve treasury fees: the compatible Meteora DAMM v2 adapter foundation from the migration research.",
+    "id": "phantom-launch-funding-preflight",
+    "request": "Review create/launch and Phantom, resolve the reported unfunded debit-account error, and commit the fix in a new branch.",
     "status": "locally-verified-awaiting-publication-and-ci",
     "scope": [
-      ".github/workflows/solana-scaffold.yml",
+      "base44/shared/solanaRpc.js",
       "docs/astra-delivery-checkpoint.md",
       "docs/astra-work-state.json",
-      "docs/launchpad-build-spec.md",
-      "docs/meteora-adapter.md",
-      "package-lock.json",
-      "package.json",
-      "solana/Cargo.lock",
       "solana/README.md",
-      "solana/package.json",
-      "solana/programs/kydos_launchpad/Cargo.toml",
-      "solana/programs/kydos_launchpad/src/lib.rs",
-      "solana/programs/kydos_launchpad/src/meteora.rs",
-      "solana/programs/kydos_launchpad/src/migration.rs",
-      "solana/programs/kydos_launchpad/tests/meteora_adapter.rs",
-      "solana/scripts/meteora-fixtures.mjs",
-      "solana/tests/fixtures/meteora-v2.json",
-      "solana/tests/meteora.test.js",
-      "src/lib/solana/meteora.js"
+      "solana/tests/costs.test.js",
+      "solana/tests/launch.test.js",
+      "solana/tests/rpc.test.js",
+      "src/components/solana/LaunchForm.jsx",
+      "src/hooks/useLaunchFlow.js",
+      "src/lib/SolanaWalletContext.jsx",
+      "src/lib/solana/client.js",
+      "src/lib/solana/costs.js",
+      "src/lib/solana/launchReview.js",
+      "src/lib/solana/phantom.js",
+      "src/lib/solana/preflight.js"
     ],
-    "acceptance": "Pin the compatible Meteora interface and private-config route; implement deterministic custody addresses, strict config inspection, range-aware integer seeding and receipt schema; compare Rust/JS with the official SDK and run locked builds; publish a separate PR and inspect exact-SHA CI.",
-    "next_action": "Publish the prepared tree on codex/damm-v2-adapter from 9eb9da645fd65bb99db941e6d31039c0bfc4dc38, open a PR to main and inspect its exact-SHA checks. Report the delivery SHA in chat without a recursive checkpoint commit. Next executable milestone requires the final Kydos program identity/private dynamic config and a concrete custody-versus-permanent-lock choice. No merge, deployment, funded transaction or token-creation test is authorized here."
+    "acceptance": "Correct creation funding including Metaplex levy; simulate on submission RPC before Phantom; reject funding, payer, account and signature mismatches before broadcast; preserve atomic launch and conservative recovery; publish a new branch and inspect checks.",
+    "next_action": "Publish the verified tree on codex/launch-funding-preflight and report the exact delivery SHA and checks. Backend RPC allowlist must roll out with frontend. Live launch still requires a verified deployed Kydos program identity; the currently configured address is absent on both public clusters. No funded launch or deployment is performed."
   },
   "read_policy": {
     "startup": [
@@ -129,52 +125,53 @@
     }
   ],
   "verification": {
-    "source_sha": "9eb9da645fd65bb99db941e6d31039c0bfc4dc38",
+    "source_sha": "bf3da2756fd48918d37defd31e030c7b647a0afe",
     "prepared_tree_checks": [
-      "npm ci --ignore-scripts --no-audit --no-fund: pass; 5 SDK test packages added and every existing package resolution preserved",
+      "node --test solana/tests/costs.test.js solana/tests/launch.test.js solana/tests/rpc.test.js: 25 pass",
+      "npm --prefix solana test: 51 pass plus SDK fixture parity",
       "npm --prefix solana run check: pass",
-      "npm --prefix solana test: 45 pass; SDK 1.4.10 regeneration check covers 12 seed vectors and 2 config/address/full-instruction cases",
-      "npm run lint and npm run build: pass (no configured live Base44 app or deployment)",
-      "npx tsc --allowJs --checkJs --noEmit --skipLibCheck --moduleResolution bundler --module esnext --target esnext src/lib/solana/meteora.js: pass",
-      "npm run typecheck: existing failures; 138 diagnostics identical to same-dependency main baseline at 9eb9da645fd65bb99db941e6d31039c0bfc4dc38",
-      "cargo test --workspace --lib --locked: 10 pass",
-      "cargo test -p kydos_launchpad --test account_validation --test meteora_adapter --locked: 10 pass; adapter rerun against final 12-vector fixture also passes",
-      "cargo build-sbf --manifest-path programs/kydos_launchpad/Cargo.toml -- --locked: pass on Solana 2.1.21",
-      "anchor idl build --program-name kydos_launchpad --out target/idl/kydos_launchpad.json --out-ts target/types/kydos_launchpad.ts -- --locked: pass",
-      "node solana/scripts/sync-idl.mjs --check: pass; program/browser IDL unchanged",
-      "New Rust files rustfmt --check, workflow/fixture parse, git diff --check: pass",
-      "Cargo.lock adds direct references to already-locked num-bigint/num-traits/serde_json; no crate version changes; locked builds leave it unchanged"
+      "npm run lint: pass",
+      "npm run build: pass; no live Base44 app configuration supplied",
+      "npx tsc --allowJs --checkJs --noEmit --skipLibCheck --moduleResolution bundler --module esnext --target esnext src/lib/solana/preflight.js src/lib/solana/phantom.js: pass",
+      "New module node --check and git diff --check: pass"
     ],
-    "lockfile_sha256": "bb5d4a184beb9b617786e67ecc57616976e9f8c62caa0d12c9714e53b4a0d8e8",
-    "artifacts": {
-      "solana/target/deploy/kydos_launchpad.so": {
-        "bytes": 363280,
-        "sha256": "3190118384cc0635abdf385f4c05214298491b71603706b8ab61e79507d59743"
+    "live_read_only_evidence": {
+      "checked_date": "2026-09-22",
+      "unfunded_payer_simulation": {
+        "cluster": "mainnet",
+        "slot": 449384837,
+        "error": "AccountNotFound",
+        "logs": [],
+        "units_consumed": 0,
+        "submitted": false
       },
-      "solana/target/idl/kydos_launchpad.json": {
-        "bytes": 16678,
-        "sha256": "ef578beb024ee56b426fca14ac4678b2d613edaf3dcff2544116305a52c18e5b"
-      },
-      "solana/target/types/kydos_launchpad.ts": {
-        "bytes": 16874,
-        "sha256": "fc9283a15c4acf7cd887f9ff2c5264c702520924485c59436bb857a54d699f1a"
-      }
+      "configured_program": "Fg6PaFpoGXkYsidMpWxTWqkZqvFmR6UJA4R9C3bZ9S2",
+      "program_accounts": [
+        {
+          "cluster": "mainnet",
+          "slot": 449384808,
+          "value": null
+        },
+        {
+          "cluster": "devnet",
+          "slot": 502433751,
+          "value": null
+        }
+      ]
     },
     "limitations": [
-      "Post-publication CI must be inspected; no new remote CI pass is asserted in this pre-publication checkpoint.",
-      "No externally callable migration instruction, CPI execution, initialized receipt, locking, fee claims or AMM client routing. Receipt serialization is not runtime idempotency evidence.",
-      "No validator/token creation, funded transaction, real wallet signing, deployment or merge.",
-      "No approved private config or verified deployed Kydos program identity recorded in the repository. Operator provisioning and on-chain route binding remain pending.",
-      "Permanent locking is not selected; no extra migration fee is added.",
-      "Existing Anchor macro and Solana SDK syscall-inventory warnings remain; future handler compute/heap, atomic rollback and deployed Meteora version parity are unverified."
+      "Exact delivery CI inspection follows publication.",
+      "The actual failed transaction and hosted wallet/network configuration are unavailable; no claimed confirmed cause for the user attempt.",
+      "No live Phantom extension signing, funded transaction, token creation, merge or deployment.",
+      "Configured program has no account on mainnet/devnet as queried; actual deployed identity must be established.",
+      "No program/IDL/dependency changes; Rust/SBF/IDL and existing failing full-app typecheck not repeated.",
+      "Admin server-wallet launch path remains outside this Phantom-specific fix."
     ],
-    "upstream_note": "PR #19 is merged as 9eb9da645fd65bb99db941e6d31039c0bfc4dc38. Both Lint and build and anchor checks on fee delivery 17757bac5a8c359a36af8fcf95c69faff79152aa completed successfully. Main has the same tree as that delivery.",
+    "upstream_note": "PR #20 merged as bf3da2756fd48918d37defd31e030c7b647a0afe, with the same tree as adapter delivery d5a4daf4863dd9d0789d3ee0a2566374561e2e9e.",
     "references": {
-      "implementation_contract": "docs/meteora-adapter.md",
-      "sdk": "@meteora-ag/cp-amm-sdk@1.4.10",
-      "sdk_revision": "37cd9e690d7b5fb6182638a21b86e0e1bf636a7e",
-      "program_revision": "a85c926607433f23f0ea60f4ca7b1ae92f4156cb",
-      "idl_version": "0.2.4"
+      "metaplex_fee_source": "https://github.com/metaplex-foundation/mpl-token-metadata/blob/353d01be4af3018e1daf49d0cd35ba9f731d9c9c/programs/token-metadata/program/src/state/fee.rs",
+      "phantom_signing": "https://docs.phantom.com/solana/sending-a-transaction",
+      "launch_setup": "solana/README.md#launch-form-and-public-metadata"
     }
   },
   "maintenance": "Update this record in place at a bounded work milestone, not after every read. Keep detailed source findings in the reference index, approved design in the build specification, and human handoff in the rolling checkpoint. Remove completed task detail once durable evidence is linked. Final delivery SHA belongs in chat, not a recursive self-SHA commit."

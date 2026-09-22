@@ -3,7 +3,7 @@ const allowed = new Set([
   'getGenesisHash', 'getLatestBlockhash', 'getFeeForMessage',
   'getMinimumBalanceForRentExemption', 'getSignatureStatuses',
   'getSignaturesForAddress', 'getTokenAccountBalance', 'getTransaction',
-  'sendRawTransaction', 'sendTransaction',
+  'sendRawTransaction', 'sendTransaction', 'simulateTransaction',
 ]);
 
 export function buildSolanaRpcPayload(input) {
