@@ -29,7 +29,7 @@ export function useActivity(connection, wallet, conflict) {
 }
 
 // Displays every original wallet/chain scope rather than deleting on wallet switch.
-export function Activity({ activity, connection, onConfirmed }) {
+export function Activity({ activity, connection, onConfirmed = undefined }) {
   const [busy, setBusy] = useState(false), [error, setError] = useState('');
   const reconcile = async record => {
     setBusy(true); setError('');
@@ -40,7 +40,7 @@ export function Activity({ activity, connection, onConfirmed }) {
     finally { setBusy(false); }
   };
   return <section className="space-y-3 rounded-xl border border-border/70 bg-card/60 p-4" aria-label="Persistent Solana activity">
-    <h2 className="font-semibold">Mainnet transaction activity</h2>
+    <h2 className="font-semibold">Solana transaction activity</h2>
     <p className="text-xs text-muted-foreground">Recovery records stay in this browser across routes and tabs. Do not clear browser data while an outcome is unresolved. No transaction is retried automatically.</p>
     {(activity.error || error) && <p role="alert">{activity.error || error}</p>}
     {!activity.records.length && <p className="text-sm text-muted-foreground">No recorded operations.</p>}

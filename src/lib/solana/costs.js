@@ -12,7 +12,7 @@ function rpcInteger(value, label) {
 export async function estimateTransactionCosts({ connection, transaction, payer, context, prepared = false }) {
   if (!context || !['create', 'buy', 'sell'].includes(context.operation) || !context.mint) throw new Error('Transaction cost context required');
   const owner = new PublicKey(payer), mint = new PublicKey(context.mint);
-  const amount = context.operation === 'create' ? 0n : rawAmount(context.amount);
+  const amount = context.operation === 'create' ? rawAmount(context.initialBuyLamports ?? '0', 'Initial buy') : rawAmount(context.amount);
   if (context.operation !== 'create' && amount === 0n) throw new Error('Amount must be positive');
   if (!prepared) {
     transaction.feePayer = owner;
@@ -28,6 +28,8 @@ export async function estimateTransactionCosts({ connection, transaction, payer,
     if (!Number.isSafeInteger(context.curveSpace) || context.curveSpace <= 0) throw new Error('Curve account size required');
     if (!Number.isSafeInteger(context.metadataSpace) || context.metadataSpace <= 0) throw new Error('Metadata account size required');
     rentLamports = await rent(MINT_SIZE) + await rent(context.curveSpace) + await rent(ACCOUNT_SIZE) + await rent(context.metadataSpace);
+    // The mint is new, so the optional creator buy needs a new associated token account.
+    if (amount > 0n) rentLamports += await rent(ACCOUNT_SIZE);
   } else {
     const ata = await getAssociatedTokenAddress(mint, owner);
     const info = await connection.getAccountInfo(ata, 'confirmed');
@@ -43,7 +45,7 @@ export async function estimateTransactionCosts({ connection, transaction, payer,
     }
   }
   // No proceeds credit, quote cap, arbitrary buffer or additional protocol fee.
-  const inputLamports = context.operation === 'buy' ? amount : 0n;
+  const inputLamports = context.operation === 'buy' || context.operation === 'create' ? amount : 0n;
   const requiredLamports = inputLamports + networkFeeLamports + rentLamports;
   const shortfallLamports = requiredLamports > balanceLamports ? requiredLamports - balanceLamports : 0n;
   return { inputLamports, networkFeeLamports, rentLamports, requiredLamports, balanceLamports, shortfallLamports, sufficient: shortfallLamports === 0n };

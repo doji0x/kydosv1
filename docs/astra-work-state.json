@@ -2,28 +2,22 @@
   "schema_version": 1,
   "purpose": "Small navigation and resume record; not a repository inventory, execution engine, authorization, or passing-check claim.",
   "owner": "Codex",
-  "delivery_branch": "codex/solana-rpc-fixes",
-  "observed_source_sha": "d9996c47e762fd2a83ec2494e2f3d63e2080778f",
-  "observed_upstream_sha": "d9996c47e762fd2a83ec2494e2f3d63e2080778f",
+  "delivery_branch": "codex/amm-graduation-foundation",
+  "observed_source_sha": "ed7779774795c78753b6f67969197b343a2a10ec",
+  "observed_upstream_sha": "2316ac8e3d74a70a5ab5d154008adea757938c19",
   "active_task": {
-    "id": "rpc-configuration-reconciliation",
-    "request": "Fix RPC issues and open a PR targeting main; preserve owner-confirmed 79.31%/20.69% and 30 virtual SOL",
-    "status": "implemented-delivery-in-progress",
+    "id": "anchor-sbf-compatibility",
+    "request": "Approved repair: pin SBF-compatible dependencies, enforce locked host/SBF/IDL builds, verify and commit on the existing branch/PR; no token creation or deployment",
+    "status": "locally-verified-awaiting-publication-and-ci",
     "scope": [
-      "base44/functions/solanaRpc/entry.ts",
-      "base44/shared/solanaRpc.js",
-      "src/lib/solana",
-      "src/components/solana/LaunchEconomics.jsx",
-      "solana/tests",
-      "solana/package.json",
-      "solana/README.md",
+      "solana/Cargo.lock",
       ".github/workflows/solana-scaffold.yml",
-      "README.md",
+      "solana/README.md",
       "docs/astra-delivery-checkpoint.md",
       "docs/astra-work-state.json"
     ],
-    "acceptance": "Fee/rent RPC and request IDs work through proxy; HTTP confirmation retains ambiguous outcomes; economics and identities match program; PR targets main.",
-    "next_action": "Deliver the verified changes to codex/solana-rpc-fixes and open a PR targeting main. Do not deploy or perform funded tests."
+    "acceptance": "SBF binary and IDL/types generated with the pinned compiler, locked host tests pass, lockfile unchanged during builds, publish to PR #17 and inspect resulting CI.",
+    "next_action": "GitHub connection restored; branch and PR base reverified. Publish the prepared tree as a fast-forward from ed7779774795c78753b6f67969197b343a2a10ec, preserve local verification commits, update PR #17 and inspect resulting CI. Authorization is already granted. Build files exactly match the locally tested repair; no repeat build is needed just for publication. Report delivery SHA and CI state in chat without a recursive checkpoint commit."
   },
   "read_policy": {
     "startup": [
@@ -102,7 +96,7 @@
         "ci_wiring_commit": "cea16c134d763fea12ca9c2be5d2501d25a21d07",
         "partial_index_commit": "e683d20589587aa2601828bf519b162189a80265"
       },
-      "next_action": "Use the now-exposed paginated library tools; inventory from offset 0 because no trustworthy prior cursor exists. Read docs/reference-index.md once to reuse existing findings. Verify docs/launchpad-build-spec.md exists before treating its link as a completed artifact.",
+      "next_action": "Prior library inventory remains incomplete and is not resumed here. docs/launchpad-build-spec.md now exists for this approved AMM milestone; do not infer full library review.",
       "inventory": {
         "status": "not-completely-enumerated",
         "next_offset": 0,
@@ -121,19 +115,55 @@
     }
   ],
   "verification": {
-    "delivery_checks_at_source": [],
-    "tests_executed_in_this_task": [
-      "npm --prefix solana run check: pass",
-      "npm --prefix solana test: 25 pass",
-      "npm run lint: pass",
-      "npm run build: pass (missing local Base44 app ID warning)",
-      "npm run typecheck: fails; compared with unchanged source baseline"
+    "locally_verified_repair_sha": "008e236842f703471df5d16d3fa69b1b21dc3990",
+    "delivery_checks_at_source": [
+      {
+        "sha": "ed7779774795c78753b6f67969197b343a2a10ec",
+        "check": "Solana Anchor",
+        "run_id": 35687167604,
+        "job_id": 106616355756,
+        "result": "failure on cpufeatures 0.3.1 edition2024 with SBF Cargo 1.79; log inspected in prior diagnostic turn"
+      }
     ],
+    "prepared_tree_checks": [
+      "Anchor 0.31.1 / Solana 2.1.21 SBF build passes with --locked using platform-tools v1.43 rustc 1.79.0-dev / Cargo 1.79.0",
+      "Locked anchor idl build passes; IDL address and initialize/buy/sell names verified; binary/IDL/TypeScript outputs nonempty",
+      "cargo test --workspace --lib --locked: 6 pass",
+      "cargo test -p kydos_launchpad --test account_validation --locked: 3 pass",
+      "Cargo.lock hash unchanged across SBF build, IDL generation and host tests",
+      "Workflow YAML parse and git diff --check pass"
+    ],
+    "lockfile_sha256": "f1a7838f255f15a35dcfbfe135f21b32fc9199af258a9c8f1f94ccd269945441",
+    "artifacts": {
+      "solana/target/deploy/kydos_launchpad.so": {
+        "bytes": 337984,
+        "sha256": "1c9279c8746d993d1fa36384b3e5025db7380d0ecac6c39179126a798f17b806"
+      },
+      "solana/target/idl/kydos_launchpad.json": {
+        "bytes": 12730,
+        "sha256": "78ebb56ffc8075c548709017ae0425399ee8f5aacfe06a40f677e1c18cc828e8"
+      },
+      "solana/target/types/kydos_launchpad.ts": {
+        "bytes": 12938,
+        "sha256": "aa5c70136d58b9e954f6bb9a421bbd573b0e6f2f60ef7b0916515d781b7b5df3"
+      }
+    },
     "limitations": [
-      "Rust/Anchor/Solana toolchains unavailable",
-      "No deployed-state verification or funded tests"
+      "New delivery CI must be inspected after publication; existing local build/test evidence is reused for identical build files.",
+      "Existing Anchor macro warnings; official SDK syscall inventory empty, all 12 warned symbols found in Agave v2.1.21 registration source",
+      "No validator, token creation, real wallet signing, funded transaction or deployment",
+      "Frontend/JavaScript checks not rerun for this dependency/CI repair",
+      "AMM remains interface-only; migration/swaps and LP/fee/identity decisions outstanding"
     ],
-    "upstream_note": "Fresh main fetch matched source SHA; no other branch integrated."
+    "upstream_note": "GitHub PR #17 reverified main/base 2316ac8e3d74a70a5ab5d154008adea757938c19, which includes RPC PR #16.",
+    "publication_preparation": {
+      "connection_status": "restored; GitHub repository, branch and PR reads succeeded",
+      "observed_remote_branch_sha": "ed7779774795c78753b6f67969197b343a2a10ec",
+      "observed_pr_base_sha": "2316ac8e3d74a70a5ab5d154008adea757938c19",
+      "build_files_match_verified_repair": true,
+      "ci_status": "Inspect resulting delivery commit after branch publication; no new CI pass claimed in this preparation record",
+      "checks_rerun": false
+    }
   },
   "maintenance": "Update this record in place at a bounded work milestone, not after every read. Keep detailed source findings in the reference index, approved design in the build specification, and human handoff in the rolling checkpoint. Remove completed task detail once durable evidence is linked. Final delivery SHA belongs in chat, not a recursive self-SHA commit."
 }

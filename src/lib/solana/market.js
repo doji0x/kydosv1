@@ -1,9 +1,7 @@
 // Owner-confirmed allocation: 79.31% curve, 20.69% liquidity, 30 virtual SOL.
 // Quotes mirror lib.rs; deployment and graduation behavior need separate validation.
 export const U64_MAX = (1n << 64n) - 1n;
-const VIRTUAL_SOL = 30_000_000_000n;
-const TARGET = 85_000_000_000n;
-const LP_TOKENS = 206_900_000_000_000n;
+import { quoteCurve, INITIAL_VIRTUAL_SOL, INITIAL_VIRTUAL_TOKENS, COMPLETION_ESTIMATE } from './curveMath.js';
 
 export function rawAmount(value, label = 'Amount') {
   if (typeof value !== 'bigint' && !(typeof value === 'string' && /^\d+$/.test(value))) {
@@ -48,39 +46,24 @@ export function quoteTrade(market, side, amount, slippageBps) {
   if (!Number.isInteger(slippageBps) || slippageBps < 0 || slippageBps >= 10000) {
     throw new Error('Slippage must be an integer from 0 to 9999 basis points');
   }
-  const sol = rawAmount(market.realSolReserve);
-  const realTokens = rawAmount(market.tokenReserve);
-  const tokens = rawAmount(realTokens + LP_TOKENS, 'Effective token reserve');
-  if (market.decimals !== 6 || rawAmount(market.graduationTarget) !== TARGET || typeof market.graduated !== 'boolean') {
-    throw new Error('Unsupported market contract');
+  if (market.decimals !== 6 || rawAmount(market.graduationTarget) !== COMPLETION_ESTIMATE ||
+      rawAmount(market.virtualSolReserves) !== INITIAL_VIRTUAL_SOL ||
+      rawAmount(market.virtualTokenReserves) !== INITIAL_VIRTUAL_TOKENS || typeof market.graduated !== 'boolean') {
+    throw new Error('Unsupported curve configuration; legacy markets require an explicit migration plan');
   }
-  if (!market.graduated && sol >= TARGET) throw new Error('Invalid ungraduated reserves');
-  const acceptedInput = side === 'buy' && !market.graduated && input > TARGET - sol ? TARGET - sol : input;
-  const x = sol + (market.graduated ? 0n : VIRTUAL_SOL);
-  let output;
-  if (side === 'buy') {
-    output = !market.graduated && sol + acceptedInput === TARGET
-      ? realTokens
-      : tokens - (x * tokens / (x + acceptedInput));
-    if (output > realTokens) output = realTokens;
-    rawAmount(sol + acceptedInput, 'Resulting SOL reserve');
-  } else {
-    output = x - (x * tokens / (tokens + input));
-    rawAmount(tokens + input, 'Resulting token reserve');
-    if (output > sol) throw new Error('Insufficient real SOL liquidity');
-  }
-  rawAmount(output, 'Output');
-  if (output === 0n) throw new Error('Amount produces no output');
+  if (market.graduated) throw new Error('Curve complete; awaiting AMM migration');
+  const { acceptedInput, output, willGraduate } = quoteCurve(side,
+    rawAmount(market.realSolReserve), rawAmount(market.tokenReserve), input);
   // Round the minimum UP: never allow more loss than the selected tolerance.
   const minOut = (output * BigInt(10000 - slippageBps) + 9999n) / 10000n;
   return Object.freeze({ side, input, acceptedInput, output, minOut,
-    willGraduate: !market.graduated && side === 'buy' && sol + acceptedInput === TARGET });
+    willGraduate });
 }
 
 export function transactionError(error) {
   if (error?.signature) return `Transaction ${error.signature}: ${error.message}`;
   if (error?.code === 4001 || /reject/i.test(error?.message || '')) return 'Wallet request rejected. Nothing was submitted by this action.';
-  const messages = ['Amount must be positive', 'Slippage exceeded; refresh the quote', 'Arithmetic overflow', 'Curve cannot accept this buy', 'Insufficient liquidity', 'Name too long', 'Symbol too long', 'Metadata URI too long'];
+  const messages = ['Amount must be positive', 'Slippage exceeded; refresh the quote', 'Arithmetic overflow', 'Curve complete; awaiting AMM migration', 'Insufficient liquidity', 'Name too long', 'Symbol too long', 'Metadata URI too long'];
   const match = /custom program error: 0x([0-9a-f]+)/i.exec(error?.message || '');
   const code = error?.error?.errorCode?.number ?? (match ? parseInt(match[1], 16) : undefined);
   return messages[code - 6000] || error?.message || 'Transaction failed';

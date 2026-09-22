@@ -61,7 +61,7 @@
     {"code": 6000, "name": "zeroAmount", "msg": "Amount must be positive"},
     {"code": 6001, "name": "slippage", "msg": "Slippage exceeded"},
     {"code": 6002, "name": "mathOverflow", "msg": "Arithmetic overflow"},
-    {"code": 6003, "name": "graduated", "msg": "Curve graduated"},
+    {"code": 6003, "name": "graduated", "msg": "Curve complete; awaiting AMM migration"},
     {"code": 6004, "name": "liquidity", "msg": "Insufficient liquidity"},
     {"code": 6005, "name": "nameTooLong", "msg": "Name too long"},
     {"code": 6006, "name": "symbolTooLong", "msg": "Symbol too long"},

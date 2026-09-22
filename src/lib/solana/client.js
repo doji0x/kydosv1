@@ -1,12 +1,14 @@
 import { Buffer } from 'buffer';
-import { AnchorProvider, BN, BorshAccountsCoder, Program } from '@coral-xyz/anchor';
-import { Keypair, PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY, Transaction } from '@solana/web3.js';
+import { AnchorProvider, BorshAccountsCoder, Program } from '@coral-xyz/anchor';
+import BN from 'bn.js';
+import { ComputeBudgetProgram, Keypair, PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY, Transaction } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress, createAssociatedTokenAccountIdempotentInstruction, unpackAccount } from '@solana/spl-token';
 import idl from './idl/kydos_launchpad.json' with { type: 'json' };
 import { rawAmount, validateLaunch } from './market.js';
 import { encodeSignature, confirmTransactionHttp } from './transactions.js';
 import { browserActivity } from './lifecycle.js';
 import { estimateTransactionCosts } from './costs.js';
+import { CURVE_TOKENS, quoteCurve } from './curveMath.js';
 
 export const PROGRAM_ID = new PublicKey(idl.address);
 export const METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
@@ -71,23 +73,34 @@ export async function fetchBalances(connection, wallet, mint) {
   return { sol: BigInt(sol), tokens };
 }
 
-export async function sendTransaction(connection, wallet, tx, extra = [], metadata, activity = browserActivity()) {
+export async function sendTransaction(connection, wallet, tx, extra = [], metadata, activity = browserActivity(), options = {}) {
   if (!wallet.publicKey || typeof wallet.signTransaction !== 'function') throw new Error('Connect a signing wallet first');
   if (!metadata?.operation || !metadata?.mint) throw new Error('Recovery metadata required');
   const chain = await connection.getGenesisHash();
+  if (options.expectedChain && chain !== options.expectedChain) throw new Error('Network changed. Review the launch again.');
   const payer = new PublicKey(wallet.publicKey);
   const scope = { wallet: payer.toBase58(), chain, program: PROGRAM_ID.toBase58(), operation: metadata.operation,
     conflict: metadata.operation === 'create' ? 'create' : `trade:${metadata.mint}` };
   return activity.execute(scope, metadata, async save => {
+    const stage = value => { try { options.onStage?.(value); } catch { /* UI cannot interrupt transaction tracking. */ } };
+    stage('preparing');
     const latest = await connection.getLatestBlockhash('confirmed');
     tx.feePayer = payer;
     tx.recentBlockhash = latest.blockhash;
     const costs = await estimateTransactionCosts({ connection, transaction: tx, payer,
       context: { ...metadata, curveSpace: CURVE_SPACE, metadataSpace: METADATA_SPACE }, prepared: true });
     if (!costs.sufficient) throw new Error(`Insufficient SOL: short ${costs.shortfallLamports} lamports for input, network fee and account rent`);
+    if (options.maxCostLamports !== undefined && costs.requiredLamports > options.maxCostLamports) {
+      throw new Error('Estimated cost increased. Review the launch again.');
+    }
+    await options.beforeSign?.();
+    // Enforce the legacy packet size before asking the wallet to sign. Never split
+    // a create-and-buy into separate transactions to make it fit.
+    tx.serialize({ requireAllSignatures: false, verifySignatures: false });
     if (extra.length) tx.partialSign(...extra);
     const message = Buffer.from(tx.serializeMessage());
     save({ state: 'signing', ...latest, messageBase64: message.toString('base64') });
+    stage('signing');
     const signed = await wallet.signTransaction(tx);
     if (!Buffer.from(signed.serializeMessage()).equals(message)) throw new Error('Wallet changed the transaction');
     const wire = signed.serialize(); // Required signatures verified before any submission.
@@ -96,8 +109,10 @@ export async function sendTransaction(connection, wallet, tx, extra = [], metada
     save({ state: 'signed', signature });
     if (await connection.getGenesisHash() !== chain) throw new Error('RPC chain changed before submission');
     save({ state: 'submitting' });
+    stage('submitting');
     const returned = await connection.sendRawTransaction(wire, { skipPreflight: false, preflightCommitment: 'confirmed', maxRetries: 0 });
     if (returned !== signature) throw new Error('RPC returned a different signature');
+    stage('confirming');
     const result = await confirmTransactionHttp(connection, { signature, ...latest });
     if (result.value.err) {
       save({ state: 'failed', message: 'Confirmed on-chain failure' });
@@ -108,10 +123,19 @@ export async function sendTransaction(connection, wallet, tx, extra = [], metada
   });
 }
 
-export async function buildCreateTransaction({ connection, wallet, name, symbol, metadataUri }) {
+export function quoteInitialBuy(amount = 0n, slippageBps = 100) {
+  const input = rawAmount(amount, 'Initial buy');
+  if (!Number.isInteger(slippageBps) || slippageBps < 0 || slippageBps >= 10000) throw new Error('Invalid slippage');
+  if (input === 0n) return { input, acceptedInput: 0n, output: 0n, minOut: 0n };
+  const quote = quoteCurve('buy', 0n, CURVE_TOKENS, input);
+  return { ...quote, input, minOut: (quote.output * BigInt(10000 - slippageBps) + 9999n) / 10000n };
+}
+
+export async function buildCreateTransaction({ connection, wallet, name, symbol, metadataUri, initialBuyLamports = 0n, slippageBps = 100 }) {
   validateLaunch({ name, symbol, metadataUri });
   if (!connection) throw new Error('Solana connection required');
   if (!wallet.publicKey) throw new Error('Connect a signing wallet first');
+  const quote = quoteInitialBuy(initialBuyLamports, slippageBps);
   const mint = Keypair.generate();
   const { curve, vault, metadata } = deriveMarketAddresses(mint.publicKey);
   const ix = await programFor(connection, wallet).methods.initialize(name, symbol, metadataUri).accountsStrict({
@@ -119,8 +143,17 @@ export async function buildCreateTransaction({ connection, wallet, name, symbol,
     metadataProgram: METADATA_PROGRAM_ID, tokenProgram: TOKEN_PROGRAM_ID,
     systemProgram: SystemProgram.programId, rent: SYSVAR_RENT_PUBKEY,
   }).instruction();
-  const recovery = { operation: 'create', mint: mint.publicKey.toBase58(), curve: curve.toBase58(), metadata: metadata.toBase58(), name, symbol, metadataUri };
-  return { transaction: new Transaction().add(ix), mint, metadata: recovery };
+  // Conservative execution ceiling, no priority fee. Real CU consumption must
+  // be measured against the deployed binary before the deferred creation test.
+  const transaction = new Transaction().add(ComputeBudgetProgram.setComputeUnitLimit({ units: 600_000 }), ix);
+  if (quote.input > 0n) {
+    const buy = await buildTradeTransaction({ connection, wallet, mint: mint.publicKey,
+      side: 'buy', amount: quote.input, minOut: quote.minOut });
+    transaction.add(...buy.instructions);
+  }
+  const recovery = { operation: 'create', mint: mint.publicKey.toBase58(), curve: curve.toBase58(), metadata: metadata.toBase58(), name, symbol, metadataUri,
+    initialBuyLamports: quote.input.toString(), minOut: quote.minOut.toString() };
+  return { transaction, mint, metadata: recovery, quote };
 }
 
 export async function createCoin(name, symbol, metadataUri, { connection, wallet }) {

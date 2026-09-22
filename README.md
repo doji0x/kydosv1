@@ -10,10 +10,11 @@ Kydos targets Solana exclusively. The active implementation uses Anchor programs
 
 ## Core product
 
-- Solana token creation and market initialization
+- Atomic Solana token creation with an optional initial creator buy
+- Image upload and automatic IPFS metadata through a server-configured Pinata integration
 - Phantom-only signing for launch and trading flows
 - Constant-product bonding curve with explicit slippage limits
-- One-billion-token launch supply: 79.31% curve allocation and 20.69% liquidity allocation; 30 virtual SOL and an 85 SOL graduation target
+- One-billion-token launch supply: 79.31% curve allocation and 20.69% liquidity allocation; 30 virtual SOL and inventory-based completion (approximately 85.005 SOL); see [the build specification](docs/launchpad-build-spec.md)
 - Persistent transaction recovery and confirmed-state refreshes
 - Helius transaction parsing and history ingestion
 - Social posts, replies, likes, follows, profiles, and token discussion
@@ -33,7 +34,7 @@ The on-chain workspace lives in `solana/`. Client adapters live in `src/lib/sola
 2. Configure a local Solana validator and Anchor toolchain using `solana/README.md`.
 3. Set the required Solana and Helius environment values through the platform secret manager.
 4. Run the web app with `npm run dev`.
-5. Connect Phantom with disposable local-development funds.
+5. Read the [launch form setup](solana/README.md#launch-form-and-public-metadata) before configuring Phantom. Token-creation transactions remain deferred until AMM/graduation work is ready.
 
 The checked-in Solana UI is intentionally explicit about confirmed state, stale quotes, slippage, and transaction recovery. Do not treat local-validator behavior as production readiness.
 

@@ -1,5 +1,5 @@
 [workspace]
-members = ["programs/kydos_launchpad"]
+members = ["programs/kydos_launchpad", "programs/kydos_amm"]
 resolver = "2"
 
 [profile.release]

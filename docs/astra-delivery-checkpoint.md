@@ -1,50 +1,18 @@
 # Astra continuity checkpoint
 
-Single rolling human handoff. Machine-readable task routes and prior research
-cursors remain in `astra-work-state.json`. This record is evidence, not authority
-to resume unrelated work.
+Single rolling handoff; design is in [launchpad-build-spec.md](launchpad-build-spec.md).
 
-## Current handoff — RPC and configuration reconciliation
+## Current handoff — Anchor/SBF dependency compatibility
 
-- **Scope/status:** Codex prepared the owner's requested RPC fixes for delivery on
-  `codex/solana-rpc-fixes` and a PR targeting `main`. No deployment or funded
-  transaction occurred.
-- **Source/base:** `main` at `d9996c47e762fd2a83ec2494e2f3d63e2080778f`, fetched
-  again before editing. Isolated branch: `codex/solana-rpc-fixes`, owned by
-  Codex for this request. `astra/latest` was not modified or merged.
-- **Decision:** owner explicitly confirmed 79.31% curve / 20.69% liquidity and
-  30 virtual SOL on 2026-09-21. Preserve the current Rust program values. The
-  existing 1B supply, 6 decimals and 85 SOL target remain unchanged.
-- **Changes:** RPC allowlist now includes fee and rent queries; request IDs are
-  preserved; public transaction confirmation uses HTTP polling. Client quotes
-  now use the same effective reserves and buy inventory cap as the program.
-  Displayed economics, current Solana documentation and tests are reconciled.
-  Program identity tests check Rust, Anchor config, browser IDL and admin code.
-  New RPC policy helper and transport tests are included in the Solana suite/CI
-  path filter. The IDL import and incomplete test connection fixtures were
-  corrected so the existing cost tests execute under Node.
-- **Checks:** 25 JavaScript tests and syntax checks passed; frontend lint and
-  production build passed. Build warned that the local Base44 app ID is absent.
-  Typecheck reports 253 errors, the same count as unchanged source; no new
-  diagnostic categories were found in the baseline comparison. Rust/Anchor tools are unavailable; no on-chain test or build
-  pass is claimed. Final static diff review performed; independent review is
-  pending via the requested PR.
-- **Access:** GitHub branch creation succeeded on 2026-09-22 after the prior
-  connector metadata errors. The remote branch was verified at the source SHA.
-  GitHub delivery/PR identifiers and current CI state are reported in the final
-  chat handoff after upload; earlier blocked-delivery claims are historical.
+- **Scope/status:** Owner approved the Anchor build repair on `codex/amm-graduation-foundation` for PR #17. GitHub access is restored. The lockfile, workflow and build documentation exactly match the locally verified repair `008e236842f703471df5d16d3fa69b1b21dc3990`; only these rolling handoff records are refreshed for delivery. Local checks pass; the resulting GitHub CI must be inspected after publication.
+- **Source/base:** GitHub reverified branch `ed7779774795c78753b6f67969197b343a2a10ec` and PR #17 base/main `2316ac8e3d74a70a5ab5d154008adea757938c19`, including RPC PR #16. The delivery uses that branch tip as its parent; no force update is authorized.
+- **Failure:** Source run `35687167604`, job `106616355756`, failed on `cpufeatures 0.3.1` requiring edition2024; an earlier run failed on `cmov`. Solana CLI 2.1.21 uses separate platform-tools v1.43 Rust/Cargo 1.79 despite host Rust 1.90.
+- **Changes:** `solana/Cargo.lock` pins six compatible dependency roots and removes the incompatible transitive packages. `.github/workflows/solana-scaffold.yml` locks host tests and separates locked SBF and IDL commands, requires all three outputs, checks lockfile immutability and uploads explicit binary/IDL/types paths. `solana/README.md` records commands, pins and remaining SDK warnings. This checkpoint and work state are updated in place.
+- **Checks on prepared tree:** Anchor 0.31.1 / Solana 2.1.21 SBF build passes using Rust 1.79.0-dev and Cargo 1.79.0. Locked IDL generation passes; program binary, IDL and TypeScript definitions are nonempty. Generated IDL address and initialize/buy/sell instruction names match expectations. Six workspace unit tests and three account-validation tests pass with `--locked`. Lockfile hash is unchanged after the full sequence. Workflow YAML and diff whitespace checks pass.
+- **Warnings/limits:** Existing Anchor macro warnings remain. The official Solana release contains an empty syscall inventory; all 12 warned symbols were checked against registration in Agave 2.1.21 source. This is compile/host evidence only. No validator, token creation, real wallet signing, deployment or funded test occurred. Frontend checks from the prior milestone were not rerun for this Rust lockfile/CI repair.
 
-## Remaining limits and next action
+## Exact next action
 
-Deliver the prepared branch through GitHub and open the PR targeting `main`;
-report its actual SHA and checks. Review and merge remain separate from delivery. Do not reimplement these fixes or merge
-the older `astra/latest` economics. Current program address consistency is not
-proof of a deployed matching binary or ownership of its keypair. Localnet remains
-the Anchor test target; the hosted UI uses the server-configured Helius endpoint.
-Mainnet spending enforcement, deployment verification and external AMM graduation
-remain separate unfinished work. Prior research/specification cursors in work
-state are preserved and were not resumed.
+Publish this prepared tree using the restored GitHub connection, then inspect PR #17 checks on the resulting delivery SHA and report it in chat. Publishing is already authorized; merge and deployment are not. Preserve the original local repair commits when synchronizing the checkout. Reuse the existing local build evidence because the build files are unchanged. Do not add a recursive self-SHA/check-status commit.
 
-Prior funded-test boundary remains: one funded test total, at most 0.05 SOL
-including principal, rent and all fees. This code/PR request does not authorize
-that test, deployments, upgrades, automatic replacement or additional spending.
+The preceding atomic launch/metadata UI work remains in the source commit. AMM initialization, migration CPI/receipt, swaps, LP/fee policy, deployed program identity and legacy-account rollout remain subsequent work. Upload setup requires server `PINATA_JWT` and deployment approval for `launchMetadata`; see [setup/build instructions](../solana/README.md). Funded creation tests remain deferred until AMM/graduation is resolved. Prior library research is not resumed here.
