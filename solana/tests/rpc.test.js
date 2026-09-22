@@ -1,24 +1,35 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Connection, Keypair } from '@solana/web3.js';
+import { Connection, Keypair, Transaction } from '@solana/web3.js';
+import { Buffer } from 'buffer';
 import { buildSolanaRpcPayload } from '../../base44/shared/solanaRpc.js';
 import { createProxyFetch } from '../../src/lib/solana/rpc.js';
 import { confirmTransactionHttp } from '../../src/lib/solana/transactions.js';
 import { buildCreateTransaction, CURVE_SPACE, FEE_POLICY_SPACE, METADATA_SPACE } from '../../src/lib/solana/client.js';
 import { estimateTransactionCosts } from '../../src/lib/solana/costs.js';
+import { simulateLaunchBeforeSigning } from '../../src/lib/solana/preflight.js';
 
-test('real web3 creation estimate traverses proxy policy with matching string IDs', async () => {
+test('real web3 creation estimate and unsigned simulation traverse the authenticated proxy policy', async () => {
   const methods = [];
+  let simulatedMessage;
   const invoke = async (name, body) => {
     assert.equal(name, 'solanaRpc');
     const request = JSON.parse(buildSolanaRpcPayload(body));
     assert.equal(typeof request.id, 'string');
     methods.push(request.method);
+    if (request.method === 'simulateTransaction') {
+      const [wire, config] = request.params;
+      assert.deepEqual(config, { commitment: 'confirmed', sigVerify: false, encoding: 'base64' });
+      const tx = Transaction.from(Buffer.from(wire, 'base64'));
+      assert.ok(tx.signatures.every(signer => signer.signature === null));
+      simulatedMessage = Buffer.from(tx.serializeMessage());
+    }
     const result = {
       getLatestBlockhash: { context: { slot: 1 }, value: { blockhash: Keypair.generate().publicKey.toBase58(), lastValidBlockHeight: 100 } },
       getFeeForMessage: { context: { slot: 1 }, value: 10000 },
       getBalance: { context: { slot: 1 }, value: 1_000_000_000 },
       getMinimumBalanceForRentExemption: 100000,
+      simulateTransaction: { context: { slot: 1 }, value: { err: null, logs: [], unitsConsumed: 100000 } },
     }[request.method];
     assert.notEqual(result, undefined);
     return { data: { jsonrpc: '2.0', id: request.id, result } };
@@ -29,10 +40,12 @@ test('real web3 creation estimate traverses proxy policy with matching string ID
     name: 'Test', symbol: 'T', metadataUri: 'https://example.com/token.json' });
   const costs = await estimateTransactionCosts({ connection, transaction, payer: wallet.publicKey,
     context: { ...metadata, curveSpace: CURVE_SPACE, feePolicySpace: FEE_POLICY_SPACE, metadataSpace: METADATA_SPACE } });
-  assert.equal(costs.requiredLamports, 510000n);
+  assert.equal(costs.requiredLamports, 615440n);
   assert.equal(costs.sufficient, true);
+  await simulateLaunchBeforeSigning(connection, transaction, { payer: wallet.publicKey, chain: 'test-chain', costs });
+  assert.deepEqual(simulatedMessage, Buffer.from(transaction.serializeMessage()));
   assert.deepEqual(methods, ['getLatestBlockhash', 'getFeeForMessage', 'getBalance',
-    ...Array(5).fill('getMinimumBalanceForRentExemption')]);
+    ...Array(6).fill('getMinimumBalanceForRentExemption'), 'simulateTransaction']);
 });
 
 test('proxy keeps method, request size and parameter restrictions', () => {

@@ -1,12 +1,8 @@
 import { Buffer } from 'buffer';
 import { buildCreateTransaction, CURVE_SPACE, FEE_POLICY_SPACE, METADATA_SPACE, METADATA_PROGRAM_ID, PROGRAM_ID, sendTransaction } from './client.js';
 import { estimateTransactionCosts } from './costs.js';
-
-// Public cluster identities, verified via getGenesisHash on the Solana public RPCs.
-export const LAUNCH_NETWORKS = Object.freeze({
-  '5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d': { name: 'Solana mainnet', explorerQuery: '' },
-  'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG': { name: 'Solana devnet', explorerQuery: '?cluster=devnet' },
-});
+import { LAUNCH_NETWORKS } from './preflight.js';
+export { LAUNCH_NETWORKS } from './preflight.js';
 
 export async function verifyLaunchNetwork(connection) {
   const chain = await connection.getGenesisHash();

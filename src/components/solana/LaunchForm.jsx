@@ -58,6 +58,7 @@ export default function LaunchForm({ flow }) {
           <div className="min-w-0"><h2 className="break-words font-semibold">{review.name} <span className="text-muted-foreground">${review.symbol}</span></h2><p className="text-xs text-muted-foreground">{review.network.name} · network verified</p></div>
         </div>
         <dl className="space-y-2 text-sm">
+          <div className="flex justify-between gap-4"><dt>Wallet balance on {review.network.name}</dt><dd>{formatAmount(review.costs.balanceLamports, 9)} SOL</dd></div>
           <div className="flex justify-between gap-4"><dt>Initial buy limit</dt><dd>{formatAmount(review.costs.inputLamports, 9)} SOL</dd></div>
           {review.quote.input > 0n && <>
             <div className="flex justify-between gap-4 text-muted-foreground"><dt>1% Kydos fee (included)</dt><dd>{formatAmount(review.quote.feeSol, 9)} SOL</dd></div>
@@ -66,12 +67,13 @@ export default function LaunchForm({ flow }) {
             <div className="flex justify-between gap-4 text-muted-foreground"><dt>Minimum tokens ({review.slippage}% slippage)</dt><dd className="text-right">{formatAmount(review.quote.minOut, 6)}</dd></div>
           </>}
           <div className="flex justify-between gap-4"><dt>Account rent</dt><dd>{formatAmount(review.costs.rentLamports, 9)} SOL</dd></div>
+          <div className="flex justify-between gap-4"><dt>Metadata creation fee</dt><dd>{formatAmount(review.costs.metadataFeeLamports, 9)} SOL</dd></div>
           <div className="flex justify-between gap-4"><dt>Network fee</dt><dd>{formatAmount(review.costs.networkFeeLamports, 9)} SOL</dd></div>
           <div className="flex justify-between gap-4 border-t border-border pt-3 font-semibold"><dt>Total estimated SOL needed</dt><dd>{formatAmount(review.costs.requiredLamports, 9)} SOL</dd></div>
         </dl>
         {review.quote.acceptedInput < review.quote.input && <p className="text-xs text-muted-foreground">This buy completes the curve. Estimated purchase cost is {formatAmount(review.quote.acceptedInput, 9)} SOL; unused input stays in your wallet.</p>}
-        <p className="text-xs text-muted-foreground">One transaction · one Phantom approval. The cost is checked again before signing.</p>
-        {!review.costs.sufficient && <p role="alert" className="text-sm text-destructive">You need {formatAmount(review.costs.shortfallLamports, 9)} more SOL. Add funds, then review again.</p>}
+        <p className="text-xs text-muted-foreground">One transaction · one Phantom approval. Use {review.network.name} and the connected account in Phantom. The cost and transaction are checked again before signing.</p>
+        {!review.costs.sufficient && <p role="alert" className="text-sm text-destructive">You need {formatAmount(review.costs.shortfallLamports, 9)} more native SOL in this wallet on {review.network.name}. Check your Phantom account and network, then review again.</p>}
         <div className="flex flex-col gap-2 sm:flex-row"><Button type="button" variant="outline" disabled={busy} onClick={flow.edit}>Edit details</Button>
           <Button type="button" className="flex-1 gold-glow" disabled={!!flow.blockedReason || !review.costs.sufficient} onClick={flow.launch}>{busy ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/>{flow.statusText}</> : <><Rocket className="mr-2 h-4 w-4"/>Launch with Phantom</>}</Button>
         </div>

@@ -92,8 +92,12 @@ bytes are sent to the upload endpoint.
 
 Review reads the actual RPC genesis hash (mainnet/devnet supported) and checks
 that the configured Kydos and Metaplex programs are executable. It displays
-purchase input, included 1% fee, net curve purchase, rent (including FeePolicy),
-network fee and estimated/minimum tokens. The same mint and
+the wallet's native SOL balance on that network, purchase input, included 1%
+fee, net curve purchase, rent (including FeePolicy), the separate Metaplex
+metadata creation fee, network fee and estimated/minimum tokens. Metaplex's
+creation levy is `getMinimumBalanceForRentExemption(1308) + 5440` lamports,
+in addition to metadata account rent; it is not a fixed 0.01 SOL charge.
+The same mint and
 instructions are retained for signing; fresh fees/balance and network are checked
 again. An increased total requires another review. Executable-account checks do
 not verify that the deployed program binary matches the reviewed source.
@@ -103,11 +107,30 @@ creator ATA creation, buy. Zero buy omits the last two instructions. The wallet
 signs once after the mint's partial signature. Packet size is checked before
 signing; the client never splits the transaction. The 600,000-CU limit is an
 execution ceiling, not a measured requirement; no priority fee is added here.
-Measure/simulate the deployed instruction before the deferred creation test.
+Before opening Phantom, the client simulates the complete legacy message on
+the submission RPC with `sigVerify: false`. This is an unsigned, read-only
+precheck; it does not replace signature verification or send-time preflight.
+Simulation errors prevent wallet signing and leave the launch unsubmitted.
+Phantom's connected account and fee payer are checked before and after approval.
+Deploy the updated `solanaRpc` function/shared allowlist together with the frontend
+so the authenticated proxy accepts `simulateTransaction`.
 
 Phantom must run in a standalone HTTPS/localhost page, not an iframe preview.
 Changing Phantom's displayed cluster does not reconfigure HELIUS_RPC_URL. Local
 validator suites remain separate from this mainnet/devnet UI.
+
+`AccountNotFound` ("Attempt to debit an account but found no record of a prior
+credit") is a transaction-level funding error. Check the fee payer's native SOL
+on the actual RPC network; no WSOL account is required for this creation path.
+If app simulation passes but Phantom reports this error, verify its account and
+selected network match the launch review. Failed app simulations and funding
+errors from Phantom identify the payer, network and last checked SOL balance.
+
+The public RPC checks on 2026-09-22 found no account at the configured Kydos
+address `Fg6PaFpoGXkYsidMpWxTWqkZqvFmR6UJA4R9C3bZ9S2` on mainnet (slot
+449384808) or devnet (slot 502433751). A verified deployment and matching IDL/
+program identity are still prerequisites for live launches. The separate admin
+launch route uses a server signer, not Phantom, and is outside this wallet fix.
 
 ## Checks
 

@@ -11,6 +11,7 @@ import { useActivity } from '@/lib/solana/Activity';
 const stages = {
   checking: 'Checking launch availability…', 'uploading-image': 'Uploading image…',
   'uploading-metadata': 'Saving token details…', preparing: 'Preparing transaction…',
+  simulating: 'Checking launch transaction…',
   signing: 'Approve in Phantom…', submitting: 'Submitting transaction…', confirming: 'Confirming on Solana…',
 };
 

@@ -7,6 +7,8 @@ import { ASSOCIATED_TOKEN_PROGRAM_ID, ACCOUNT_SIZE, getAssociatedTokenAddress } 
 import { buildCreateTransaction, PROGRAM_ID, quoteInitialBuy } from '../../src/lib/solana/client.js';
 import { prepareLaunchReview, submitReviewedLaunch, LAUNCH_NETWORKS } from '../../src/lib/solana/launchReview.js';
 import { encodeSignature } from '../../src/lib/solana/transactions.js';
+import { createPhantomSigner } from '../../src/lib/solana/phantom.js';
+import { createActivityStore } from '../../src/lib/solana/lifecycle.js';
 
 const payer = Keypair.generate();
 const wallet = { publicKey: payer.publicKey };
@@ -21,6 +23,7 @@ function rpc() {
     getFeeForMessage: async () => ({ value: 10_000 }),
     getBalance: async () => 200_000_000_000,
     getMinimumBalanceForRentExemption: async size => size * 10,
+    simulateTransaction: async () => ({ value: { err: null, logs: [] } }),
     getSignatureStatuses: async () => ({ value: [{ err: null, confirmationStatus: 'confirmed' }] }),
     sendRawTransaction: async () => { throw new Error('Unexpected broadcast'); },
   };
@@ -60,16 +63,135 @@ test('review includes creator ATA rent and full authorized buy input, retains th
   assert.equal(review.costs.requiredLamports - plain.review.costs.requiredLamports, args.initialBuyLamports + BigInt(ACCOUNT_SIZE * 10));
   let signs = 0, sends = 0;
   const stages = [];
-  const signer = { ...wallet, signTransaction: async tx => {
+  let simulatedMessage;
+  connection.simulateTransaction = async (tx, config) => {
+    assert.deepEqual(config, { commitment: 'confirmed', sigVerify: false });
+    assert.equal(tx.message.version, 'legacy');
+    simulatedMessage = Buffer.from(tx.message.serialize());
+    assert.equal(signs, 0); assert.equal(sends, 0);
+    return { value: { err: null } };
+  };
+  const provider = { isPhantom: true, publicKey: payer.publicKey, signTransaction: async tx => {
     signs++;
+    assert.deepEqual(Buffer.from(tx.serializeMessage()), simulatedMessage);
     assert.ok(tx.signatures.find(s => s.publicKey.equals(built.mint.publicKey)).signature);
     tx.partialSign(payer); return tx;
   } };
+  const signer = { ...wallet, ...createPhantomSigner(provider, payer.publicKey) };
   connection.sendRawTransaction = async wire => { sends++; assert.ok(wire.length < 1233); return encodeSignature(built.transaction.signature); };
   const result = await submitReviewedLaunch({ connection, wallet: signer, built, review, activity, onStage: s => stages.push(s) });
   assert.equal(result.mint, review.mint);
   assert.equal(signs, 1); assert.equal(sends, 1);
-  assert.deepEqual(stages, ['preparing', 'signing', 'submitting', 'confirming']);
+  assert.deepEqual(stages, ['preparing', 'simulating', 'signing', 'submitting', 'confirming']);
+});
+
+function journal() {
+  const data = new Map();
+  return createActivityStore({ storage: { getItem: key => data.get(key) ?? null, setItem: (key, value) => data.set(key, value) },
+    locks: { request: async (_name, _options, run) => run({}) }, id: () => 'test-launch' });
+}
+
+test('unfunded launch identifies wallet and actual RPC network before simulation or Phantom', async () => {
+  const connection = rpc();
+  const { built, review } = await prepareLaunchReview({ ...args, connection });
+  connection.getBalance = async () => 0;
+  let signs = 0, simulations = 0, sends = 0;
+  connection.simulateTransaction = async () => { simulations++; };
+  connection.sendRawTransaction = async () => { sends++; };
+  const store = journal();
+  await assert.rejects(submitReviewedLaunch({ connection, built, review, activity: store,
+    wallet: { ...wallet, signTransaction: async () => { signs++; } },
+  }), error => error.state === 'not-submitted' && error.message.includes(payer.publicKey.toBase58()) &&
+    error.message.includes('Solana devnet') && error.message.includes('0 native SOL'));
+  assert.equal(signs, 0); assert.equal(simulations, 0); assert.equal(sends, 0);
+  assert.equal(store.read()[0].state, 'not-submitted');
+});
+
+test('failed or unavailable pre-sign simulation stops before Phantom and leaves launch retryable', async () => {
+  for (const failure of ['AccountNotFound', 'InsufficientFundsForFee', 'BlockhashNotFound', { InstructionError: [1, { Custom: 1 }] }, 'transport', 'missing-result', 'chain-changed']) {
+    const connection = rpc();
+    const { built, review } = await prepareLaunchReview({ ...args, connection });
+    let signs = 0, sends = 0;
+    connection.simulateTransaction = async () => {
+      if (failure === 'transport') throw new Error('Simulation RPC unavailable');
+      if (failure === 'missing-result') return {};
+      if (failure === 'chain-changed') { connection.getGenesisHash = async () => Object.keys(LAUNCH_NETWORKS)[0]; return { value: { err: null } }; }
+      return { value: { err: failure, logs: [] } };
+    };
+    connection.sendRawTransaction = async () => { sends++; };
+    const store = journal();
+    await assert.rejects(submitReviewedLaunch({ connection, built, review, activity: store,
+      wallet: { ...wallet, signTransaction: async () => { signs++; } },
+    }), error => {
+      assert.equal(error.state, 'not-submitted');
+      if (failure === 'AccountNotFound') {
+        assert.match(error.message, /Solana simulation.*funded fee payer/);
+        assert.match(error.message, /Solana devnet/);
+        assert.ok(error.message.includes(payer.publicKey.toBase58()));
+      }
+      return true;
+    });
+    assert.equal(signs, 0); assert.equal(sends, 0);
+    assert.equal(store.read()[0].state, 'not-submitted');
+  }
+});
+
+test('Phantom funding failure after successful app simulation reports the checked wallet/network without sending', async () => {
+  for (const error of [new Error('Attempt to debit an account but found no record of a prior credit.'),
+    Object.assign(new Error('Unexpected error'), { data: { err: 'AccountNotFound' } })]) {
+    const connection = rpc();
+    const { built, review } = await prepareLaunchReview({ ...args, connection });
+    let sends = 0;
+    connection.sendRawTransaction = async () => { sends++; };
+    const store = journal();
+    await assert.rejects(submitReviewedLaunch({ connection, built, review, activity: store,
+      wallet: { ...wallet, signTransaction: async () => { throw error; } },
+    }), result => result.state === 'not-submitted' && /Phantom could not find a funded fee payer/.test(result.message) &&
+      /Solana devnet/.test(result.message) && result.message.includes(payer.publicKey.toBase58()));
+    assert.equal(sends, 0);
+  }
+});
+
+test('Phantom rejects a different payer and detects account changes while its popup is open', async () => {
+  for (const change of ['payer', 'before', 'during', 'disconnect']) {
+    const connection = rpc();
+    const { built, review } = await prepareLaunchReview({ ...args, connection });
+    let signs = 0, sends = 0;
+    const provider = { isPhantom: true, publicKey: payer.publicKey, signTransaction: async tx => {
+      signs++; tx.partialSign(payer);
+      provider.publicKey = change === 'disconnect' ? null : Keypair.generate().publicKey;
+      return tx;
+    } };
+    const signer = { ...wallet, ...createPhantomSigner(provider, payer.publicKey) };
+    connection.sendRawTransaction = async () => { sends++; };
+    if (change === 'payer') {
+      built.transaction.feePayer = built.mint.publicKey;
+      await assert.rejects(signer.signTransaction(built.transaction), /fee payer/);
+    } else {
+      if (change === 'before') provider.publicKey = Keypair.generate().publicKey;
+      await assert.rejects(submitReviewedLaunch({ connection, built, review, activity: journal(), wallet: signer }), /account changed or disconnected/);
+    }
+    assert.equal(signs, ['during', 'disconnect'].includes(change) ? 1 : 0);
+    assert.equal(sends, 0);
+  }
+});
+
+test('wallet message mutation and missing mint signature are rejected before broadcast', async () => {
+  for (const change of ['message', 'mint-signature']) {
+    const connection = rpc();
+    const { built, review } = await prepareLaunchReview({ ...args, connection });
+    let sends = 0;
+    connection.sendRawTransaction = async () => { sends++; };
+    await assert.rejects(submitReviewedLaunch({ connection, built, review, activity: journal(), wallet: { ...wallet,
+      signTransaction: async tx => {
+        if (change === 'message') tx.instructions[1].data = Buffer.from([1]);
+        tx.partialSign(payer);
+        if (change === 'mint-signature') tx.signatures.find(s => s.publicKey.equals(built.mint.publicKey)).signature = null;
+        return tx;
+      },
+    } }), change === 'message' ? /Wallet changed the transaction/ : /Signature verification failed/);
+    assert.equal(sends, 0);
+  }
 });
 
 test('changed wallet, message, network, fees and unavailable programs prevent signing', async () => {

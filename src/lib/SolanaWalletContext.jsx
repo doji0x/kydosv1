@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createPhantomSigner } from './solana/phantom.js';
 const Context = createContext(null);
 
 export function SolanaWalletProvider({ children }) {
@@ -27,15 +28,9 @@ export function SolanaWalletProvider({ children }) {
     setPublicKey(null);
   }, [phantom]);
   const value = useMemo(() => {
-    const requireWallet = () => {
-      if (!phantom || !publicKey || !phantom.publicKey?.equals(publicKey)) {
-        throw new Error('Wallet account changed or disconnected. Reconnect before signing.');
-      }
-    };
     return {
       installed: !!phantom, connected: !!publicKey, publicKey, connect, disconnect,
-      signTransaction: tx => { requireWallet(); return phantom.signTransaction(tx); },
-      signAllTransactions: txs => { requireWallet(); return phantom.signAllTransactions(txs); },
+      ...createPhantomSigner(phantom, publicKey),
     };
   }, [phantom, publicKey, connect, disconnect]);
   return <Context.Provider value={value}>{children}</Context.Provider>;

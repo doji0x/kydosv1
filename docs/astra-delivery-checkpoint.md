@@ -1,29 +1,29 @@
 # Astra continuity checkpoint
 
-Single rolling handoff; design is in [launchpad-build-spec.md](launchpad-build-spec.md)
-and [meteora-adapter.md](meteora-adapter.md).
+Single rolling handoff; architecture is in [launchpad-build-spec.md](launchpad-build-spec.md)
+and [meteora-adapter.md](meteora-adapter.md). Launch setup and diagnosis are in
+[the Solana README](../solana/README.md#launch-form-and-public-metadata).
 
-## Current handoff — DAMM v2 adapter foundation
+## Current handoff — Phantom launch funding and preflight
 
-- **Scope/status:** Milestone 2 after the migration research: compatible Meteora interface, strict private-config validation, deterministic custody addresses, integer seed calculations and proposed receipt schema. Locally verified on `codex/damm-v2-adapter`; publication and exact-SHA CI inspection follow. No executable migration or changes to current trading behavior.
-- **Source/base:** PR #19 merged as `9eb9da645fd65bb99db941e6d31039c0bfc4dc38`. Both fee-delivery CI checks passed on `17757bac5a8c359a36af8fcf95c69faff79152aa`; main has the same tree. This task starts a separate branch from that merge.
-- **Implementation:** Launchpad `meteora.rs` constructs the 21-account / 107-byte private dynamic config initializer with fixed 100-bps fees, OnlyB, full range, immediate timestamp activation and no dynamic fees/compounding/AlphaVault. Rust and JS constrain the config's owner, address, discriminator, length, creator, type, index and permissions. Separate system payer, position owner, NFT mint, staging and receipt PDAs preserve program custody.
-- **Math/schema:** Exact integer positive-root calculation, bounded liquidity and ceil debit amounts, explicit dust. Preflight uses the reserved 206.9M tokens and actual tracked net SOL, excludes donations/virtual SOL, preserves rent and rejects incomplete/unsupported/deficient curves. Proposed receipt body is 347 bytes (355 with a future discriminator); it is not initialized or exposed by current instructions.
-- **Pins/files:** Official SDK 1.4.10 / IDL 0.2.4 as test-only dependencies; pinned source commits and operator setup in the adapter contract. New Rust/JS adapter modules, SDK fixture generator, shared fixtures and host tests; manifests, CI, build spec and README updated. Exact changed-file list is in `astra-work-state.json`. Existing npm resolutions and Rust crate versions preserved.
-- **Checks:** 45 JS tests; 20 Rust tests; 12 SDK seed vectors including dust and two complete config/address/instruction fixtures. New module typecheck, syntax, lint, frontend build, locked SBF and IDL generation, generated-IDL comparison, new-file rustfmt, YAML/JSON and diff checks pass. App typecheck still fails with 138 diagnostics identical to main using the same installed dependencies. IDL unchanged; artifact hashes/commands in work state.
-- **Limits:** Host serialization/parity does not prove runtime migration or idempotency. No validator/creation test, real signing, funded transaction, deployment or merge. Existing Anchor/Solana SDK warnings remain. The future handler's compute/heap budget, rollback, concurrent calls, deployed executable parity, locking and claims still need runtime verification.
+- **Scope/status:** Reviewed the reported debit/unfunded-account failure and fixed the Phantom launch path on `codex/launch-funding-preflight`. The owner requested a commit on a new branch. Changes are locally verified; publication and exact-SHA CI inspection follow. The actual failed wallet transaction was not supplied, so its cause is not claimed as confirmed.
+- **Source/base:** `bf3da2756fd48918d37defd31e030c7b647a0afe`, the verified merge of PR #20. Its tree matches adapter delivery `d5a4daf4863dd9d0789d3ee0a2566374561e2e9e`. No intervening main changes were found when this task began.
+- **Implementation:** Creation estimates include Metaplex's separate rent-derived levy (`rent(1308) + 5440` lamports). Review displays native SOL balance, verified network and metadata fee. The complete legacy launch message is simulated on the submission RPC before Phantom, without changing its blockhash or requesting a wallet signature. The authenticated proxy permits this read-only method. Wallet errors identify the actual payer/network; Phantom payer/account checks also run after approval.
+- **Signing/recovery:** Creation remains one atomic transaction with mint plus wallet signatures. Missing signatures, changed message/account/network, failed simulation and inadequate balance stop before broadcast. Signature verification and send-time preflight remain required; ambiguous submissions retain the existing recovery lock. No automatic replacement transaction or network switch is introduced.
+- **Files:** Client costs, signing/preflight, wallet context, review, launch UI/stage and RPC allowlist; three regression test files and these records. Exact list in `astra-work-state.json`. No program, IDL, dependencies or admin server-wallet launcher changes.
+- **Checks:** All 51 Solana JS tests and SDK fixture checks pass; 25 directly affected tests pass. Lint, frontend build, Solana syntax checks, new-module type/syntax checks and diff checks pass. Full app typecheck and Rust/SBF/IDL builds were not repeated for this client-only change; the prior milestone recorded existing app typecheck errors.
+- **Live read-only evidence:** Mainnet simulation with a generated unfunded payer returned `AccountNotFound`, empty logs and zero units at slot 449384837. No transaction was submitted. Configured Kydos address `Fg6PaFpoGXkYsidMpWxTWqkZqvFmR6UJA4R9C3bZ9S2` returned no account on mainnet slot 449384808 and devnet slot 502433751 (2026-09-22). This blocks live creation with the checked-in identity independently of the wallet fixes.
+- **Limits:** No real Phantom extension execution, funded launch, backend/frontend deployment or merge. Hosted app/runtime secrets and the user's failing wallet/network were not inspected. Local frontend build has no live Base44 app configuration. The separate admin launch route signs with a server wallet and needs its own review if that was the failing route.
 
 ## Exact next action
 
-Publish the prepared tree on `codex/damm-v2-adapter`, open the PR to main, inspect
-its checks and report the resulting commit SHA in chat. Do not create a recursive
-commit to write this checkpoint's own SHA. Merge and deployment remain with the owner.
+Commit/publish this verified tree on the requested new branch, inspect exact-SHA
+checks and report the delivery SHA. Deploy the updated frontend and `solanaRpc`
+allowlist together when rollout is authorized. Establish the actual deployed
+Kydos program ID/network and bind verified program/client artifacts before a
+funded launch. Obtain the failing page, public wallet/network or simulation logs
+to tie the reported error to the hosted app. Merge remains with the owner.
 
-Next is executable DAMM migration. First establish the final Kydos program ID,
-have a Meteora operator provision the private dynamic config for its
-`[meteora_pool_creator]` signer, and bind that config in the launchpad route.
-No approved/verified config is recorded yet. Resolve program custody versus a
-permanent lock; no irreversible policy is selected here. Then implement atomic
-staging/SyncNative, CPI, post-state validation, the approved lock, receipt/retry
-enforcement, fixed-destination dust/refunds and treasury fee claims. Funded
-creation remains deferred until migration/graduation is ready.
+DAMM v2 executable migration remains separate unfinished work: verified Kydos
+identity, operator-provisioned private config and custody/locking decision are
+still required. The merged adapter has no callable migration or WSOL staging.

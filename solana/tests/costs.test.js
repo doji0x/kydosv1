@@ -14,7 +14,8 @@ const wallet = { publicKey: payer.publicKey };
 const launch = { wallet, name: 'Test', symbol: 'T', metadataUri: 'https://example.com/token.json' };
 const tradeArgs = { wallet, mint, side: 'buy', amount: 100n, minOut: 1n };
 const rentFor = size => size * 10;
-const createRequired = 10000 + rentFor(MINT_SIZE) + rentFor(CURVE_SPACE) + rentFor(FEE_POLICY_SPACE) + rentFor(ACCOUNT_SIZE) + rentFor(METADATA_SPACE);
+const metadataFee = rentFor(1308) + 5440;
+const createRequired = 10000 + metadataFee + rentFor(MINT_SIZE) + rentFor(CURVE_SPACE) + rentFor(FEE_POLICY_SPACE) + rentFor(ACCOUNT_SIZE) + rentFor(METADATA_SPACE);
 
 function tokenInfo(tokens = 100n) {
   const data = Buffer.alloc(ACCOUNT_SIZE);
@@ -51,6 +52,7 @@ function rpc(overrides = {}) {
       calls.accounts.push(address); return tokenInfo();
     },
     sendRawTransaction: async () => { calls.broadcasts++; throw new Error('Unexpected broadcast'); },
+    simulateTransaction: async () => ({ value: { err: null } }),
     ...overrides,
   };
   return { connection, calls };
@@ -67,17 +69,32 @@ async function estimateTrade(args) {
   return estimateTransactionCosts({ connection: args.connection, transaction: await buildTradeTransaction(args), payer: args.wallet.publicKey, context: tradeContext(args) });
 }
 
-test('create estimates actual two-signature message and mint, curve, fee policy, vault and metadata rent', async () => {
+test('create estimates the two-signature message, account deposits and separate Metaplex fee', async () => {
   const { connection, calls } = rpc({ getBalance: async () => createRequired });
   const result = await estimateCreate({ ...launch, connection });
   assert.deepEqual(result, { inputLamports: 0n, networkFeeLamports: 10000n,
-    rentLamports: BigInt(createRequired - 10000), requiredLamports: BigInt(createRequired),
+    rentLamports: BigInt(createRequired - 10000 - metadataFee), metadataFeeLamports: BigInt(metadataFee), requiredLamports: BigInt(createRequired),
     balanceLamports: BigInt(createRequired), shortfallLamports: 0n, sufficient: true });
-  assert.deepEqual(calls.rents, [MINT_SIZE, CURVE_SPACE, FEE_POLICY_SPACE, ACCOUNT_SIZE, METADATA_SPACE]);
+  assert.deepEqual(calls.rents, [MINT_SIZE, CURVE_SPACE, FEE_POLICY_SPACE, ACCOUNT_SIZE, METADATA_SPACE, 1308]);
   assert.equal(calls.fees[0].header.numRequiredSignatures, 2);
   assert.ok(calls.fees[0].accountKeys[0].equals(payer.publicKey));
   assert.equal(calls.blockhashes, 1);
   assert.equal(calls.accounts.length, 0);
+});
+
+test('creation budget rejects a wallet covering rent and buy but missing the rent-dependent metadata levy', async () => {
+  // Two real rent schedules: guard against hard-coding the old 0.01 SOL fee.
+  for (const [rate, expectedFee] of [[6960, 10_000_000n], [5080, 7_300_320n]]) {
+    const accountRent = size => (size + 128) * rate;
+    const oldRequired = 1_000_000_000 + 10_000 + [MINT_SIZE, CURVE_SPACE, FEE_POLICY_SPACE, ACCOUNT_SIZE, METADATA_SPACE, ACCOUNT_SIZE].reduce((sum, size) => sum + accountRent(size), 0);
+    const { connection } = rpc({ getMinimumBalanceForRentExemption: async size => accountRent(size), getBalance: async () => oldRequired });
+    const estimate = await estimateCreate({ ...launch, connection, initialBuyLamports: 1_000_000_000n });
+    assert.equal(estimate.metadataFeeLamports, expectedFee);
+    assert.equal(estimate.shortfallLamports, expectedFee);
+    assert.equal(estimate.sufficient, false);
+    connection.getBalance = async () => oldRequired + Number(expectedFee);
+    assert.equal((await estimateCreate({ ...launch, connection, initialBuyLamports: 1_000_000_000n })).sufficient, true);
+  }
 });
 
 test('buy uses full authorized input, existing ATA has no rent, missing ATA adds ACCOUNT_SIZE rent', async () => {
@@ -90,6 +107,7 @@ test('buy uses full authorized input, existing ATA has no rent, missing ATA adds
     const result = await estimateTrade({ ...tradeArgs, amount: quote.input, minOut: quote.minOut, connection });
     assert.equal(result.inputLamports, 100n);
     assert.equal(result.networkFeeLamports, 5000n);
+    assert.equal(result.metadataFeeLamports, 0n);
     assert.equal(result.rentLamports, missing ? BigInt(rentFor(ACCOUNT_SIZE)) : 0n);
     assert.equal(result.requiredLamports, 5100n + result.rentLamports);
     assert.deepEqual(calls.rents, missing ? [ACCOUNT_SIZE] : []);
@@ -194,7 +212,7 @@ test('preview success does not authorize submission after balance or ATA changes
   connection.getBalance = async () => 5099;
   let signed = 0;
   await assert.rejects(sendTransaction(connection, { ...wallet, signTransaction: async () => { signed++; } },
-    await buildTradeTransaction({ ...tradeArgs, connection }), [], { operation: 'buy', mint: mint.toBase58(), amount: '100', minOut: '1' }, activity), /short 1 lamports/);
+    await buildTradeTransaction({ ...tradeArgs, connection }), [], { operation: 'buy', mint: mint.toBase58(), amount: '100', minOut: '1' }, activity), /0\.000000001 more SOL/);
   assert.equal(signed, 0); assert.equal(calls.broadcasts, 0);
   assert.equal(calls.blockhashes, 2);
   assert.notEqual(calls.fees[0].recentBlockhash, calls.fees[1].recentBlockhash);
