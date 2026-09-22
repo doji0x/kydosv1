@@ -1,34 +1,50 @@
 # Astra continuity checkpoint
 
-Single rolling human handoff. Update in place; no transcripts or dated status files. This is evidence, not permission to resume old work. Machine-readable task routes and research cursors live in [astra-work-state.json](astra-work-state.json); source findings belong in [reference-index.md](reference-index.md).
+Single rolling human handoff. Machine-readable task routes and prior research
+cursors remain in `astra-work-state.json`. This record is evidence, not authority
+to resume unrelated work.
 
-## Minimal resume
+## Current handoff — RPC and configuration reconciliation
 
-1. Check current delivery HEAD/checks; read `AGENTS.md` and this note once. Read work state only when selecting/resuming a task.
-2. Compare against the source SHA below once; separate already-completed changes from unfinished work. After an owner merge, verify upstream evidence rather than assuming branch labels moved.
-3. Pick one outcome and its task route. Start with no more than five task-specific files (soft limit); expand only for a concrete dependency, relevant diff, failing check or acceptance gap. No whole-repository scan.
-4. Read touched files before editing; reuse current-turn content unless changed. Stop on unexpected concurrent edits. Save actual research hashes/offsets after bounded batches, before the turn ends.
-5. Report delivery SHA/checks in chat, not a recursive self-SHA commit. Update this note and work state at useful milestones, not after every read.
+- **Scope/status:** Codex prepared the owner's requested RPC fixes for delivery on
+  `codex/solana-rpc-fixes` and a PR targeting `main`. No deployment or funded
+  transaction occurred.
+- **Source/base:** `main` at `d9996c47e762fd2a83ec2494e2f3d63e2080778f`, fetched
+  again before editing. Isolated branch: `codex/solana-rpc-fixes`, owned by
+  Codex for this request. `astra/latest` was not modified or merged.
+- **Decision:** owner explicitly confirmed 79.31% curve / 20.69% liquidity and
+  30 virtual SOL on 2026-09-21. Preserve the current Rust program values. The
+  existing 1B supply, 6 decimals and 85 SOL target remain unchanged.
+- **Changes:** RPC allowlist now includes fee and rent queries; request IDs are
+  preserved; public transaction confirmation uses HTTP polling. Client quotes
+  now use the same effective reserves and buy inventory cap as the program.
+  Displayed economics, current Solana documentation and tests are reconciled.
+  Program identity tests check Rust, Anchor config, browser IDL and admin code.
+  New RPC policy helper and transport tests are included in the Solana suite/CI
+  path filter. The IDL import and incomplete test connection fixtures were
+  corrected so the existing cost tests execute under Node.
+- **Checks:** 25 JavaScript tests and syntax checks passed; frontend lint and
+  production build passed. Build warned that the local Base44 app ID is absent.
+  Typecheck reports 253 errors, the same count as unchanged source; no new
+  diagnostic categories were found in the baseline comparison. Rust/Anchor tools are unavailable; no on-chain test or build
+  pass is claimed. Final static diff review performed; independent review is
+  pending via the requested PR.
+- **Access:** GitHub branch creation succeeded on 2026-09-22 after the prior
+  connector metadata errors. The remote branch was verified at the source SHA.
+  GitHub delivery/PR identifiers and current CI state are reported in the final
+  chat handoff after upload; earlier blocked-delivery claims are historical.
 
-## Current handoff
+## Remaining limits and next action
 
-- **Scope/status:** conversation #29 focused continuity system implemented. Added task-to-file routes, soft read budget, targeted invalidation rules, exact research cursor format and a recovered unfinished-work pointer. These are durable working instructions and state, not automated runtime enforcement.
-- **Owner:** Astra direct chat on `astra/latest`; no Builder delegation. Owner plans merge to `main`.
-- **Source/base:** `e683d20589587aa2601828bf519b162189a80265`. Observed upstream `main`: `1409cc3ee56be4678447a7e2e4ba53e53281dd97`. Comparison reports diverged: 3 delivery commits / 2 upstream commits. No upstream integration attempted; current documentation changes do not depend on upstream-only work. Merge compatibility is not verified by these tools.
-- **Changed files:** `AGENTS.md`, `docs/astra-work-state.json`, this checkpoint. No application, deployed orchestration, wallet or transaction changes.
-- **Evidence:** current branch/upstream status, baseline comparison, and reads limited to existing instructions/checkpoint plus absence check for the new state file. No tree scan or repeat library research. Previous checkpoint was stale at request #23; this update preserves completed reference work instead of restarting it.
-- **Checks:** no checks reported on source HEAD. No tests executed (no shell available); these are documentation/process records. Inspect final HEAD checks and report in chat; upstream passing checks do not establish a pass on delivery.
-- **Access:** repository tools, paginated library inventory/search/read and approved raw public-document fetch are now callable. The older reference index's unavailable-tool statements are historical, not current capability claims. Library completeness and deployed Base44 behavior remain unverified. No shell, merge, deployment, wallet-signing or live-job inspection tools.
+Deliver the prepared branch through GitHub and open the PR targeting `main`;
+report its actual SHA and checks. Review and merge remain separate from delivery. Do not reimplement these fixes or merge
+the older `astra/latest` economics. Current program address consistency is not
+proof of a deployed matching binary or ownership of its keypair. Localnet remains
+the Anchor test target; the hosted UI uses the server-configured Helius endpoint.
+Mainnet spending enforcement, deployment verification and external AMM graduation
+remain separate unfinished work. Prior research/specification cursors in work
+state are preserved and were not resumed.
 
-## Boundaries retained
-
-- Independent Solana launchpad using provided framework; no pump.fun SDK. Existing economics are not automatically owner-approved. Legacy `archive/` is reference-only.
-- Build before transaction verification; mock/unit checks and source inspection do not prove on-chain success.
-- Maximum **0.05 SOL (50,000,000 lamports) per test**, with the accepted initial plan limited to **one funded test total**, including principal, rent, network/priority fees and protocol charges. No automatic replacement/retry spending, deployments, upgrades or additional funded tests.
-- Mainnet remains gated by integrated spending enforcement, bounded costs, explicit enablement, verified target program and readiness checks. Prior handoff reports unwired budget/missing enablement/unverified deployment; not re-audited or fixed here.
-
-## Next action
-
-- **Owner:** review/merge this process milestone as planned. Astra must verify actual delivery/upstream state afterward; no merge or deployment is claimed.
-- **Astra, when research resumes:** follow `library-and-build-spec` in work state. Retrieval implementation, reference helper tests, CI wiring and partial index already have exact commit evidence there. Do not recreate them. Inventory cursor starts at 0 because previous legacy search did not establish a complete inventory; no invented progress markers. Verify existence of `docs/launchpad-build-spec.md` before treating the index's link as completed work. Research and launchpad implementation were not resumed during this milestone.
-- **Blockers/limits:** complete research/specification still outstanding; test execution and branch merging are unavailable in this session. No known blocker to using this focused-read system immediately.
+Prior funded-test boundary remains: one funded test total, at most 0.05 SOL
+including principal, rent and all fees. This code/PR request does not authorize
+that test, deployments, upgrades, automatic replacement or additional spending.

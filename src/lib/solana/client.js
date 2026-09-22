@@ -2,9 +2,9 @@ import { Buffer } from 'buffer';
 import { AnchorProvider, BN, BorshAccountsCoder, Program } from '@coral-xyz/anchor';
 import { Keypair, PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY, Transaction } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress, createAssociatedTokenAccountIdempotentInstruction, unpackAccount } from '@solana/spl-token';
-import idl from './idl/kydos_launchpad.json';
+import idl from './idl/kydos_launchpad.json' with { type: 'json' };
 import { rawAmount, validateLaunch } from './market.js';
-import { encodeSignature } from './transactions.js';
+import { encodeSignature, confirmTransactionHttp } from './transactions.js';
 import { browserActivity } from './lifecycle.js';
 import { estimateTransactionCosts } from './costs.js';
 
@@ -98,7 +98,7 @@ export async function sendTransaction(connection, wallet, tx, extra = [], metada
     save({ state: 'submitting' });
     const returned = await connection.sendRawTransaction(wire, { skipPreflight: false, preflightCommitment: 'confirmed', maxRetries: 0 });
     if (returned !== signature) throw new Error('RPC returned a different signature');
-    const result = await connection.confirmTransaction({ signature, ...latest }, 'confirmed');
+    const result = await confirmTransactionHttp(connection, { signature, ...latest });
     if (result.value.err) {
       save({ state: 'failed', message: 'Confirmed on-chain failure' });
       throw new Error('Transaction failed on chain');

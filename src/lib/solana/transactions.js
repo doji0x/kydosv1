@@ -20,6 +20,26 @@ export async function checkTransaction(connection, signature) {
   return { state: 'unknown', signature, message: 'Transaction observed but not yet confirmed. Do not resubmit.' };
 }
 
+// The authenticated RPC proxy is HTTP-only. Do not open a WebSocket to its
+// placeholder URL. Missing/expired evidence stays ambiguous and never resubmits.
+export async function confirmTransactionHttp(connection, { signature, lastValidBlockHeight }, {
+  timeoutMs = 60000, pollIntervalMs = 1000,
+} = {}) {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const { context, value } = await connection.getSignatureStatuses([signature], { searchTransactionHistory: true });
+    const status = value[0];
+    if (status && ['confirmed', 'finalized'].includes(status.confirmationStatus)) {
+      return { context, value: { err: status.err } };
+    }
+    const height = await connection.getBlockHeight('confirmed');
+    if (height > lastValidBlockHeight || Date.now() >= deadline) {
+      throw outcomeError('Confirmation unavailable or blockhash expired', signature);
+    }
+    await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+  }
+}
+
 export function outcomeError(cause, signature, state = 'unknown') {
   const error = new Error(state === 'unknown'
     ? 'Submission or confirmation unavailable. This transaction may have landed. Check its signature; do not resubmit.'

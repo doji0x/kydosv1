@@ -1,4 +1,5 @@
-// Mirrors the checked-in lib.rs, NOT approved production economics.
+// Owner-confirmed allocation: 79.31% curve, 20.69% liquidity, 30 virtual SOL.
+// Quotes mirror lib.rs; deployment and graduation behavior need separate validation.
 export const U64_MAX = (1n << 64n) - 1n;
 const VIRTUAL_SOL = 30_000_000_000n;
 const TARGET = 85_000_000_000n;
@@ -48,7 +49,8 @@ export function quoteTrade(market, side, amount, slippageBps) {
     throw new Error('Slippage must be an integer from 0 to 9999 basis points');
   }
   const sol = rawAmount(market.realSolReserve);
-  const tokens = rawAmount(market.tokenReserve);
+  const realTokens = rawAmount(market.tokenReserve);
+  const tokens = rawAmount(realTokens + LP_TOKENS, 'Effective token reserve');
   if (market.decimals !== 6 || rawAmount(market.graduationTarget) !== TARGET || typeof market.graduated !== 'boolean') {
     throw new Error('Unsupported market contract');
   }
@@ -58,8 +60,9 @@ export function quoteTrade(market, side, amount, slippageBps) {
   let output;
   if (side === 'buy') {
     output = !market.graduated && sol + acceptedInput === TARGET
-      ? tokens - LP_TOKENS
+      ? realTokens
       : tokens - (x * tokens / (x + acceptedInput));
+    if (output > realTokens) output = realTokens;
     rawAmount(sol + acceptedInput, 'Resulting SOL reserve');
   } else {
     output = x - (x * tokens / (tokens + input));

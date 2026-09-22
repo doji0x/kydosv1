@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "check": "node --check ../src/lib/solana/client.js && node --check ../src/lib/solana/config.js",
-    "test": "node --test tests/config.test.js tests/costs.test.js tests/math.test.js",
+    "test": "node --test tests/config.test.js tests/costs.test.js tests/math.test.js tests/rpc.test.js",
     "test:integration": "anchor test --skip-build"
   }
 }
