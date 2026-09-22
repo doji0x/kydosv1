@@ -9,8 +9,10 @@ const checked = value => {
   if (typeof value !== 'bigint' || value < 0n || value > U64_MAX) throw new Error('Invalid u64 reserve or amount');
   return value;
 };
+/** @param {bigint} n @param {bigint} d */
 const ceilDiv = (n, d) => n / d + (n % d === 0n ? 0n : 1n);
 
+/** @param {string} side @param {bigint} sol @param {bigint} tokens @param {bigint} input */
 export function quoteCurve(side, sol, tokens, input) {
   checked(sol); checked(tokens); checked(input);
   if (!['buy', 'sell'].includes(side)) throw new Error('Choose buy or sell');

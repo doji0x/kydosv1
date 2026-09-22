@@ -4,7 +4,7 @@ import { Connection, Keypair } from '@solana/web3.js';
 import { buildSolanaRpcPayload } from '../../base44/shared/solanaRpc.js';
 import { createProxyFetch } from '../../src/lib/solana/rpc.js';
 import { confirmTransactionHttp } from '../../src/lib/solana/transactions.js';
-import { buildCreateTransaction, CURVE_SPACE, METADATA_SPACE } from '../../src/lib/solana/client.js';
+import { buildCreateTransaction, CURVE_SPACE, FEE_POLICY_SPACE, METADATA_SPACE } from '../../src/lib/solana/client.js';
 import { estimateTransactionCosts } from '../../src/lib/solana/costs.js';
 
 test('real web3 creation estimate traverses proxy policy with matching string IDs', async () => {
@@ -28,11 +28,11 @@ test('real web3 creation estimate traverses proxy policy with matching string ID
   const { transaction, metadata } = await buildCreateTransaction({ connection, wallet,
     name: 'Test', symbol: 'T', metadataUri: 'https://example.com/token.json' });
   const costs = await estimateTransactionCosts({ connection, transaction, payer: wallet.publicKey,
-    context: { ...metadata, curveSpace: CURVE_SPACE, metadataSpace: METADATA_SPACE } });
-  assert.equal(costs.requiredLamports, 410000n);
+    context: { ...metadata, curveSpace: CURVE_SPACE, feePolicySpace: FEE_POLICY_SPACE, metadataSpace: METADATA_SPACE } });
+  assert.equal(costs.requiredLamports, 510000n);
   assert.equal(costs.sufficient, true);
   assert.deepEqual(methods, ['getLatestBlockhash', 'getFeeForMessage', 'getBalance',
-    ...Array(4).fill('getMinimumBalanceForRentExemption')]);
+    ...Array(5).fill('getMinimumBalanceForRentExemption')]);
 });
 
 test('proxy keeps method, request size and parameter restrictions', () => {

@@ -4,7 +4,8 @@ import { Buffer } from 'buffer';
 import { Keypair } from '@solana/web3.js';
 import { ACCOUNT_SIZE, MINT_SIZE, TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from '@solana/spl-token';
 import { estimateTransactionCosts } from '../../src/lib/solana/costs.js';
-import { buildCreateTransaction, buildTradeTransaction, CURVE_SPACE, METADATA_SPACE, sendTransaction } from '../../src/lib/solana/client.js';
+import { buildCreateTransaction, buildTradeTransaction, CURVE_SPACE, FEE_POLICY_SPACE, METADATA_SPACE, sendTransaction } from '../../src/lib/solana/client.js';
+import { TREASURY_ADDRESS } from '../../src/lib/solana/fees.js';
 import { quoteTrade } from '../../src/lib/solana/market.js';
 import { encodeSignature } from '../../src/lib/solana/transactions.js';
 
@@ -13,7 +14,7 @@ const wallet = { publicKey: payer.publicKey };
 const launch = { wallet, name: 'Test', symbol: 'T', metadataUri: 'https://example.com/token.json' };
 const tradeArgs = { wallet, mint, side: 'buy', amount: 100n, minOut: 1n };
 const rentFor = size => size * 10;
-const createRequired = 10000 + rentFor(MINT_SIZE) + rentFor(CURVE_SPACE) + rentFor(ACCOUNT_SIZE) + rentFor(METADATA_SPACE);
+const createRequired = 10000 + rentFor(MINT_SIZE) + rentFor(CURVE_SPACE) + rentFor(FEE_POLICY_SPACE) + rentFor(ACCOUNT_SIZE) + rentFor(METADATA_SPACE);
 
 function tokenInfo(tokens = 100n) {
   const data = Buffer.alloc(ACCOUNT_SIZE);
@@ -60,19 +61,19 @@ const activity = { execute: async (_scope, _metadata, run) => run(() => {}) };
 const tradeContext = args => ({ operation: args.side, mint: args.mint.toBase58(), amount: args.amount.toString(), minOut: args.minOut.toString() });
 async function estimateCreate(args) {
   const { transaction, metadata } = await buildCreateTransaction(args);
-  return estimateTransactionCosts({ connection: args.connection, transaction, payer: args.wallet.publicKey, context: { ...metadata, curveSpace: CURVE_SPACE, metadataSpace: METADATA_SPACE } });
+  return estimateTransactionCosts({ connection: args.connection, transaction, payer: args.wallet.publicKey, context: { ...metadata, curveSpace: CURVE_SPACE, feePolicySpace: FEE_POLICY_SPACE, metadataSpace: METADATA_SPACE } });
 }
 async function estimateTrade(args) {
   return estimateTransactionCosts({ connection: args.connection, transaction: await buildTradeTransaction(args), payer: args.wallet.publicKey, context: tradeContext(args) });
 }
 
-test('create estimates actual two-signature message and mint, curve, vault rent', async () => {
+test('create estimates actual two-signature message and mint, curve, fee policy, vault and metadata rent', async () => {
   const { connection, calls } = rpc({ getBalance: async () => createRequired });
   const result = await estimateCreate({ ...launch, connection });
   assert.deepEqual(result, { inputLamports: 0n, networkFeeLamports: 10000n,
     rentLamports: BigInt(createRequired - 10000), requiredLamports: BigInt(createRequired),
     balanceLamports: BigInt(createRequired), shortfallLamports: 0n, sufficient: true });
-  assert.deepEqual(calls.rents, [MINT_SIZE, CURVE_SPACE, ACCOUNT_SIZE, METADATA_SPACE]);
+  assert.deepEqual(calls.rents, [MINT_SIZE, CURVE_SPACE, FEE_POLICY_SPACE, ACCOUNT_SIZE, METADATA_SPACE]);
   assert.equal(calls.fees[0].header.numRequiredSignatures, 2);
   assert.ok(calls.fees[0].accountKeys[0].equals(payer.publicKey));
   assert.equal(calls.blockhashes, 1);
@@ -82,8 +83,8 @@ test('create estimates actual two-signature message and mint, curve, vault rent'
 test('buy uses full authorized input, existing ATA has no rent, missing ATA adds ACCOUNT_SIZE rent', async () => {
   const quote = quoteTrade({ realSolReserve: 85_000_000_000n, tokenReserve: 1n,
     decimals: 6, graduationTarget: 85_005_359_057n, virtualSolReserves: 30_000_000_000n,
-    virtualTokenReserves: 1_073_000_000_000_000n, graduated: false }, 'buy', 100n, 0);
-  assert.equal(quote.acceptedInput, 1n);
+    virtualTokenReserves: 1_073_000_000_000_000n, graduated: false, feePolicy: { version: 1, tradingFeeBps: 100, treasury: TREASURY_ADDRESS } }, 'buy', 100n, 0);
+  assert.equal(quote.acceptedInput, 2n);
   for (const missing of [false, true]) {
     const { connection, calls } = rpc(missing ? { getAccountInfo: async () => null } : {});
     const result = await estimateTrade({ ...tradeArgs, amount: quote.input, minOut: quote.minOut, connection });

@@ -20,7 +20,9 @@ The curve math and completion policy are specified in [the build specification](
 | Liquidity allocation | 206,900,000 tokens (20.69%) |
 | Virtual SOL reserve | 30 SOL |
 | Initial virtual token reserve | 1,073,000,000 tokens |
-| Completion | Real curve inventory exhausted; approximately 85.005 SOL |
+| Completion | Real curve inventory exhausted; approximately 85.005 SOL net reserves |
+| Curve trading fee | 1% of gross SOL, rounded up to a lamport, all to Kydos treasury |
+| Treasury | `5ZuV8eqkvzYFVEKbLvGBdexL2tFv7E5BCd2HZpjqbdg` |
 
 Creation mints all supply into the curve-controlled vault, creates Metaplex
 metadata from the supplied URI, and revokes mint and freeze authorities.
@@ -28,12 +30,16 @@ Liquidity allocation is accounting within that vault, not proof of an external
 liquidity pool. Completion sets the existing `graduated` flag and stops curve trading while
 awaiting migration. It does not create an AMM pool. Rust and JavaScript use
 real SOL + 30 SOL and real curve tokens + 279.9M virtual token offset. Final
-buys charge only the rounded-up cost of remaining inventory. Legacy curve
-configurations are rejected, not silently repriced.
+buys charge only the rounded-up cost of remaining inventory. A buy limit includes the fee; sell output and slippage refer to wallet SOL after
+fees. Fees never enter tracked curve reserves. New markets also initialize the
+76-byte `[fee_policy, curve]` PDA. Unsupported policies and old markets without a
+policy are rejected. Existing deployed accounts need an explicit rollout plan.
 
 `programs/kydos_amm` contains a compiling account/interface scaffold with source-bound
 pool derivation and migration receipt types. It has no deployable entrypoint,
-program ID, executable migration or swaps yet.
+program ID, executable migration or swaps yet. It is no longer the destination:
+Meteora DAMM v2 migration, pool verification, position locking and fee claims are
+subsequent milestones.
 
 ## Program identity and network boundaries
 
@@ -82,7 +88,8 @@ bytes are sent to the upload endpoint.
 
 Review reads the actual RPC genesis hash (mainnet/devnet supported) and checks
 that the configured Kydos and Metaplex programs are executable. It displays
-purchase input, rent, network fee and estimated/minimum tokens. The same mint and
+purchase input, included 1% fee, net curve purchase, rent (including FeePolicy),
+network fee and estimated/minimum tokens. The same mint and
 instructions are retained for signing; fresh fees/balance and network are checked
 again. An increased total requires another review. Executable-account checks do
 not verify that the deployed program binary matches the reviewed source.
@@ -124,12 +131,17 @@ Build the SBF program and generate its IDL without deploying or creating tokens:
 ```sh
 anchor build --program-name kydos_launchpad --no-idl -- -- --locked
 anchor idl build --program-name kydos_launchpad --out target/idl/kydos_launchpad.json --out-ts target/types/kydos_launchpad.ts -- --locked
+node scripts/sync-idl.mjs
+node scripts/sync-idl.mjs --check
 ```
 
 Run these commands from `solana/`. Anchor 0.31.1 passes arguments through
 `cargo build-sbf` to `cargo build`, so the SBF command needs two separators.
 IDL generation invokes `cargo test` directly and needs one. Keep these as
-separate commands so `--locked` reaches Cargo in both cases.
+separate commands so `--locked` reaches Cargo in both cases. The sync script uses
+Anchor's camelCase conversion for the browser account coder without making an
+RPC request. Commit the synchronized IDL; CI rejects drift from the generated
+program interface, including accounts and fee events.
 
 The committed lockfile pins compatible versions of `blake3` (1.5.5),
 `proc-macro-crate` (3.3.0), `indexmap` (2.7.1), `zeroize` (1.8.1),
@@ -148,8 +160,8 @@ establish runtime or deployment readiness.
 
 The JavaScript suite checks RPC transport/cost estimation, confirmation,
 configuration consistency and quotes. It does not execute on-chain CPIs.
-`creation.test.js` is the separate local-validator suite; its old economics
-assertions must be refreshed when that work resumes. Token-creation/validator
+`creation.test.js` is the separate local-validator suite; its policy account
+wiring and economics are updated but have not been executed. Token-creation/validator
 tests are explicitly deferred until AMM and graduation are resolved.
 CI runs both locked build commands above and requires nonempty outputs; a host
 build alone is not proof of SBF build or deployment readiness. Historical handoffs
