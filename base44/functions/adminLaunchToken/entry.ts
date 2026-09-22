@@ -56,7 +56,11 @@ export default async function(req: Request): Promise<Response> {
     const signer = signerFromSecret(secrets.get('SOLANA_MAINNET_PRIVATE_KEY') || secrets.get('KYDOS_DEPLOYER_KEY'));
     const connection = new Connection(endpoint, 'confirmed'), input = await req.json();
     const balance = await connection.getBalance(signer.publicKey, 'confirmed');
-    if (input.action === 'status') return Response.json({ wallet: signer.publicKey.toBase58(), balanceLamports: balance });
+    const program = await connection.getAccountInfo(PROGRAM_ID, 'confirmed');
+    const programReady = Boolean(program?.executable);
+    const launchError = programReady ? null : `Kydos launchpad program ${PROGRAM_ID.toBase58()} is not deployed as an executable program on the configured Solana network. Deploy the launchpad program and configure its verified program address before creating tokens.`;
+    if (input.action === 'status') return Response.json({ wallet: signer.publicKey.toBase58(), balanceLamports: balance, programId: PROGRAM_ID.toBase58(), programReady, launchError });
+    if (!programReady) return Response.json({ error: launchError }, { status: 409 });
 
     const name = String(input.name || '').trim(), symbol = String(input.symbol || '').trim().toUpperCase(), metadataUri = String(input.metadataUri || '').trim();
     const encoder = new TextEncoder();
