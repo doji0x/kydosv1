@@ -1,10 +1,12 @@
 # Kydos curve fees and DAMM v2 migration plan
 
-Current milestone: implement the approved 1% curve trading fee and fixed Kydos
-treasury, including initial buys, client quotes and cost review. Source main:
-`b5c76cd9500ed368a82395eb5a8f2fb83f241a14` (PR #17 merged). No validator/token
-creation tests, funded transactions or deployment. The next pool destination is
-Meteora DAMM v2; the earlier custom AMM scaffold is not the migration target.
+The curve fee milestone is merged in PR #19. Current milestone: the compatible
+Meteora DAMM v2 adapter foundation, based on main
+`9eb9da645fd65bb99db941e6d31039c0bfc4dc38`. Its pinned interface, private-config
+route, custody addresses, integer seed math and receipt schema are specified in
+[meteora-adapter.md](meteora-adapter.md). Executable migration follows separately.
+No validator/token creation tests, funded transactions or deployment. The earlier
+custom AMM scaffold is not the migration target.
 
 ## Economics and completion decision
 
@@ -133,7 +135,7 @@ A single atomic transaction must:
    charges. The 30 virtual SOL is never transferred. Preserve account rent.
 3. Wrap actual SOL into the canonical WSOL account and SyncNative.
 4. Move 206.9M reserved tokens and the approved actual SOL amount into AMM vaults.
-5. Initialize the pool at quote_amount/base_amount, verify minimum liquidity
+5. Initialize the pool using range-aware integer seed calculations, verify minimum liquidity
    and apply the explicitly selected Meteora position lock/custody policy.
 6. Write the receipt only after successful pool initialization; all effects
    roll back together on any failure. Competing calls cannot fund twice.
@@ -161,12 +163,13 @@ or evidence of runtime readiness. Full pool initialization, swaps, LP operations
 DAMM fee claims, live readiness gates, custom event indexing and end-to-end validation are
 subsequent milestones. No live-readiness claim follows from these host tests.
 
-Before migration implementation, resolve the DAMM v2 pool-creation route and
-config permissions, pre-created pool collision handling, position owner/lock
-semantics, the CPI interface compatible with Anchor 0.31.1/Solana 2.1.21,
-and the receipt/retry/client-routing contract. A 1% DAMM pool fee does not imply
-1% treasury receipts: Meteora's protocol share must be accounted for separately.
-Permanent locking and any migration charge require their own concrete decision.
+The adapter foundation selects private dynamic config initialization, strict mint
+validation, program position custody and a pinned ABI compatible with the current
+toolchain. The approved config still needs operator provisioning for a verified
+Kydos program ID. Executable receipt/retry enforcement, lock policy, claims and
+client routing remain pending. A 1% DAMM pool fee does not imply 1% treasury
+receipts: Meteora's protocol share must be accounted for separately. Permanent
+locking requires an explicit decision; no extra migration charge is implemented.
 
 ## References reviewed
 

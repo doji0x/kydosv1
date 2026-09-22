@@ -846,6 +846,9 @@ dependencies = [
  "anchor-lang",
  "anchor-spl",
  "mpl-token-metadata",
+ "num-bigint",
+ "num-traits",
+ "serde_json",
 ]
 
 [[package]]

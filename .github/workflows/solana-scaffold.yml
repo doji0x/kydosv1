@@ -2,10 +2,10 @@ name: Solana Anchor
 on:
   push:
     branches: [astra/latest]
-    paths: ['solana/**','src/lib/solana/**','src/lib/SolanaWalletContext.jsx','src/pages/SolanaLaunch.jsx','src/hooks/useLaunchFlow.js','src/components/solana/**','base44/functions/launchMetadata/**','base44/shared/launchMetadata.js','base44/functions/indexSolanaTransactions/**','base44/functions/solanaRpc/**','base44/shared/solanaRpc.js','base44/entities/SolanaTrade.jsonc','package.json','.github/workflows/solana-scaffold.yml']
+    paths: ['solana/**','src/lib/solana/**','src/lib/SolanaWalletContext.jsx','src/pages/SolanaLaunch.jsx','src/hooks/useLaunchFlow.js','src/components/solana/**','base44/functions/launchMetadata/**','base44/shared/launchMetadata.js','base44/functions/indexSolanaTransactions/**','base44/functions/solanaRpc/**','base44/shared/solanaRpc.js','base44/entities/SolanaTrade.jsonc','package.json','package-lock.json','.github/workflows/solana-scaffold.yml']
   pull_request:
     branches: [main]
-    paths: ['solana/**','src/lib/solana/**','src/lib/SolanaWalletContext.jsx','src/pages/SolanaLaunch.jsx','src/hooks/useLaunchFlow.js','src/components/solana/**','base44/functions/launchMetadata/**','base44/shared/launchMetadata.js','base44/functions/indexSolanaTransactions/**','base44/functions/solanaRpc/**','base44/shared/solanaRpc.js','base44/entities/SolanaTrade.jsonc','package.json','.github/workflows/solana-scaffold.yml']
+    paths: ['solana/**','src/lib/solana/**','src/lib/SolanaWalletContext.jsx','src/pages/SolanaLaunch.jsx','src/hooks/useLaunchFlow.js','src/components/solana/**','base44/functions/launchMetadata/**','base44/shared/launchMetadata.js','base44/functions/indexSolanaTransactions/**','base44/functions/solanaRpc/**','base44/shared/solanaRpc.js','base44/entities/SolanaTrade.jsonc','package.json','package-lock.json','.github/workflows/solana-scaffold.yml']
 permissions: {contents: read}
 jobs:
   anchor:
@@ -31,9 +31,9 @@ jobs:
       - name: Host curve calculations and AMM interface (no validator or token creation)
         working-directory: solana
         run: cargo test --workspace --lib --locked
-      - name: Host account validation tests (no validator or deployment)
+      - name: Host account validation and Meteora ABI tests (no validator or deployment)
         working-directory: solana
-        run: cargo test -p kydos_launchpad --test account_validation --locked
+        run: cargo test -p kydos_launchpad --test account_validation --test meteora_adapter --locked
       - name: Build SBF with locked dependencies
         working-directory: solana
         # Anchor -> cargo build-sbf -> cargo build each consumes a separator.

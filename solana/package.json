@@ -3,8 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "node --check ../src/lib/solana/client.js && node --check ../src/lib/solana/config.js",
-    "test": "node --test tests/config.test.js tests/costs.test.js tests/math.test.js tests/fees.test.js tests/rpc.test.js tests/launch.test.js tests/metadata.test.js",
+    "check": "node --check ../src/lib/solana/client.js && node --check ../src/lib/solana/config.js && node --check ../src/lib/solana/meteora.js",
+    "test": "node scripts/meteora-fixtures.mjs --check && node --test tests/config.test.js tests/costs.test.js tests/math.test.js tests/fees.test.js tests/meteora.test.js tests/rpc.test.js tests/launch.test.js tests/metadata.test.js",
     "test:integration": "anchor test --skip-build"
   }
 }
