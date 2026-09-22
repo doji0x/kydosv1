@@ -80,8 +80,9 @@ test('create estimates actual two-signature message and mint, curve, vault rent'
 });
 
 test('buy uses full authorized input, existing ATA has no rent, missing ATA adds ACCOUNT_SIZE rent', async () => {
-  const quote = quoteTrade({ realSolReserve: 84999999999n, tokenReserve: 300000000000000n,
-    decimals: 6, graduationTarget: 85000000000n, graduated: false }, 'buy', 100n, 0);
+  const quote = quoteTrade({ realSolReserve: 85_000_000_000n, tokenReserve: 1n,
+    decimals: 6, graduationTarget: 85_005_359_057n, virtualSolReserves: 30_000_000_000n,
+    virtualTokenReserves: 1_073_000_000_000_000n, graduated: false }, 'buy', 100n, 0);
   assert.equal(quote.acceptedInput, 1n);
   for (const missing of [false, true]) {
     const { connection, calls } = rpc(missing ? { getAccountInfo: async () => null } : {});

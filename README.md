@@ -13,7 +13,7 @@ Kydos targets Solana exclusively. The active implementation uses Anchor programs
 - Solana token creation and market initialization
 - Phantom-only signing for launch and trading flows
 - Constant-product bonding curve with explicit slippage limits
-- One-billion-token launch supply: 79.31% curve allocation and 20.69% liquidity allocation; 30 virtual SOL and an 85 SOL graduation target
+- One-billion-token launch supply: 79.31% curve allocation and 20.69% liquidity allocation; 30 virtual SOL and inventory-based completion (approximately 85.005 SOL); see [the build specification](docs/launchpad-build-spec.md)
 - Persistent transaction recovery and confirmed-state refreshes
 - Helius transaction parsing and history ingestion
 - Social posts, replies, likes, follows, profiles, and token discussion

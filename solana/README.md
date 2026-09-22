@@ -6,8 +6,8 @@ Kydos uses Anchor 0.31.1, Solana CLI 2.1.21 and Rust 1.90.0. The program is
 
 ## Confirmed creation economics
 
-The owner confirmed these values on 2026-09-21. They match the current program
-on `main`; do not replace them with the older `astra/latest` values.
+The owner confirmed these values on 2026-09-21. The allocation and virtual SOL values are preserved in this branch.
+The curve math and completion policy are specified in [the build specification](../docs/launchpad-build-spec.md).
 
 | Parameter | Value |
 | --- | --- |
@@ -17,14 +17,21 @@ on `main`; do not replace them with the older `astra/latest` values.
 | Curve allocation | 793,100,000 tokens (79.31%) |
 | Liquidity allocation | 206,900,000 tokens (20.69%) |
 | Virtual SOL reserve | 30 SOL |
-| Graduation target | 85 SOL |
+| Initial virtual token reserve | 1,073,000,000 tokens |
+| Completion | Real curve inventory exhausted; approximately 85.005 SOL |
 
 Creation mints all supply into the curve-controlled vault, creates Metaplex
 metadata from the supplied URI, and revokes mint and freeze authorities.
 Liquidity allocation is accounting within that vault, not proof of an external
-liquidity pool. The current graduation instruction path sets a flag; it does
-not migrate to an external AMM. Client quotes use the same effective reserves
-(real curve tokens plus liquidity allocation) as the checked-in program.
+liquidity pool. Completion sets the existing `graduated` flag and stops curve trading while
+awaiting migration. It does not create an AMM pool. Rust and JavaScript use
+real SOL + 30 SOL and real curve tokens + 279.9M virtual token offset. Final
+buys charge only the rounded-up cost of remaining inventory. Legacy curve
+configurations are rejected, not silently repriced.
+
+`programs/kydos_amm` contains a compiling account/interface scaffold with source-bound
+pool derivation and migration receipt types. It has no deployable entrypoint,
+program ID, executable migration or swaps yet.
 
 ## Program identity and network boundaries
 
@@ -64,18 +71,20 @@ npm run typecheck
 npm run build
 ```
 
-With the pinned Rust/Anchor/Solana toolchains and a verified local program
-keypair/configuration, the on-chain checks are:
+Host checks (no validator or token creation):
 
 ```sh
 cd solana
+cargo test --workspace --lib
 cargo test -p kydos_launchpad --test account_validation
-anchor build
-anchor test --skip-build
 ```
 
 The JavaScript suite checks RPC transport/cost estimation, confirmation,
 configuration consistency and quotes. It does not execute on-chain CPIs.
-`creation.test.js` is the separate local-validator suite. Historical handoffs
+`creation.test.js` is the separate local-validator suite; its old economics
+assertions must be refreshed when that work resumes. Token-creation/validator
+tests are explicitly deferred until AMM and graduation are resolved.
+CI additionally runs `anchor build --program-name kydos_launchpad`; a host
+build alone is not proof of SBF build or deployment readiness. Historical handoffs
 such as `creation-checkpoint.md` and `implementation-resume.md` describe earlier
 snapshots; their scaffold status and old economics are superseded here.

@@ -10,14 +10,17 @@ use mpl_token_metadata::types::DataV2;
 
 declare_id!("Fg6PaFpoGXkYsidMpWxTWqkZqvFmR6UJA4R9C3bZ9S2");
 
+pub mod math;
+
 pub const DECIMALS: u8 = 6;
 pub const SCALE: u64 = 1_000_000;
 pub const TOTAL_SUPPLY: u64 = 1_000_000_000 * SCALE;
 pub const CURVE_TOKEN_ALLOCATION: u64 = 793_100_000 * SCALE;
 pub const LIQUIDITY_TOKEN_ALLOCATION: u64 = 206_900_000 * SCALE;
-pub const VIRTUAL_TOKEN_RESERVES: u64 = CURVE_TOKEN_ALLOCATION;
+pub const VIRTUAL_TOKEN_RESERVES: u64 = 1_073_000_000 * SCALE;
 pub const VIRTUAL_SOL_RESERVES: u64 = 30_000_000_000;
-pub const GRADUATION_TARGET: u64 = 85_000_000_000;
+// Indicative one-shot completion cost, not a hard SOL cutoff.
+pub const GRADUATION_TARGET: u64 = 85_005_359_057;
 
 #[program]
 pub mod kydos_launchpad {
@@ -127,23 +130,11 @@ pub mod kydos_launchpad {
         require!(sol_in > 0, ErrorCode::ZeroAmount);
         let curve = &mut ctx.accounts.curve;
         validate_curve_configuration(curve)?;
-        let accepted = if curve.graduated {
-            sol_in
-        } else {
-            sol_in.min(curve.graduation_target.checked_sub(curve.real_sol_reserves).ok_or(ErrorCode::MathOverflow)?)
-        };
-        require!(accepted > 0, ErrorCode::Graduated);
-        let effective_tokens = curve.real_token_reserves
-            .checked_add(curve.liquidity_token_allocation)
-            .ok_or(ErrorCode::MathOverflow)?;
-        let quoted = if curve.graduated {
-            cp_tokens(curve.real_sol_reserves, effective_tokens, accepted)?
-        } else if curve.real_sol_reserves + accepted == curve.graduation_target {
-            curve.real_token_reserves
-        } else {
-            curve_tokens(curve.virtual_sol_reserves, curve.real_sol_reserves, effective_tokens, accepted)?
-        };
-        let out = quoted.min(curve.real_token_reserves);
+        require!(!curve.graduated, ErrorCode::Graduated);
+        let quote = math::quote_buy(curve.real_sol_reserves, curve.real_token_reserves, sol_in)
+            .map_err(map_math_error)?;
+        let accepted = quote.accepted_sol;
+        let out = quote.tokens_out;
         require!(out >= min_tokens_out && out > 0, ErrorCode::Slippage);
         system_program::transfer(
             CpiContext::new(
@@ -171,7 +162,7 @@ pub mod kydos_launchpad {
         )?;
         curve.real_sol_reserves = curve.real_sol_reserves.checked_add(accepted).ok_or(ErrorCode::MathOverflow)?;
         curve.real_token_reserves = curve.real_token_reserves.checked_sub(out).ok_or(ErrorCode::MathOverflow)?;
-        if !curve.graduated && curve.real_sol_reserves == curve.graduation_target {
+        if curve.real_token_reserves == 0 {
             curve.graduated = true;
             emit!(Graduated {
                 mint: curve.mint,
@@ -194,14 +185,9 @@ pub mod kydos_launchpad {
         require!(tokens_in > 0, ErrorCode::ZeroAmount);
         let curve = &mut ctx.accounts.curve;
         validate_curve_configuration(curve)?;
-        let effective_tokens = curve.real_token_reserves
-            .checked_add(curve.liquidity_token_allocation)
-            .ok_or(ErrorCode::MathOverflow)?;
-        let out = if curve.graduated {
-            cp_sol(curve.real_sol_reserves, effective_tokens, tokens_in)?
-        } else {
-            curve_sol(curve.virtual_sol_reserves, curve.real_sol_reserves, effective_tokens, tokens_in)?
-        };
+        require!(!curve.graduated, ErrorCode::Graduated);
+        let out = math::quote_sell(curve.real_sol_reserves, curve.real_token_reserves, tokens_in)
+            .map_err(map_math_error)?;
         require!(out >= min_sol_out && out > 0 && out <= curve.real_sol_reserves, ErrorCode::Slippage);
         token::transfer(
             CpiContext::new(
@@ -233,35 +219,27 @@ pub mod kydos_launchpad {
 }
 
 fn validate_curve_configuration(curve: &Curve) -> Result<()> {
-    require_eq!(curve.virtual_token_reserves, curve.curve_token_allocation, ErrorCode::InvalidCurve);
-    require_eq!(curve.curve_token_allocation.checked_add(curve.liquidity_token_allocation).ok_or(ErrorCode::MathOverflow)?, curve.total_supply, ErrorCode::InvalidCurve);
+    // Reject legacy curve pricing; an upgrade must never silently reprice old accounts.
+    require_eq!(curve.virtual_token_reserves, VIRTUAL_TOKEN_RESERVES, ErrorCode::InvalidCurve);
+    require_eq!(curve.virtual_sol_reserves, VIRTUAL_SOL_RESERVES, ErrorCode::InvalidCurve);
+    require_eq!(curve.curve_token_allocation, CURVE_TOKEN_ALLOCATION, ErrorCode::InvalidCurve);
+    require_eq!(curve.liquidity_token_allocation, LIQUIDITY_TOKEN_ALLOCATION, ErrorCode::InvalidCurve);
+    require_eq!(curve.total_supply, TOTAL_SUPPLY, ErrorCode::InvalidCurve);
+    require_eq!(curve.decimals, DECIMALS, ErrorCode::InvalidCurve);
+    require_eq!(curve.graduation_target, GRADUATION_TARGET, ErrorCode::InvalidCurve);
+    require!(curve.real_token_reserves <= CURVE_TOKEN_ALLOCATION, ErrorCode::InvalidCurve);
+    require!(curve.graduated == (curve.real_token_reserves == 0), ErrorCode::InvalidCurve);
     Ok(())
 }
 
-fn curve_tokens(virtual_sol: u64, sol: u64, tokens: u64, input: u64) -> Result<u64> {
-    let x = virtual_sol as u128 + sol as u128;
-    let next = x.checked_mul(tokens as u128).ok_or(ErrorCode::MathOverflow)?
-        / x.checked_add(input as u128).ok_or(ErrorCode::MathOverflow)?;
-    u64::try_from(tokens as u128 - next).map_err(|_| error!(ErrorCode::MathOverflow))
-}
-
-fn curve_sol(virtual_sol: u64, sol: u64, tokens: u64, input: u64) -> Result<u64> {
-    let x = virtual_sol as u128 + sol as u128;
-    let next = x.checked_mul(tokens as u128).ok_or(ErrorCode::MathOverflow)?
-        / (tokens as u128 + input as u128);
-    u64::try_from(x - next).map_err(|_| error!(ErrorCode::MathOverflow))
-}
-
-fn cp_tokens(sol: u64, tokens: u64, input: u64) -> Result<u64> {
-    let next = (sol as u128).checked_mul(tokens as u128).ok_or(ErrorCode::MathOverflow)?
-        / (sol as u128 + input as u128);
-    u64::try_from(tokens as u128 - next).map_err(|_| error!(ErrorCode::MathOverflow))
-}
-
-fn cp_sol(sol: u64, tokens: u64, input: u64) -> Result<u64> {
-    let next = (sol as u128).checked_mul(tokens as u128).ok_or(ErrorCode::MathOverflow)?
-        / (tokens as u128 + input as u128);
-    u64::try_from(sol as u128 - next).map_err(|_| error!(ErrorCode::MathOverflow))
+fn map_math_error(error: math::MathError) -> anchor_lang::error::Error {
+    match error {
+        math::MathError::ZeroAmount => error!(ErrorCode::ZeroAmount),
+        math::MathError::Overflow => error!(ErrorCode::MathOverflow),
+        math::MathError::Complete => error!(ErrorCode::Graduated),
+        math::MathError::Liquidity => error!(ErrorCode::Liquidity),
+        math::MathError::InvalidReserves => error!(ErrorCode::InvalidCurve),
+    }
 }
 
 #[derive(Accounts)]
@@ -315,6 +293,7 @@ pub struct Curve {
     pub real_token_reserves: u64,
     pub real_sol_reserves: u64,
     pub graduation_target: u64,
+    /// True means curve complete / awaiting migration, NOT an active AMM.
     pub graduated: bool,
 }
 
@@ -334,7 +313,7 @@ pub enum ErrorCode {
     #[msg("Amount must be positive")] ZeroAmount,
     #[msg("Slippage exceeded")] Slippage,
     #[msg("Arithmetic overflow")] MathOverflow,
-    #[msg("Curve graduated")] Graduated,
+    #[msg("Curve complete; awaiting AMM migration")] Graduated,
     #[msg("Insufficient liquidity")] Liquidity,
     #[msg("Name too long")] NameTooLong,
     #[msg("Symbol too long")] SymbolTooLong,

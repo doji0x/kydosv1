@@ -1,5 +1,6 @@
 import { Buffer } from 'buffer';
-import { AnchorProvider, BN, BorshAccountsCoder, Program } from '@coral-xyz/anchor';
+import { AnchorProvider, BorshAccountsCoder, Program } from '@coral-xyz/anchor';
+import BN from 'bn.js';
 import { Keypair, PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY, Transaction } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress, createAssociatedTokenAccountIdempotentInstruction, unpackAccount } from '@solana/spl-token';
 import idl from './idl/kydos_launchpad.json' with { type: 'json' };

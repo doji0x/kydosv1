@@ -1,50 +1,15 @@
 # Astra continuity checkpoint
 
-Single rolling human handoff. Machine-readable task routes and prior research
-cursors remain in `astra-work-state.json`. This record is evidence, not authority
-to resume unrelated work.
+Single rolling handoff; detailed design is in [launchpad-build-spec.md](launchpad-build-spec.md).
 
-## Current handoff — RPC and configuration reconciliation
+## Current handoff — AMM and graduation foundation
 
-- **Scope/status:** Codex prepared the owner's requested RPC fixes for delivery on
-  `codex/solana-rpc-fixes` and a PR targeting `main`. No deployment or funded
-  transaction occurred.
-- **Source/base:** `main` at `d9996c47e762fd2a83ec2494e2f3d63e2080778f`, fetched
-  again before editing. Isolated branch: `codex/solana-rpc-fixes`, owned by
-  Codex for this request. `astra/latest` was not modified or merged.
-- **Decision:** owner explicitly confirmed 79.31% curve / 20.69% liquidity and
-  30 virtual SOL on 2026-09-21. Preserve the current Rust program values. The
-  existing 1B supply, 6 decimals and 85 SOL target remain unchanged.
-- **Changes:** RPC allowlist now includes fee and rent queries; request IDs are
-  preserved; public transaction confirmation uses HTTP polling. Client quotes
-  now use the same effective reserves and buy inventory cap as the program.
-  Displayed economics, current Solana documentation and tests are reconciled.
-  Program identity tests check Rust, Anchor config, browser IDL and admin code.
-  New RPC policy helper and transport tests are included in the Solana suite/CI
-  path filter. The IDL import and incomplete test connection fixtures were
-  corrected so the existing cost tests execute under Node.
-- **Checks:** 25 JavaScript tests and syntax checks passed; frontend lint and
-  production build passed. Build warned that the local Base44 app ID is absent.
-  Typecheck reports 253 errors, the same count as unchanged source; no new
-  diagnostic categories were found in the baseline comparison. Rust/Anchor tools are unavailable; no on-chain test or build
-  pass is claimed. Final static diff review performed; independent review is
-  pending via the requested PR.
-- **Access:** GitHub branch creation succeeded on 2026-09-22 after the prior
-  connector metadata errors. The remote branch was verified at the source SHA.
-  GitHub delivery/PR identifiers and current CI state are reported in the final
-  chat handoff after upload; earlier blocked-delivery claims are historical.
+- **Scope/status:** Approved small milestone implemented on `codex/amm-graduation-foundation`, for PR review against `main`. No deployment, funded transaction, validator or token-creation test.
+- **Source/base:** `2316ac8e3d74a70a5ab5d154008adea757938c19`. PR #16 RPC fixes are now merged; this branch includes them. Codex owns this isolated branch. `astra/latest` was not modified.
+- **Decisions:** Preserve 79.31% curve / 20.69% liquidity, 1B supply, 6 decimals, 30 virtual SOL. Use 1.073B initial virtual tokens and inventory exhaustion for completion (~85.005359057 SOL from an untouched curve). Final buy charges rounded-up remaining-inventory cost; excess SOL stays in wallet. Completed curves stop trading awaiting migration.
+- **Changes:** Shared Rust/JS quote vectors and integer math; strict economics/legacy-account rejection; client completion state; compiling AMM serialization/PDA/interface crate without executable handlers or program ID; build specification; CI host checks; direct BN import for Node 20 compatibility; dependency locks and reconciled documentation.
+- **Checks on prepared delivery tree:** 25 JavaScript tests, six Rust workspace unit tests and three Rust account-validation tests pass. Frontend lint/build and diff whitespace checks pass. Build retains missing local app ID and bundle-size warnings; Anchor macros emit upstream cfg/deprecation warnings. No local SBF build or validator pass is claimed. Delivery commit and CI observations will be reported in chat; do not infer them from this pre-upload checkpoint.
 
 ## Remaining limits and next action
 
-Deliver the prepared branch through GitHub and open the PR targeting `main`;
-report its actual SHA and checks. Review and merge remain separate from delivery. Do not reimplement these fixes or merge
-the older `astra/latest` economics. Current program address consistency is not
-proof of a deployed matching binary or ownership of its keypair. Localnet remains
-the Anchor test target; the hosted UI uses the server-configured Helius endpoint.
-Mainnet spending enforcement, deployment verification and external AMM graduation
-remain separate unfinished work. Prior research/specification cursors in work
-state are preserved and were not resumed.
-
-Prior funded-test boundary remains: one funded test total, at most 0.05 SOL
-including principal, rent and all fees. This code/PR request does not authorize
-that test, deployments, upgrades, automatic replacement or additional spending.
+Review the PR. Subsequent work must establish verified program identities, LP custody/burn/lock and fee policy, then implement constrained pool initialization, migration CPI/receipt, swaps and indexing. The new AMM crate cannot yet move assets or run on-chain. Existing curve configurations must not be silently repriced: inventory deployed accounts and choose an explicit compatibility/rollout plan before any upgrade. Token-creation tests remain deferred at the owner's request; their old assertions need refresh when resumed. Host tests do not prove deployment readiness. Prior library research cursors remain incomplete and are not resumed by this milestone.
