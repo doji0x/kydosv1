@@ -1,4 +1,5 @@
 import test from 'node:test';
+import { PROGRAM_ADDRESS } from '../../base44/shared/solanaProtocol.js';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { readSolanaDevelopmentConfig } from '../../src/lib/solana/index.js';
@@ -65,6 +66,7 @@ test('Rust, localnet config, browser IDL and admin launcher use one program iden
   const admin = read('../../base44/functions/adminLaunchToken/entry.ts');
   assert.equal(rust.match(/declare_id!\("([^"]+)"\)/)[1], idl.address);
   assert.equal(anchor.match(/kydos_launchpad = "([^"]+)"/)[1], idl.address);
-  assert.equal(admin.match(/const PROGRAM_ID = new PublicKey\('([^']+)'\)/)[1], idl.address);
+  assert.equal(PROGRAM_ADDRESS, idl.address);
+  assert.match(admin, /const PROGRAM_ID = new PublicKey\(PROGRAM_ADDRESS\)/);
   assert.match(anchor, /cluster = "localnet"/, 'validator tests must stay local');
 });

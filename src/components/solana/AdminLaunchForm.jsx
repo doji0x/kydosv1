@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card,CardContent,CardDescription,CardHeader,CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 
-export default function AdminLaunchForm({form,setForm,busy,statusText,onSubmit}) {
+export default function AdminLaunchForm({form,setForm,busy,statusText,onSubmit,networkName,blockedReason}) {
   const [preview,setPreview] = useState(''), [imageError,setImageError] = useState('');
   const set = key => event => setForm(previous => ({...previous,[key]:event.target.value}));
   useEffect(() => {
@@ -23,7 +23,7 @@ export default function AdminLaunchForm({form,setForm,busy,statusText,onSubmit})
     setForm(previous => ({...previous,image:image || null}));
   };
   return <Card className="border-primary/20 bg-card/80">
-    <CardHeader><CardTitle>Token details</CardTitle><CardDescription>The protected server wallet will sign and fund this mainnet transaction.</CardDescription></CardHeader>
+    <CardHeader><CardTitle>Token details</CardTitle><CardDescription>The protected server wallet will sign and fund this transaction on {networkName || 'the configured Solana network'}.</CardDescription></CardHeader>
     <CardContent><form className="space-y-4" onSubmit={onSubmit}>
       <label className="block space-y-2 text-sm font-medium">Name<Input required maxLength={32} value={form.name} disabled={busy} onChange={set('name')} placeholder="Kydos Test Coin"/></label>
       <label className="block space-y-2 text-sm font-medium">Ticker<Input required maxLength={10} value={form.symbol} disabled={busy} onChange={set('symbol')} className="uppercase" placeholder="KYTEST"/></label>
@@ -33,7 +33,8 @@ export default function AdminLaunchForm({form,setForm,busy,statusText,onSubmit})
         <p className="text-xs text-muted-foreground">PNG, JPG or WebP · up to 5 MB. Your photo and token details will be publicly accessible after upload, even if the launch fails.</p>
         {imageError && <p role="alert" className="text-sm text-destructive">{imageError}</p>}
       </div>
-      <Button className="w-full gold-glow" disabled={busy} type="submit"><Rocket className="h-4 w-4"/>{busy?statusText:'Create token on mainnet'}</Button>
+      <p role="status" className="text-sm text-muted-foreground">{blockedReason}</p>
+      <Button className="w-full gold-glow" disabled={busy || !!blockedReason} type="submit"><Rocket className="h-4 w-4"/>{busy?statusText:`Create token on ${networkName || 'Solana'}`}</Button>
     </form></CardContent>
   </Card>;
 }

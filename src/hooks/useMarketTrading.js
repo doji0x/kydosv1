@@ -21,7 +21,7 @@ export default function useMarketTrading(mint, onConfirmed) {
     } catch (error) { if (request === generation.current) setLoadError(error.message); }
     finally { if (request === generation.current) setLoading(false); }
   }, [rpc, mint, walletId]);
-  useEffect(() => { refresh(); return () => { generation.current++; }; }, [refresh]);
+  useEffect(() => { setMarket(null); setBalances(null); setOutcome(''); refresh(); return () => { generation.current++; }; }, [refresh]);
   useEffect(() => { if (busy) return; const timer = setInterval(() => { setNow(Date.now()); refresh(); }, 10000); return () => clearInterval(timer); }, [busy, refresh]);
   const stale = !!market && now - market.loadedAt > 30000;
   let quote = null, quoteError = '';
@@ -32,8 +32,8 @@ export default function useMarketTrading(mint, onConfirmed) {
   const blocked = busy || activity.blocked || !!market?.graduated || !!loadError;
   const submit = async event => {
     event.preventDefault(); if (lock.current || blocked || stale || loading || !quote || !balances || !market || !wallet.connected) return;
-    lock.current = true; setBusy(true); setOutcome('Approve the mainnet transaction in Phantom.');
-    try { await trade({ connection: rpc.connection, wallet, mint, side, amount: quote.input, minOut: quote.minOut }); setOutcome('Trade confirmed on mainnet.'); setAmount(''); await refresh(); await onConfirmed?.(); }
+    lock.current = true; setBusy(true); setOutcome('Review the Solana transaction in Phantom.');
+    try { await trade({ connection: rpc.connection, wallet, mint, side, amount: quote.input, minOut: quote.minOut }); setOutcome('Trade confirmed. Chart indexing follows finalization.'); setAmount(''); await refresh(); await onConfirmed?.(); }
     catch (error) { setOutcome(transactionError(error)); }
     finally { lock.current = false; setBusy(false); }
   };

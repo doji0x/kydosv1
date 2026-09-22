@@ -1,0 +1,12 @@
+{
+  "name": "AdminLaunchReceipt", "type": "object",
+  "description": "Public recovery receipt persisted before broadcast; never contains signing keys.",
+  "properties": {
+    "request_id": { "type": "string" }, "user_id": { "type": "string" },
+    "signature": { "type": "string" }, "mint": { "type": "string" },
+    "wallet": { "type": "string" }, "chain": { "type": "string" },
+    "last_valid_block_height": { "type": "number" }
+  },
+  "required": ["request_id", "user_id", "signature", "mint", "wallet", "chain"],
+  "rls": { "read": false, "create": false, "update": false, "delete": false }
+}

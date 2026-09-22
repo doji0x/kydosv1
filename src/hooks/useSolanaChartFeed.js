@@ -1,38 +1,37 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { base44 } from '@/api/base44Client';
-
-const mergeTrades = (current, incoming) => {
-  const bySignature = new Map(current.map(trade => [trade.signature, trade]));
-  incoming.forEach(trade => bySignature.set(trade.signature, trade));
-  return [...bySignature.values()].sort((a, b) => a.blockTime - b.blockTime);
-};
-
-export default function useSolanaChartFeed(mint, paused) {
+import { feedHealth, mergeTrades } from '@/lib/solana/chartFeed';
+export default function useSolanaChartFeed(mint) {
   const [trades, setTrades] = useState([]), [marketInfo, setMarketInfo] = useState(null), [loading, setLoading] = useState(true), [error, setError] = useState('');
-  const [cursor, setCursor] = useState(null), [lastSync, setLastSync] = useState(null);
-  const generation = useRef(0), cursorRef = useRef(null), latestRef = useRef(null);
-  const load = useCallback(async ({ backfill = false, silent = false } = {}) => {
-    const request = ++generation.current;
-    if (!silent) setLoading(true);
+  const [cursor, setCursor] = useState(null), [lastSync, setLastSync] = useState(null), [network, setNetwork] = useState(null), [coverage, setCoverage] = useState(null);
+  const [now, setNow] = useState(Date.now()), session = useRef({});
+  const load = useCallback(async ({ backfill = false } = {}) => {
+    const current = session.current, lane = backfill ? 'history' : 'live';
+    if (current[lane] || (backfill && !current.before)) return;
+    current[lane] = true; setLoading(true);
     try {
-      const payload = { mint, pages: backfill ? 5 : 1 };
-      if (backfill && cursorRef.current) payload.before = cursorRef.current;
-      if (!backfill && latestRef.current) payload.since = latestRef.current;
-      const { data } = await base44.functions.invoke('solanaTokenChart', payload);
-      if (request !== generation.current) return;
-      setTrades(current => mergeTrades(current, data.trades || []));
-      if (data.marketInfo) setMarketInfo(data.marketInfo);
-      if (!latestRef.current || backfill) { cursorRef.current = data.nextBefore; setCursor(data.nextBefore); }
-      const newest = Math.max(latestRef.current || 0, ...(data.trades || []).map(trade => trade.blockTime));
-      if (newest) latestRef.current = newest;
-      setLastSync(Date.now()); setError('');
-    } catch (failure) {
-      if (request === generation.current) setError(failure?.response?.data?.error || failure.message);
-    } finally { if (request === generation.current) setLoading(false); }
+      // Independent lanes; ascending live pages catch bursts without skipping.
+      for (let page = 0; page < (backfill ? 1 : 5); page++) {
+        const initial = !current.initialized;
+        const payload = { mint, chain: current.chain, ...(backfill ? { before: current.before } : current.after ? { after: current.after } : {}) };
+        const { data } = await base44.functions.invoke('solanaTokenChart', payload);
+        if (session.current !== current) return;
+        if (current.chain && current.chain !== data.network.chain) throw new Error('Chart network changed. Reload the market.');
+        current.chain = data.network.chain; setNetwork(data.network);
+        setTrades(previous => mergeTrades(previous, data.trades || []));
+        if (initial || !backfill) { setMarketInfo(data.marketInfo); setCoverage(data.coverage); setLastSync(Date.now()); }
+        if (initial || backfill) { current.before = data.nextBefore; setCursor(data.nextBefore); }
+        if (!backfill) { current.after = data.nextAfter; current.initialized = true; }
+        setError(''); if (backfill || initial || !data.hasMore) break;
+      }
+    } catch (failure) { if (session.current === current) setError(failure?.response?.data?.error || failure.message); }
+    finally { current[lane] = false; if (session.current === current) setLoading(!!current.live || !!current.history); }
   }, [mint]);
-  useEffect(() => { generation.current++; cursorRef.current = null; latestRef.current = null; setTrades([]); setMarketInfo(null); setCursor(null); load(); return () => { generation.current++; }; }, [mint, load]);
-  useEffect(() => { if (paused) return; const timer = setInterval(() => load({ silent: true }), 10000); return () => clearInterval(timer); }, [paused, load]);
-  const latest = trades.at(-1)?.blockTime || null;
-  return { trades, marketInfo, loading, error, cursor, lastSync, latest, stale: !latest || Date.now() / 1000 - latest > 60,
-    backfill: () => load({ backfill: true }), refreshLatest: () => load({ silent: true }) };
+  useEffect(() => {
+    session.current = {}; setTrades([]); setMarketInfo(null); setCursor(null); setLastSync(null); setCoverage(null); setNetwork(null); setError('');
+    load(); return () => { session.current = {}; };
+  }, [mint, load]);
+  useEffect(() => { const timer = setInterval(() => { setNow(Date.now()); load(); }, 10000); return () => clearInterval(timer); }, [load]);
+  const health = feedHealth({ now, lastSync, coverage, error });
+  return { trades, marketInfo, loading, error, cursor, lastSync, network, coverage, health, latest: trades.at(-1)?.blockTime || null, stale: health !== 'Synced', backfill: () => load({ backfill: true }), refreshLatest: load };
 }

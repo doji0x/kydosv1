@@ -1,78 +1,37 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.48';
 import { secrets } from 'base44:runtime';
-import { fetchHeliusTradePage } from '../../shared/heliusSolanaTrades.ts';
-
-const SOL_MINT = 'So11111111111111111111111111111111111111112';
-
-async function getFungibleAsset(endpoint: string, id: string) {
-  const response = await fetch(endpoint, { method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ jsonrpc: '2.0', id: `asset-${id}`, method: 'getAsset', params: { id, options: { showFungible: true } } }) });
-  if (!response.ok) throw new Error(`Helius asset request failed: ${response.status}`);
-  const data = await response.json();
-  if (data.error) throw new Error(data.error.message || 'Helius asset request failed');
-  return data.result;
-}
-
-const assetPrice = (asset: any) => {
-  const value = Number(asset?.token_info?.price_info?.price_per_token);
-  return Number.isFinite(value) && value >= 0 ? value : null;
-};
-
+import { canonicalFilter, readEventWindow, readNetwork } from '../../shared/solanaIndex.js';
+import { chartTrade } from '../../shared/solanaEvents.js';
+import { cachedAsset } from '../../shared/solanaAssets.js';
+import { PROGRAM_ADDRESS, DECODER_VERSION, SOL_MINT } from '../../shared/solanaProtocol.js';
 export default async function(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    const input = await req.json();
-    const mint = String(input.mint || '').trim();
-    const sinceValue = input.since == null ? null : input.since;
-    const sinceTime = Number(sinceValue);
-    const pages = Math.min(5, Math.max(1, Number(input.pages) || 1));
-    const apiKey = secrets.get('HELIUS_API_KEY') || secrets.get('HELIUS_PARSE_TRANSACTION_HISTORY_API_KEY');
-    if (!apiKey) return Response.json({ error: 'Helius history key is missing' }, { status: 503 });
-    const rpcEndpoint = secrets.get('HELIUS_RPC_URL') || `https://mainnet.helius-rpc.com/?api-key=${apiKey}`;
-    let before = input.before ? String(input.before) : undefined;
-    let scanned = 0;
-    for (let page = 0; page < pages; page++) {
-      const result = await fetchHeliusTradePage({ mint, apiKey, before, limit: sinceValue ? 50 : 100 });
-      scanned += result.scanned;
-      const existing = result.signatures.length ? await base44.asServiceRole.entities.SolanaTrade.filter({ mint, signature: { $in: result.signatures } }) : [];
-      const bySignature = new Map(existing.map((row: any) => [row.signature, row]));
-      const normalized = new Set(result.rows.map((row: any) => row.signature));
-      const stale = existing.filter((row: any) => !normalized.has(row.signature)).map((row: any) => row.id);
-      if (stale.length) await base44.asServiceRole.entities.SolanaTrade.deleteMany({ id: { $in: stale } });
-      const additions = result.rows.filter((row: any) => !bySignature.has(row.signature));
-      const updates = result.rows.filter((row: any) => bySignature.has(row.signature)).map((row: any) => ({ id: bySignature.get(row.signature).id, ...row }));
-      if (additions.length) await base44.asServiceRole.entities.SolanaTrade.bulkCreate(additions);
-      if (updates.length) await base44.asServiceRole.entities.SolanaTrade.bulkUpdate(updates);
-      before = result.nextBefore || undefined;
-      if (result.scanned < 100 || !before) break;
-    }
-    const rows = await base44.asServiceRole.entities.SolanaTrade.filter({ mint }, '-block_time', 500);
-    const validRows = rows.filter((row: any) => row.status === 'confirmed' && row.block_time > 0 && row.sol_amount > 0 && row.token_amount > 0);
-    const ordered = [...validRows].sort((a: any, b: any) => a.block_time - b.block_time);
-    let requested = ordered;
-    if (Number.isFinite(sinceTime) && sinceTime > 0) requested = ordered.filter((row: any) => row.block_time >= sinceTime);
-    else if (typeof sinceValue === 'string') {
-      const marker = ordered.find((row: any) => row.signature === sinceValue);
-      if (marker) requested = ordered.filter((row: any) => row.block_time >= marker.block_time);
-    }
-    const trades = requested.map((row: any) => ({ signature: row.signature, blockTime: row.block_time,
-      price: row.sol_amount / row.token_amount, side: row.side, solAmount: row.sol_amount, tokenAmount: row.token_amount }));
-    const [tokenResult, solResult] = await Promise.allSettled([
-      getFungibleAsset(rpcEndpoint, mint), getFungibleAsset(rpcEndpoint, SOL_MINT),
+    if (!(await base44.auth.me())) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    const input = await req.json(), mint = String(input.mint || '').trim();
+    if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint)) throw new Error('Valid Solana mint required');
+    for (const cursor of [input.before, input.after]) if (cursor && !/^\d{16}:\d{16}:\d{16}$/.test(cursor)) throw new Error('Invalid chart cursor');
+    const endpoint = secrets.get('HELIUS_RPC_URL');
+    if (!endpoint) return Response.json({ error: 'HELIUS_RPC_URL is missing' }, { status: 503 });
+    const network = await readNetwork(endpoint), filter = canonicalFilter(network.chain);
+    if (input.chain && input.chain !== network.chain) return Response.json({ error: 'Chart network changed. Reload the market.' }, { status: 409 });
+    const entities = base44.asServiceRole.entities;
+    const [window, launches, states, token, sol] = await Promise.all([
+      readEventWindow(entities.SolanaTrade, { ...filter, mint, side: { $in: ['buy', 'sell'] } }, { before: input.before, after: input.after }),
+      entities.SolanaTrade.filter({ ...filter, mint, side: 'launch' }, 'order_key', 1),
+      entities.SolanaIndexState.filter({ scope: `${network.chain}:${PROGRAM_ADDRESS}:v${DECODER_VERSION}` }, '-updated_date', 2),
+      cachedAsset(endpoint, mint), network.cluster === 'mainnet-beta' ? cachedAsset(endpoint, SOL_MINT) : Promise.resolve({ asset: null, observedAt: null }),
     ]);
-    const tokenAsset = tokenResult.status === 'fulfilled' ? tokenResult.value : null;
-    const solAsset = solResult.status === 'fulfilled' ? solResult.value : null;
-    const tokenInfo = tokenAsset?.token_info;
-    const marketInfo = { name: tokenAsset?.content?.metadata?.name || null,
-      symbol: tokenInfo?.symbol || tokenAsset?.content?.metadata?.symbol || null,
-      supply: tokenInfo?.supply == null ? null : String(tokenInfo.supply),
-      decimals: Number.isInteger(tokenInfo?.decimals) ? tokenInfo.decimals : null,
-      tokenUsdPrice: assetPrice(tokenAsset), solUsdPrice: assetPrice(solAsset) };
-    return Response.json({ trades, marketInfo, tradeCount: validRows.length, earliest: ordered[0]?.block_time || null,
-      latest: ordered.at(-1)?.block_time || null, nextBefore: before || null, scanned });
-  } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
-  }
+    const launch = launches[0], tokenInfo = token.asset?.token_info, price = Number(sol.asset?.token_info?.price_info?.price_per_token);
+    const marketInfo = { name: launch?.name || token.asset?.content?.metadata?.name || null,
+      symbol: launch?.symbol || tokenInfo?.symbol || token.asset?.content?.metadata?.symbol || null,
+      image: token.asset?.content?.links?.image || null,
+      supply: tokenInfo?.supply == null ? launch?.supply_raw || null : String(tokenInfo.supply),
+      decimals: Number.isInteger(tokenInfo?.decimals) ? tokenInfo.decimals : launch?.decimals ?? null,
+      solUsdPrice: Number.isFinite(price) && price > 0 ? price : null, solUsdObservedAt: sol.observedAt };
+    const state = states[0];
+    return Response.json({ trades: window.events.map(chartTrade), marketInfo, network, nextBefore: window.nextBefore, nextAfter: window.nextAfter, hasMore: window.hasMore,
+      source: 'Kydos finalized events', coverage: { indexedThrough: state?.last_synced_at || null, historyComplete: !!state?.history_complete, catchingUp: !!state?.live_before,
+        error: states.length > 1 ? 'Duplicate index checkpoints; reconciliation required' : state?.last_error || null, configured: !!state }, servedAt: Date.now() });
+  } catch (error) { return Response.json({ error: String(error.message).replace(/https?:\/\/\S+/g, '[RPC endpoint]') }, { status: 503 }); }
 }

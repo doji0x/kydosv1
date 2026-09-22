@@ -1,0 +1,48 @@
+{
+  "name": "SolanaIndexState",
+  "type": "object",
+  "description": "Single-writer durable live and historical replay cursors.",
+  "properties": {
+    "scope": {
+      "type": "string"
+    },
+    "chain": {
+      "type": "string"
+    },
+    "program": {
+      "type": "string"
+    },
+    "head": {
+      "type": "string"
+    },
+    "pending_head": {
+      "type": "string"
+    },
+    "live_before": {
+      "type": "string"
+    },
+    "history_before": {
+      "type": "string"
+    },
+    "last_error": {
+      "type": "string"
+    },
+    "history_complete": {
+      "type": "boolean"
+    },
+    "last_synced_at": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "scope",
+    "chain",
+    "program"
+  ],
+  "rls": {
+    "read": false,
+    "create": false,
+    "update": false,
+    "delete": false
+  }
+}

@@ -2,32 +2,64 @@
   "schema_version": 1,
   "purpose": "Small navigation and resume record; not a repository inventory, execution engine, authorization, or passing-check claim.",
   "owner": "Codex",
-  "delivery_branch": "codex/launch-funding-preflight",
-  "observed_source_sha": "bf3da2756fd48918d37defd31e030c7b647a0afe",
-  "observed_upstream_sha": "bf3da2756fd48918d37defd31e030c7b647a0afe",
+  "delivery_branch": "codex/chart-launch-reliability",
+  "observed_source_sha": "71be092a487bb5fc8a5ff7c369039b0c29747f75",
+  "observed_upstream_sha": "71be092a487bb5fc8a5ff7c369039b0c29747f75",
   "active_task": {
-    "id": "phantom-launch-funding-preflight",
-    "request": "Review create/launch and Phantom, resolve the reported unfunded debit-account error, and commit the fix in a new branch.",
+    "id": "chart-launch-reliability",
+    "request": "Commit chart/UI solutions and fix admin/native-SOL/network/deployment diagnostics on a new branch.",
     "status": "locally-verified-awaiting-publication-and-ci",
     "scope": [
-      "base44/shared/solanaRpc.js",
+      ".github/workflows/solana-scaffold.yml",
+      "base44/entities/AdminLaunchReceipt.jsonc",
+      "base44/entities/SolanaIndexState.jsonc",
+      "base44/entities/SolanaTrade.jsonc",
+      "base44/functions/adminLaunchToken/entry.ts",
+      "base44/functions/indexSolanaTransactions/entry.ts",
+      "base44/functions/solanaBoard/entry.ts",
+      "base44/functions/solanaTokenChart/entry.ts",
+      "base44/shared/adminLaunch.js",
+      "base44/shared/heliusSolanaTrades.js",
+      "base44/shared/heliusSolanaTrades.ts",
+      "base44/shared/solanaAssets.js",
+      "base44/shared/solanaEvents.js",
+      "base44/shared/solanaIndex.js",
+      "base44/shared/solanaNetwork.js",
+      "base44/shared/solanaProtocol.js",
+      "docs/architecture/launchpad-stages.md",
       "docs/astra-delivery-checkpoint.md",
       "docs/astra-work-state.json",
+      "docs/launch-and-chart-rollout.md",
       "solana/README.md",
-      "solana/tests/costs.test.js",
-      "solana/tests/launch.test.js",
-      "solana/tests/rpc.test.js",
+      "solana/package.json",
+      "solana/scripts/check-deployment.mjs",
+      "solana/scripts/run-indexer.mjs",
+      "solana/tests/admin-launch.test.js",
+      "solana/tests/chart.test.js",
+      "solana/tests/config.test.js",
+      "src/components/board/BoardTokenCard.jsx",
+      "src/components/solana/AdminLaunchForm.jsx",
+      "src/components/solana/IndexedTradeSample.jsx",
       "src/components/solana/LaunchForm.jsx",
+      "src/components/solana/MarketCandleChart.jsx",
+      "src/components/solana/MarketChartSection.jsx",
+      "src/components/solana/MarketHeader.jsx",
+      "src/components/solana/MarketStats.jsx",
+      "src/components/solana/TradePanel.jsx",
       "src/hooks/useLaunchFlow.js",
-      "src/lib/SolanaWalletContext.jsx",
-      "src/lib/solana/client.js",
-      "src/lib/solana/costs.js",
+      "src/hooks/useMarketTrading.js",
+      "src/hooks/useSolanaChartFeed.js",
+      "src/lib/solana/candles.js",
+      "src/lib/solana/chartFeed.js",
       "src/lib/solana/launchReview.js",
-      "src/lib/solana/phantom.js",
-      "src/lib/solana/preflight.js"
+      "src/lib/solana/marketMetrics.js",
+      "src/lib/solana/preflight.js",
+      "src/pages/AdminLaunch.jsx",
+      "src/pages/Board.jsx",
+      "src/pages/SolanaMarket.jsx"
     ],
-    "acceptance": "Correct creation funding including Metaplex levy; simulate on submission RPC before Phantom; reject funding, payer, account and signature mismatches before broadcast; preserve atomic launch and conservative recovery; publish a new branch and inspect checks.",
-    "next_action": "Publish the verified tree on codex/launch-funding-preflight and report the exact delivery SHA and checks. Backend RPC allowlist must roll out with frontend. Live launch still requires a verified deployed Kydos program identity; the currently configured address is absent on both public clusters. No funded launch or deployment is performed."
+    "acceptance": "Preserve current main wallet precedence/photo uploads; correct admin ABI/costs/simulation/recovery; detect missing deployment before uploads; canonical event indexing and cursor-based chart reads; publish isolated branch.",
+    "next_action": "Commit/push verified tree, inspect delivery SHA checks. Owner merges and configures rollout. No funded/deployment action performed."
   },
   "read_policy": {
     "startup": [
@@ -125,54 +157,23 @@
     }
   ],
   "verification": {
-    "source_sha": "bf3da2756fd48918d37defd31e030c7b647a0afe",
+    "source_sha": "71be092a487bb5fc8a5ff7c369039b0c29747f75",
     "prepared_tree_checks": [
-      "node --test solana/tests/costs.test.js solana/tests/launch.test.js solana/tests/rpc.test.js: 25 pass",
-      "npm --prefix solana test: 51 pass plus SDK fixture parity",
+      "npm ci --ignore-scripts --no-audit --no-fund --prefer-offline: pass",
+      "npm --prefix solana test: 68 pass plus SDK fixture parity",
       "npm --prefix solana run check: pass",
       "npm run lint: pass",
-      "npm run build: pass; no live Base44 app configuration supplied",
-      "npx tsc --allowJs --checkJs --noEmit --skipLibCheck --moduleResolution bundler --module esnext --target esnext src/lib/solana/preflight.js src/lib/solana/phantom.js: pass",
-      "New module node --check and git diff --check: pass"
+      "npm run build: pass (hosted app configuration not supplied)",
+      "Backend TypeScript transpilation, entity JSON and utility-script syntax: pass",
+      "git diff --check: pass"
     ],
-    "live_read_only_evidence": {
-      "checked_date": "2026-09-22",
-      "unfunded_payer_simulation": {
-        "cluster": "mainnet",
-        "slot": 449384837,
-        "error": "AccountNotFound",
-        "logs": [],
-        "units_consumed": 0,
-        "submitted": false
-      },
-      "configured_program": "Fg6PaFpoGXkYsidMpWxTWqkZqvFmR6UJA4R9C3bZ9S2",
-      "program_accounts": [
-        {
-          "cluster": "mainnet",
-          "slot": 449384808,
-          "value": null
-        },
-        {
-          "cluster": "devnet",
-          "slot": 502433751,
-          "value": null
-        }
-      ]
-    },
     "limitations": [
-      "Exact delivery CI inspection follows publication.",
-      "The actual failed transaction and hosted wallet/network configuration are unavailable; no claimed confirmed cause for the user attempt.",
-      "No live Phantom extension signing, funded transaction, token creation, merge or deployment.",
-      "Configured program has no account on mainnet/devnet as queried; actual deployed identity must be established.",
-      "No program/IDL/dependency changes; Rust/SBF/IDL and existing failing full-app typecheck not repeated.",
-      "Admin server-wallet launch path remains outside this Phantom-specific fix."
+      "Publication/CI inspection follows this record.",
+      "No live Base44/Phantom/funded launch or deployment.",
+      "Program deployment and configured single indexing worker remain required.",
+      "No Rust/IDL changes; those builds and known failing full-app typecheck not repeated."
     ],
-    "upstream_note": "PR #20 merged as bf3da2756fd48918d37defd31e030c7b647a0afe, with the same tree as adapter delivery d5a4daf4863dd9d0789d3ee0a2566374561e2e9e.",
-    "references": {
-      "metaplex_fee_source": "https://github.com/metaplex-foundation/mpl-token-metadata/blob/353d01be4af3018e1daf49d0cd35ba9f731d9c9c/programs/token-metadata/program/src/state/fee.rs",
-      "phantom_signing": "https://docs.phantom.com/solana/sending-a-transaction",
-      "launch_setup": "solana/README.md#launch-form-and-public-metadata"
-    }
+    "rollout": "docs/launch-and-chart-rollout.md"
   },
   "maintenance": "Update this record in place at a bounded work milestone, not after every read. Keep detailed source findings in the reference index, approved design in the build specification, and human handoff in the rolling checkpoint. Remove completed task detail once durable evidence is linked. Final delivery SHA belongs in chat, not a recursive self-SHA commit."
 }

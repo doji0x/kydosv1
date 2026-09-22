@@ -1,11 +1,8 @@
 import { VersionedTransaction } from '@solana/web3.js';
 import { formatAmount } from './market.js';
 
-// Public cluster identities, verified through getGenesisHash.
-export const LAUNCH_NETWORKS = Object.freeze({
-  '5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d': { name: 'Solana mainnet', explorerQuery: '' },
-  'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG': { name: 'Solana devnet', explorerQuery: '?cluster=devnet' },
-});
+import { SOLANA_NETWORKS } from '../../../base44/shared/solanaNetwork.js';
+export const LAUNCH_NETWORKS = SOLANA_NETWORKS;
 
 const networkName = chain => LAUNCH_NETWORKS[chain]?.name || 'the selected Solana network';
 const fundingSummary = ({ chain, payer, costs }) =>

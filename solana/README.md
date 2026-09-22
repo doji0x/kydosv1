@@ -49,7 +49,7 @@ position locking and fee claims remain subsequent work.
 
 The checked-in program address is
 `Fg6PaFpoGXkYsidMpWxTWqkZqvFmR6UJA4R9C3bZ9S2` in Rust, Anchor.toml, the client
-IDL and the admin launch function. Configuration tests detect divergence.
+IDL and `base44/shared/solanaProtocol.js`, used by the admin launcher and indexer. Configuration tests detect divergence.
 Matching addresses do not establish a deployment or control of its keypair.
 Do not generate an unrelated keypair and assume it matches this address.
 
@@ -129,8 +129,7 @@ errors from Phantom identify the payer, network and last checked SOL balance.
 The public RPC checks on 2026-09-22 found no account at the configured Kydos
 address `Fg6PaFpoGXkYsidMpWxTWqkZqvFmR6UJA4R9C3bZ9S2` on mainnet (slot
 449384808) or devnet (slot 502433751). A verified deployment and matching IDL/
-program identity are still prerequisites for live launches. The separate admin
-launch route uses a server signer, not Phantom, and is outside this wallet fix.
+program identity are still prerequisites for live launches. The admin launcher now validates the server wallet, funding and deployment, includes FeePolicy, and preserves submission receipts. See [rollout and indexing setup](../docs/launch-and-chart-rollout.md).
 
 ## Checks
 
