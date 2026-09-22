@@ -1,6 +1,8 @@
 # Solana program and client configuration
 
-Kydos uses Anchor 0.31.1, Solana CLI 2.1.21 and Rust 1.90.0. The program is
+Kydos uses Anchor 0.31.1, Solana CLI 2.1.21 and host Rust 1.90.0. Solana's
+separate SBF platform-tools v1.43 compiler uses Rust/Cargo 1.79; updating the host
+compiler does not update it. The program is
 `programs/kydos_launchpad/src/lib.rs`; its browser interface is
 `../src/lib/solana/idl/kydos_launchpad.json`.
 
@@ -113,16 +115,43 @@ Host checks (no validator or token creation):
 
 ```sh
 cd solana
-cargo test --workspace --lib
-cargo test -p kydos_launchpad --test account_validation
+cargo test --workspace --lib --locked
+cargo test -p kydos_launchpad --test account_validation --locked
 ```
+
+Build the SBF program and generate its IDL without deploying or creating tokens:
+
+```sh
+anchor build --program-name kydos_launchpad --no-idl -- -- --locked
+anchor idl build --program-name kydos_launchpad --out target/idl/kydos_launchpad.json --out-ts target/types/kydos_launchpad.ts -- --locked
+```
+
+Run these commands from `solana/`. Anchor 0.31.1 passes arguments through
+`cargo build-sbf` to `cargo build`, so the SBF command needs two separators.
+IDL generation invokes `cargo test` directly and needs one. Keep these as
+separate commands so `--locked` reaches Cargo in both cases.
+
+The committed lockfile pins compatible versions of `blake3` (1.5.5),
+`proc-macro-crate` (3.3.0), `indexmap` (2.7.1), `zeroize` (1.8.1),
+`zeroize_derive` (1.4.2) and `unicode-segmentation` (1.12.0). Newer versions
+had pulled in Rust 2024 manifests or a Rust requirement beyond the SBF compiler.
+Preserve the lockfile and verify intentional dependency updates with the SBF
+build as well as host tests. CI checks that the lockfile stays unchanged and
+uploads only the program binary, IDL and TypeScript definitions.
+
+The official Solana 2.1.21 Linux archive contains an empty `sdk/sbf/syscalls.txt`,
+which causes its build checker to warn about known Solana syscalls. The 12
+symbols reported by this build are registered in
+[Agave 2.1.21's runtime](https://github.com/anza-xyz/agave/blob/v2.1.21/programs/bpf_loader/src/syscalls/mod.rs).
+That warning and Anchor's existing macro warnings remain; compilation does not
+establish runtime or deployment readiness.
 
 The JavaScript suite checks RPC transport/cost estimation, confirmation,
 configuration consistency and quotes. It does not execute on-chain CPIs.
 `creation.test.js` is the separate local-validator suite; its old economics
 assertions must be refreshed when that work resumes. Token-creation/validator
 tests are explicitly deferred until AMM and graduation are resolved.
-CI additionally runs `anchor build --program-name kydos_launchpad`; a host
+CI runs both locked build commands above and requires nonempty outputs; a host
 build alone is not proof of SBF build or deployment readiness. Historical handoffs
 such as `creation-checkpoint.md` and `implementation-resume.md` describe earlier
 snapshots; their scaffold status and old economics are superseded here.

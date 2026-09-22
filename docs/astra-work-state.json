@@ -3,40 +3,21 @@
   "purpose": "Small navigation and resume record; not a repository inventory, execution engine, authorization, or passing-check claim.",
   "owner": "Codex",
   "delivery_branch": "codex/amm-graduation-foundation",
-  "observed_source_sha": "d1a2822ab4dc3acdfd6bf12e1924da4de986e521",
+  "observed_source_sha": "ed7779774795c78753b6f67969197b343a2a10ec",
   "observed_upstream_sha": "2316ac8e3d74a70a5ab5d154008adea757938c19",
   "active_task": {
-    "id": "atomic-launch-metadata-ui",
-    "request": "Approved follow-up on the existing AMM branch: optional atomic creator buy, image/metadata upload, simple launch review UI; defer on-chain creation testing",
-    "status": "implemented-ready-for-pr",
+    "id": "anchor-sbf-compatibility",
+    "request": "Approved repair: pin SBF-compatible dependencies, enforce locked host/SBF/IDL builds, verify and commit on the existing branch/PR; no token creation or deployment",
+    "status": "locally-verified-awaiting-publication-and-ci",
     "scope": [
-      "src/lib/solana/client.js",
-      "src/lib/solana/costs.js",
-      "src/lib/solana/launchReview.js",
-      "src/lib/solana/launchMetadata.js",
-      "base44/functions/launchMetadata/entry.ts",
-      "base44/shared/launchMetadata.js",
-      "src/hooks/useLaunchFlow.js",
-      "src/components/solana/LaunchForm.jsx",
-      "src/components/ui/button.jsx",
-      "src/components/ui/card.jsx",
-      "src/components/ui/input.jsx",
-      "src/components/ui/textarea.jsx",
-      "src/pages/SolanaLaunch.jsx",
-      "src/lib/SolanaWalletContext.jsx",
-      "src/lib/solana/Activity.jsx",
-      "solana/tests/launch.test.js",
-      "solana/tests/metadata.test.js",
-      "solana/package.json",
+      "solana/Cargo.lock",
       ".github/workflows/solana-scaffold.yml",
-      "README.md",
       "solana/README.md",
-      "docs/launchpad-build-spec.md",
       "docs/astra-delivery-checkpoint.md",
       "docs/astra-work-state.json"
     ],
-    "acceptance": "One transaction and one Phantom approval for create plus optional buy; server-only storage credentials and automatic metadata; review costs/network, preserve data on rejection, mocked validation and three commits to PR #17.",
-    "next_action": "Review PR #17; separately resolve SBF toolchain/dependency mismatch and implement AMM/migration. Configure PINATA_JWT and deploy launchMetadata only under deployment authorization. No funded creation test yet."
+    "acceptance": "SBF binary and IDL/types generated with the pinned compiler, locked host tests pass, lockfile unchanged during builds, publish to PR #17 and inspect resulting CI.",
+    "next_action": "GitHub connection restored; branch and PR base reverified. Publish the prepared tree as a fast-forward from ed7779774795c78753b6f67969197b343a2a10ec, preserve local verification commits, update PR #17 and inspect resulting CI. Authorization is already granted. Build files exactly match the locally tested repair; no repeat build is needed just for publication. Report delivery SHA and CI state in chat without a recursive checkpoint commit."
   },
   "read_policy": {
     "startup": [
@@ -134,35 +115,55 @@
     }
   ],
   "verification": {
+    "locally_verified_repair_sha": "008e236842f703471df5d16d3fa69b1b21dc3990",
     "delivery_checks_at_source": [
       {
-        "sha": "d1a2822ab4dc3acdfd6bf12e1924da4de986e521",
-        "check": "CI",
-        "result": "success"
-      },
-      {
-        "sha": "d1a2822ab4dc3acdfd6bf12e1924da4de986e521",
+        "sha": "ed7779774795c78753b6f67969197b343a2a10ec",
         "check": "Solana Anchor",
-        "run_id": 35684628863,
-        "job_id": 106608716975,
-        "result": "failure: SBF Cargo 1.79 cannot parse cmov 0.5.4 edition2024 requirement; JS and nine host Rust tests passed"
+        "run_id": 35687167604,
+        "job_id": 106616355756,
+        "result": "failure on cpufeatures 0.3.1 edition2024 with SBF Cargo 1.79; log inspected in prior diagnostic turn"
       }
     ],
     "prepared_tree_checks": [
-      "35 JavaScript tests pass with Node 20.20.2; no validator or network writes",
-      "npm run lint and npm run build pass; existing app-ID/browser-data/bundle warnings",
-      "Mocked browser check passes: desktop/mobile review, rejection/input retention, upload cache, single approved submission, devnet explorer link",
-      "npm --prefix solana run check and git diff --check pass",
-      "npm run typecheck fails on existing repository errors; added launch modules have no reported errors"
+      "Anchor 0.31.1 / Solana 2.1.21 SBF build passes with --locked using platform-tools v1.43 rustc 1.79.0-dev / Cargo 1.79.0",
+      "Locked anchor idl build passes; IDL address and initialize/buy/sell names verified; binary/IDL/TypeScript outputs nonempty",
+      "cargo test --workspace --lib --locked: 6 pass",
+      "cargo test -p kydos_launchpad --test account_validation --locked: 3 pass",
+      "Cargo.lock hash unchanged across SBF build, IDL generation and host tests",
+      "Workflow YAML parse and git diff --check pass"
     ],
+    "lockfile_sha256": "f1a7838f255f15a35dcfbfe135f21b32fc9199af258a9c8f1f94ccd269945441",
+    "artifacts": {
+      "solana/target/deploy/kydos_launchpad.so": {
+        "bytes": 337984,
+        "sha256": "1c9279c8746d993d1fa36384b3e5025db7380d0ecac6c39179126a798f17b806"
+      },
+      "solana/target/idl/kydos_launchpad.json": {
+        "bytes": 12730,
+        "sha256": "78ebb56ffc8075c548709017ae0425399ee8f5aacfe06a40f677e1c18cc828e8"
+      },
+      "solana/target/types/kydos_launchpad.ts": {
+        "bytes": 12938,
+        "sha256": "aa5c70136d58b9e954f6bb9a421bbd573b0e6f2f60ef7b0916515d781b7b5df3"
+      }
+    },
     "limitations": [
-      "No on-chain creation, validator, real wallet signing, live upload, funded transaction or deployment",
-      "SBF build blocked on source SHA by edition2024 dependency vs embedded Cargo 1.79; new delivery CI checked after publishing",
-      "AMM crate remains interface-only; executable migration/swaps and LP/fee/identity decisions are outstanding",
-      "Deployed Base44 configuration and source/binary equivalence unverified; compute ceiling unmeasured",
-      "Legacy curve configurations require explicit compatibility plan"
+      "New delivery CI must be inspected after publication; existing local build/test evidence is reused for identical build files.",
+      "Existing Anchor macro warnings; official SDK syscall inventory empty, all 12 warned symbols found in Agave v2.1.21 registration source",
+      "No validator, token creation, real wallet signing, funded transaction or deployment",
+      "Frontend/JavaScript checks not rerun for this dependency/CI repair",
+      "AMM remains interface-only; migration/swaps and LP/fee/identity decisions outstanding"
     ],
-    "upstream_note": "PR #16 RPC fixes are merged; main observed at 2316ac8e3d74a70a5ab5d154008adea757938c19"
+    "upstream_note": "GitHub PR #17 reverified main/base 2316ac8e3d74a70a5ab5d154008adea757938c19, which includes RPC PR #16.",
+    "publication_preparation": {
+      "connection_status": "restored; GitHub repository, branch and PR reads succeeded",
+      "observed_remote_branch_sha": "ed7779774795c78753b6f67969197b343a2a10ec",
+      "observed_pr_base_sha": "2316ac8e3d74a70a5ab5d154008adea757938c19",
+      "build_files_match_verified_repair": true,
+      "ci_status": "Inspect resulting delivery commit after branch publication; no new CI pass claimed in this preparation record",
+      "checks_rerun": false
+    }
   },
   "maintenance": "Update this record in place at a bounded work milestone, not after every read. Keep detailed source findings in the reference index, approved design in the build specification, and human handoff in the rolling checkpoint. Remove completed task detail once durable evidence is linked. Final delivery SHA belongs in chat, not a recursive self-SHA commit."
 }
