@@ -53,7 +53,7 @@ export default async function(req: Request): Promise<Response> {
     if (user.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
     const endpoint = secrets.get('HELIUS_RPC_URL');
     if (!endpoint) return Response.json({ error: 'Helius RPC is not configured' }, { status: 503 });
-    const signer = signerFromSecret(secrets.get('KYDOS_DEPLOYER_KEY') || secrets.get('SOLANA_MAINNET_PRIVATE_KEY'));
+    const signer = signerFromSecret(secrets.get('SOLANA_MAINNET_PRIVATE_KEY') || secrets.get('KYDOS_DEPLOYER_KEY'));
     const connection = new Connection(endpoint, 'confirmed'), input = await req.json();
     const balance = await connection.getBalance(signer.publicKey, 'confirmed');
     if (input.action === 'status') return Response.json({ wallet: signer.publicKey.toBase58(), balanceLamports: balance });
