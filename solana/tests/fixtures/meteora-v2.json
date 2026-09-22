@@ -1,0 +1,419 @@
+{
+  "schemaVersion": 1,
+  "sdkVersion": "1.4.10",
+  "sdkRevision": "37cd9e690d7b5fb6182638a21b86e0e1bf636a7e",
+  "programRevision": "a85c926607433f23f0ea60f4ca7b1ae92f4156cb",
+  "idlVersion": "0.2.4",
+  "idlJsonSha256": "2ea7a91da839c5dd4b617f9e167db6b875e29bc251800c7f51155af8a1ffd565",
+  "minSqrtPrice": "4295048016",
+  "maxSqrtPrice": "79226673521066979257578248091",
+  "oracleDecimalPrecision": 120,
+  "seeds": [
+    {
+      "name": "one-lamport",
+      "tokenA": "206900000000000",
+      "tokenB": "1",
+      "sqrtPrice": "1284596473270",
+      "liquidity": "265783010319563004309456683",
+      "tokenAAmount": "206900000000000",
+      "tokenBAmount": "1",
+      "tokenADust": "0",
+      "tokenBDust": "0"
+    },
+    {
+      "name": "small",
+      "tokenA": "206900000000000",
+      "tokenB": "1000",
+      "sqrtPrice": "40556687346549",
+      "liquidity": "8391178612000992395502919802",
+      "tokenAAmount": "206900000000000",
+      "tokenBAmount": "1000",
+      "tokenADust": "0",
+      "tokenBDust": "0"
+    },
+    {
+      "name": "one-sol",
+      "tokenA": "206900000000000",
+      "tokenB": "1000000000",
+      "sqrtPrice": "40554541913195600",
+      "liquidity": "8390734721844464688470879738129",
+      "tokenAAmount": "206900000000000",
+      "tokenBAmount": "1000000000",
+      "tokenADust": "0",
+      "tokenBDust": "0"
+    },
+    {
+      "name": "completion",
+      "tokenA": "206900000000000",
+      "tokenB": "85005359057",
+      "sqrtPrice": "373906170871547101",
+      "liquidity": "77361186753688197299861051454996",
+      "tokenAAmount": "206900000000000",
+      "tokenBAmount": "85005359057",
+      "tokenADust": "0",
+      "tokenBDust": "0"
+    },
+    {
+      "name": "completion-minus-one",
+      "tokenA": "206900000000000",
+      "tokenB": "85005359056",
+      "sqrtPrice": "373906170869347791",
+      "liquidity": "77361186753233160060856756405764",
+      "tokenAAmount": "206900000000000",
+      "tokenBAmount": "85005359056",
+      "tokenADust": "0",
+      "tokenBDust": "0"
+    },
+    {
+      "name": "completion-plus-one",
+      "tokenA": "206900000000000",
+      "tokenB": "85005359058",
+      "sqrtPrice": "373906170873746410",
+      "liquidity": "77361186754143234331965346502275",
+      "tokenAAmount": "206900000000000",
+      "tokenBAmount": "85005359058",
+      "tokenADust": "0",
+      "tokenBDust": "0"
+    },
+    {
+      "name": "path-dependent",
+      "tokenA": "206900000000000",
+      "tokenB": "86000000000",
+      "sqrtPrice": "376087332193975191",
+      "liquidity": "77812469031302841151494380954849",
+      "tokenAAmount": "206900000000000",
+      "tokenBAmount": "86000000000",
+      "tokenADust": "0",
+      "tokenBDust": "0"
+    },
+    {
+      "name": "max-sol",
+      "tokenA": "206900000000000",
+      "tokenB": "18446744073709551615",
+      "sqrtPrice": "5508068381761402569034",
+      "liquidity": "1139619427416085727040883239367713650",
+      "tokenAAmount": "206900000000000",
+      "tokenBAmount": "18446744073709551615",
+      "tokenADust": "0",
+      "tokenBDust": "0"
+    },
+    {
+      "name": "tiny",
+      "tokenA": "1",
+      "tokenB": "1",
+      "sqrtPrice": "18446744073709551615",
+      "liquidity": "18446744078004599632",
+      "tokenAAmount": "1",
+      "tokenBAmount": "1",
+      "tokenADust": "0",
+      "tokenBDust": "0"
+    },
+    {
+      "name": "max-a",
+      "tokenA": "18446744073709551615",
+      "tokenB": "1",
+      "sqrtPrice": "6949461475",
+      "liquidity": "128194937279429089299211302835",
+      "tokenAAmount": "18446744073709551615",
+      "tokenBAmount": "1",
+      "tokenADust": "0",
+      "tokenBDust": "0"
+    },
+    {
+      "name": "max-b",
+      "tokenA": "1",
+      "tokenB": "18446744073709551615",
+      "sqrtPrice": "48965285747186104539300472989",
+      "liquidity": "128194937282632071970505541523",
+      "tokenAAmount": "1",
+      "tokenBAmount": "18446744073709551615",
+      "tokenADust": "0",
+      "tokenBDust": "0"
+    },
+    {
+      "name": "rounding-dust",
+      "tokenA": "10000000000000000000",
+      "tokenB": "10000000000000000000",
+      "sqrtPrice": "18446744073709551615",
+      "liquidity": "184467440780045996320000375882995030153",
+      "tokenAAmount": "10000000000000000000",
+      "tokenBAmount": "9999999999999999999",
+      "tokenADust": "0",
+      "tokenBDust": "1"
+    }
+  ],
+  "addressCases": [
+    {
+      "launchpad": "US517G5965aydkZ46HS38QLi7UQiSojurfbQfKCELFx",
+      "configIndex": "1",
+      "addresses": {
+        "mint": "4vJ9JU1bJJE96FWSJKvHsmmFADCg4gpZQff4P3bkLKi",
+        "config": "82p7sVzQWZfCrmStPhsG8BYKwheQkUiXSs2wiqdhwNxr",
+        "curve": "9jYiaea9tawbBv17icRRosj6w9Z7Bm13ibNY7U5J5sEc",
+        "pool": "BN3FojeaS3vcDPevWX2vEDBSc7G14KpPk5rZhbtKoNm3",
+        "receipt": "Hnrw8mMT8ZHicE622vqrKHSDR3HtzgFH6wuRp1t3xpKq",
+        "payer": "Ak4dXUgZGJXf2ZkEYL92ATmRzchw1RdLKXETfdLtufv5",
+        "poolCreatorAuthority": "HdZi9wQnFBeA3T56zGK67GYdY7CCPJkAiKkxZmxCHynw",
+        "positionOwner": "AZt6jWxdjHYEWeiSNKZDxzwyhZoNeHEBGdZa586eQKDG",
+        "positionNftMint": "52RtMVj7xGa9Kszxm7UyudQ8oyXTi9uoPBcRaFwjNVmw",
+        "tokenAStaging": "5GeekG5wjkdfZ8QSrppp2J8MwXzZbPodWC9Eg8avEbQS",
+        "tokenBStaging": "79tH7XSQHzGnbsnovbvJEoDe6pcYbFoMxPaMUoGRtm2d",
+        "poolAuthority": "HLnpSz9h2S4hiLQ43rnSD9XkcUThA7B8hQMKmDaiTLcC",
+        "position": "5RGk7gXyi7krSLqYYiGfdUfeASnSgV4ZFy8T1kqXpeW1",
+        "positionNftAccount": "Ucq4rkx5zDad5hQDbR6U4jDvHbwvXeXuxWrqDnQTnqs",
+        "tokenAVault": "HyS9iHmG6xMmBqYEjAEQhpD6MGvPDuydrZ3tgh5p8bcP",
+        "tokenBVault": "68Z3foNwLoWURMs6vbKwLZRKhxfsjU4hzJknF6KEqbEM",
+        "eventAuthority": "3rmHSu74h1ZcmAisVcWerTCiRDQbUrBKmcwptYGjHfet"
+      },
+      "configDataHex": "9b0caae01efacc820000000000000000000000000000000000000000000000000000000000000000f718e27f875f0533f2b2b73bffbbca3c077a118c55e56b2e5bd45e86494219d800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+      "initialize": {
+        "seed": "completion",
+        "programId": "cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG",
+        "dataHex": "955248c5fdfc440f80969800000000000000000000000000000000000000000000000000000000503b01000100000000000000000000009b57694ea91a5c84b1c4feff000000000014b694b702635147c4d8796fd0030000dd04206eae6130050000000000000000010100",
+        "accounts": [
+          {
+            "pubkey": "AZt6jWxdjHYEWeiSNKZDxzwyhZoNeHEBGdZa586eQKDG",
+            "isSigner": false,
+            "isWritable": false
+          },
+          {
+            "pubkey": "52RtMVj7xGa9Kszxm7UyudQ8oyXTi9uoPBcRaFwjNVmw",
+            "isSigner": true,
+            "isWritable": true
+          },
+          {
+            "pubkey": "Ucq4rkx5zDad5hQDbR6U4jDvHbwvXeXuxWrqDnQTnqs",
+            "isSigner": false,
+            "isWritable": true
+          },
+          {
+            "pubkey": "Ak4dXUgZGJXf2ZkEYL92ATmRzchw1RdLKXETfdLtufv5",
+            "isSigner": true,
+            "isWritable": true
+          },
+          {
+            "pubkey": "HdZi9wQnFBeA3T56zGK67GYdY7CCPJkAiKkxZmxCHynw",
+            "isSigner": true,
+            "isWritable": false
+          },
+          {
+            "pubkey": "82p7sVzQWZfCrmStPhsG8BYKwheQkUiXSs2wiqdhwNxr",
+            "isSigner": false,
+            "isWritable": false
+          },
+          {
+            "pubkey": "HLnpSz9h2S4hiLQ43rnSD9XkcUThA7B8hQMKmDaiTLcC",
+            "isSigner": false,
+            "isWritable": false
+          },
+          {
+            "pubkey": "BN3FojeaS3vcDPevWX2vEDBSc7G14KpPk5rZhbtKoNm3",
+            "isSigner": false,
+            "isWritable": true
+          },
+          {
+            "pubkey": "5RGk7gXyi7krSLqYYiGfdUfeASnSgV4ZFy8T1kqXpeW1",
+            "isSigner": false,
+            "isWritable": true
+          },
+          {
+            "pubkey": "4vJ9JU1bJJE96FWSJKvHsmmFADCg4gpZQff4P3bkLKi",
+            "isSigner": false,
+            "isWritable": false
+          },
+          {
+            "pubkey": "So11111111111111111111111111111111111111112",
+            "isSigner": false,
+            "isWritable": false
+          },
+          {
+            "pubkey": "HyS9iHmG6xMmBqYEjAEQhpD6MGvPDuydrZ3tgh5p8bcP",
+            "isSigner": false,
+            "isWritable": true
+          },
+          {
+            "pubkey": "68Z3foNwLoWURMs6vbKwLZRKhxfsjU4hzJknF6KEqbEM",
+            "isSigner": false,
+            "isWritable": true
+          },
+          {
+            "pubkey": "5GeekG5wjkdfZ8QSrppp2J8MwXzZbPodWC9Eg8avEbQS",
+            "isSigner": false,
+            "isWritable": true
+          },
+          {
+            "pubkey": "79tH7XSQHzGnbsnovbvJEoDe6pcYbFoMxPaMUoGRtm2d",
+            "isSigner": false,
+            "isWritable": true
+          },
+          {
+            "pubkey": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+            "isSigner": false,
+            "isWritable": false
+          },
+          {
+            "pubkey": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+            "isSigner": false,
+            "isWritable": false
+          },
+          {
+            "pubkey": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+            "isSigner": false,
+            "isWritable": false
+          },
+          {
+            "pubkey": "11111111111111111111111111111111",
+            "isSigner": false,
+            "isWritable": false
+          },
+          {
+            "pubkey": "3rmHSu74h1ZcmAisVcWerTCiRDQbUrBKmcwptYGjHfet",
+            "isSigner": false,
+            "isWritable": false
+          },
+          {
+            "pubkey": "cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG",
+            "isSigner": false,
+            "isWritable": false
+          }
+        ]
+      }
+    },
+    {
+      "launchpad": "YMN9Qj5jPNp7j14VPcML1B6xGgcPWVZUGLFU3Mnyfaf",
+      "configIndex": "18446744073709551615",
+      "addresses": {
+        "mint": "JAQ5MVHbCkSYRzXunsrNuM2m1LS859PGveHfoYPAmcvZ",
+        "config": "CVRhkUMp8DCaLPuibDePc26WkSa3yhBzcM678c9GSagQ",
+        "curve": "26QVq7fvtWFoCqAv3faUFJ24mzfFds7wHKWt1NmLfVDq",
+        "pool": "65SyL1oNrTtMw7XYtc1Sxz9aYCXL3WgfUfNSuK4z4Hsu",
+        "receipt": "SGQttyT2R4eUpLJGVZ42pjNhcfUnstCU2vtKdcJANZh",
+        "payer": "BNCcaHyvm6qe1bJSoz2cGf1GWgxiGUkEdiXgtmH9UmDq",
+        "poolCreatorAuthority": "28Je2C4xGXFia4NsawYTAJf5m9VRv3LS25uPfKyujP5d",
+        "positionOwner": "BEA14Dr1CD9f2QysxBd3bM6pQEJAE7uW2CcSkAuU6jsV",
+        "positionNftMint": "DTD5Zo8vA53yX4EsrmyX2uasdJ8TS6t5buPDM4oZfZc3",
+        "tokenAStaging": "GKi695pqKx9JWQYBKiHmNgQRxMUL9PNC9DprYfEoJZfv",
+        "tokenBStaging": "2EHbWMoc4eEexH2zcea3Eoyw6PVPxx71HY879THyJzmR",
+        "poolAuthority": "HLnpSz9h2S4hiLQ43rnSD9XkcUThA7B8hQMKmDaiTLcC",
+        "position": "8RJQhMZUGedm7h9drPKkFwWAurzuVRMNhncZ1fPphCZG",
+        "positionNftAccount": "5AWLBdZMX7K8dW1AsueFRkPoQnBzAhor7N53sZwDYdsf",
+        "tokenAVault": "8eSNPj2AtRHASL39a7zkjXr8AYuBR36HMRrgoRNb3r1j",
+        "tokenBVault": "925ANuSqGmn2zsiFJqW1xugbbyKhgziFWqerTZ6aUsq5",
+        "eventAuthority": "3rmHSu74h1ZcmAisVcWerTCiRDQbUrBKmcwptYGjHfet"
+      },
+      "configDataHex": "9b0caae01efacc82000000000000000000000000000000000000000000000000000000000000000010bab23e3fa74373c87e037caf92b0772c6510341104541ab2bdb2d15de9d47400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000ffffffffffffffff00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+      "initialize": {
+        "seed": "completion",
+        "programId": "cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG",
+        "dataHex": "955248c5fdfc440f80969800000000000000000000000000000000000000000000000000000000503b01000100000000000000000000009b57694ea91a5c84b1c4feff000000000014b694b702635147c4d8796fd0030000dd04206eae6130050000000000000000010100",
+        "accounts": [
+          {
+            "pubkey": "BEA14Dr1CD9f2QysxBd3bM6pQEJAE7uW2CcSkAuU6jsV",
+            "isSigner": false,
+            "isWritable": false
+          },
+          {
+            "pubkey": "DTD5Zo8vA53yX4EsrmyX2uasdJ8TS6t5buPDM4oZfZc3",
+            "isSigner": true,
+            "isWritable": true
+          },
+          {
+            "pubkey": "5AWLBdZMX7K8dW1AsueFRkPoQnBzAhor7N53sZwDYdsf",
+            "isSigner": false,
+            "isWritable": true
+          },
+          {
+            "pubkey": "BNCcaHyvm6qe1bJSoz2cGf1GWgxiGUkEdiXgtmH9UmDq",
+            "isSigner": true,
+            "isWritable": true
+          },
+          {
+            "pubkey": "28Je2C4xGXFia4NsawYTAJf5m9VRv3LS25uPfKyujP5d",
+            "isSigner": true,
+            "isWritable": false
+          },
+          {
+            "pubkey": "CVRhkUMp8DCaLPuibDePc26WkSa3yhBzcM678c9GSagQ",
+            "isSigner": false,
+            "isWritable": false
+          },
+          {
+            "pubkey": "HLnpSz9h2S4hiLQ43rnSD9XkcUThA7B8hQMKmDaiTLcC",
+            "isSigner": false,
+            "isWritable": false
+          },
+          {
+            "pubkey": "65SyL1oNrTtMw7XYtc1Sxz9aYCXL3WgfUfNSuK4z4Hsu",
+            "isSigner": false,
+            "isWritable": true
+          },
+          {
+            "pubkey": "8RJQhMZUGedm7h9drPKkFwWAurzuVRMNhncZ1fPphCZG",
+            "isSigner": false,
+            "isWritable": true
+          },
+          {
+            "pubkey": "JAQ5MVHbCkSYRzXunsrNuM2m1LS859PGveHfoYPAmcvZ",
+            "isSigner": false,
+            "isWritable": false
+          },
+          {
+            "pubkey": "So11111111111111111111111111111111111111112",
+            "isSigner": false,
+            "isWritable": false
+          },
+          {
+            "pubkey": "8eSNPj2AtRHASL39a7zkjXr8AYuBR36HMRrgoRNb3r1j",
+            "isSigner": false,
+            "isWritable": true
+          },
+          {
+            "pubkey": "925ANuSqGmn2zsiFJqW1xugbbyKhgziFWqerTZ6aUsq5",
+            "isSigner": false,
+            "isWritable": true
+          },
+          {
+            "pubkey": "GKi695pqKx9JWQYBKiHmNgQRxMUL9PNC9DprYfEoJZfv",
+            "isSigner": false,
+            "isWritable": true
+          },
+          {
+            "pubkey": "2EHbWMoc4eEexH2zcea3Eoyw6PVPxx71HY879THyJzmR",
+            "isSigner": false,
+            "isWritable": true
+          },
+          {
+            "pubkey": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+            "isSigner": false,
+            "isWritable": false
+          },
+          {
+            "pubkey": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+            "isSigner": false,
+            "isWritable": false
+          },
+          {
+            "pubkey": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+            "isSigner": false,
+            "isWritable": false
+          },
+          {
+            "pubkey": "11111111111111111111111111111111",
+            "isSigner": false,
+            "isWritable": false
+          },
+          {
+            "pubkey": "3rmHSu74h1ZcmAisVcWerTCiRDQbUrBKmcwptYGjHfet",
+            "isSigner": false,
+            "isWritable": false
+          },
+          {
+            "pubkey": "cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG",
+            "isSigner": false,
+            "isWritable": false
+          }
+        ]
+      }
+    }
+  ]
+}

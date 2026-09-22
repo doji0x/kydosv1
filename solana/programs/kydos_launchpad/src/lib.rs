@@ -13,6 +13,8 @@ declare_id!("Fg6PaFpoGXkYsidMpWxTWqkZqvFmR6UJA4R9C3bZ9S2");
 
 pub mod math;
 pub mod fees;
+pub mod meteora;
+pub mod migration;
 
 pub const FEE_POLICY_VERSION: u8 = 1;
 pub const TREASURY: Pubkey = pubkey!("5ZuV8eqkvzYFVEKbLvGBdexL2tFv7E5BCd2HZpjqbdg");

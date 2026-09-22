@@ -2,46 +2,36 @@
   "schema_version": 1,
   "purpose": "Small navigation and resume record; not a repository inventory, execution engine, authorization, or passing-check claim.",
   "owner": "Codex",
-  "delivery_branch": "codex/curve-treasury-fees",
-  "observed_source_sha": "b5c76cd9500ed368a82395eb5a8f2fb83f241a14",
-  "observed_upstream_sha": "b5c76cd9500ed368a82395eb5a8f2fb83f241a14",
+  "delivery_branch": "codex/damm-v2-adapter",
+  "observed_source_sha": "9eb9da645fd65bb99db941e6d31039c0bfc4dc38",
+  "observed_upstream_sha": "9eb9da645fd65bb99db941e6d31039c0bfc4dc38",
   "active_task": {
-    "id": "curve-treasury-fees",
-    "request": "Begin repository implementation after DAMM v2 migration research; first bounded milestone is the approved 1% curve fee to the fixed Kydos treasury, including initial buys and quote/cost synchronization.",
+    "id": "damm-v2-adapter-foundation",
+    "request": "Tackle the next milestone after the merged curve treasury fees: the compatible Meteora DAMM v2 adapter foundation from the migration research.",
     "status": "locally-verified-awaiting-publication-and-ci",
     "scope": [
       ".github/workflows/solana-scaffold.yml",
       "docs/astra-delivery-checkpoint.md",
       "docs/astra-work-state.json",
       "docs/launchpad-build-spec.md",
+      "docs/meteora-adapter.md",
+      "package-lock.json",
+      "package.json",
+      "solana/Cargo.lock",
       "solana/README.md",
       "solana/package.json",
-      "solana/programs/kydos_launchpad/src/fees.rs",
+      "solana/programs/kydos_launchpad/Cargo.toml",
       "solana/programs/kydos_launchpad/src/lib.rs",
-      "solana/programs/kydos_launchpad/tests/account_validation.rs",
-      "solana/scripts/sync-idl.mjs",
-      "solana/tests/costs.test.js",
-      "solana/tests/creation.test.js",
-      "solana/tests/fees.test.js",
-      "solana/tests/fixtures/fee-quotes.csv",
-      "solana/tests/launch.test.js",
-      "solana/tests/math.test.js",
-      "solana/tests/rpc.test.js",
-      "src/components/solana/LaunchEconomics.jsx",
-      "src/components/solana/LaunchForm.jsx",
-      "src/components/solana/TradeDrawer.jsx",
-      "src/components/solana/TradePanel.jsx",
-      "src/hooks/useMarketTrading.js",
-      "src/lib/solana/client.js",
-      "src/lib/solana/costs.js",
-      "src/lib/solana/curveMath.js",
-      "src/lib/solana/fees.js",
-      "src/lib/solana/idl/kydos_launchpad.json",
-      "src/lib/solana/launchReview.js",
-      "src/lib/solana/market.js"
+      "solana/programs/kydos_launchpad/src/meteora.rs",
+      "solana/programs/kydos_launchpad/src/migration.rs",
+      "solana/programs/kydos_launchpad/tests/meteora_adapter.rs",
+      "solana/scripts/meteora-fixtures.mjs",
+      "solana/tests/fixtures/meteora-v2.json",
+      "solana/tests/meteora.test.js",
+      "src/lib/solana/meteora.js"
     ],
-    "acceptance": "Enforce a fixed 100-bps per-market fee policy on-chain; keep fees out of curve reserves; price buys including fees and sells net of fees; preserve atomic create-and-buy and existing curve economics; locked SBF/IDL builds and focused host/client checks pass; open a separate PR and inspect resulting CI.",
-    "next_action": "Publish the prepared tree on codex/curve-treasury-fees from b5c76cd9500ed368a82395eb5a8f2fb83f241a14, open a PR to main and inspect checks on its exact SHA. Publication is authorized; merge/deployment/funded tests are not. Report SHA and CI state in chat without a recursive self-SHA commit. Next implementation milestone is Meteora DAMM v2 migration, not the obsolete custom AMM scaffold."
+    "acceptance": "Pin the compatible Meteora interface and private-config route; implement deterministic custody addresses, strict config inspection, range-aware integer seeding and receipt schema; compare Rust/JS with the official SDK and run locked builds; publish a separate PR and inspect exact-SHA CI.",
+    "next_action": "Publish the prepared tree on codex/damm-v2-adapter from 9eb9da645fd65bb99db941e6d31039c0bfc4dc38, open a PR to main and inspect its exact-SHA checks. Report the delivery SHA in chat without a recursive checkpoint commit. Next executable milestone requires the final Kydos program identity/private dynamic config and a concrete custody-versus-permanent-lock choice. No merge, deployment, funded transaction or token-creation test is authorized here."
   },
   "read_policy": {
     "startup": [
@@ -139,25 +129,27 @@
     }
   ],
   "verification": {
-    "source_sha": "b5c76cd9500ed368a82395eb5a8f2fb83f241a14",
+    "source_sha": "9eb9da645fd65bb99db941e6d31039c0bfc4dc38",
     "prepared_tree_checks": [
+      "npm ci --ignore-scripts --no-audit --no-fund: pass; 5 SDK test packages added and every existing package resolution preserved",
       "npm --prefix solana run check: pass",
-      "npm --prefix solana test: 40 pass (pure math, account decoding, mocked transport and instruction assembly)",
-      "npm run lint: pass",
-      "npm run build: pass (no live Base44 configuration or deployment)",
-      "npm run typecheck: existing failures; baseline 162 errors, branch 160; no added file/error-code diagnostics",
+      "npm --prefix solana test: 45 pass; SDK 1.4.10 regeneration check covers 12 seed vectors and 2 config/address/full-instruction cases",
+      "npm run lint and npm run build: pass (no configured live Base44 app or deployment)",
+      "npx tsc --allowJs --checkJs --noEmit --skipLibCheck --moduleResolution bundler --module esnext --target esnext src/lib/solana/meteora.js: pass",
+      "npm run typecheck: existing failures; 138 diagnostics identical to same-dependency main baseline at 9eb9da645fd65bb99db941e6d31039c0bfc4dc38",
       "cargo test --workspace --lib --locked: 10 pass",
-      "cargo test -p kydos_launchpad --test account_validation --locked: 5 pass",
+      "cargo test -p kydos_launchpad --test account_validation --test meteora_adapter --locked: 10 pass; adapter rerun against final 12-vector fixture also passes",
       "cargo build-sbf --manifest-path programs/kydos_launchpad/Cargo.toml -- --locked: pass on Solana 2.1.21",
       "anchor idl build --program-name kydos_launchpad --out target/idl/kydos_launchpad.json --out-ts target/types/kydos_launchpad.ts -- --locked: pass",
-      "node solana/scripts/sync-idl.mjs --check: pass; browser IDL generated from the compiled interface",
-      "Cargo.lock unchanged; workflow YAML parse and git diff --check pass"
+      "node solana/scripts/sync-idl.mjs --check: pass; program/browser IDL unchanged",
+      "New Rust files rustfmt --check, workflow/fixture parse, git diff --check: pass",
+      "Cargo.lock adds direct references to already-locked num-bigint/num-traits/serde_json; no crate version changes; locked builds leave it unchanged"
     ],
-    "lockfile_sha256": "f1a7838f255f15a35dcfbfe135f21b32fc9199af258a9c8f1f94ccd269945441",
+    "lockfile_sha256": "bb5d4a184beb9b617786e67ecc57616976e9f8c62caa0d12c9714e53b4a0d8e8",
     "artifacts": {
       "solana/target/deploy/kydos_launchpad.so": {
-        "bytes": 363296,
-        "sha256": "08c29cb47375668ed13a3225a61b09432a129623c97daa529d240daff5da68d5"
+        "bytes": 363280,
+        "sha256": "3190118384cc0635abdf385f4c05214298491b71603706b8ab61e79507d59743"
       },
       "solana/target/idl/kydos_launchpad.json": {
         "bytes": 16678,
@@ -170,13 +162,20 @@
     },
     "limitations": [
       "Post-publication CI must be inspected; no new remote CI pass is asserted in this pre-publication checkpoint.",
-      "Existing Anchor macro and official Solana SDK syscall-inventory warnings remain; no stack-offset error observed.",
-      "No validator, token creation, real wallet signing, funded transaction, deployment or merge.",
-      "The creation validator suite has synchronized policy accounts/economics but was not executed.",
-      "Old deployed markets without FeePolicy need an explicit rollout decision; this is not authorization for a live program upgrade.",
-      "Meteora DAMM v2 migration, pool/config collision policy, position locking/claims, deployed program identity and end-to-end readiness remain subsequent work."
+      "No externally callable migration instruction, CPI execution, initialized receipt, locking, fee claims or AMM client routing. Receipt serialization is not runtime idempotency evidence.",
+      "No validator/token creation, funded transaction, real wallet signing, deployment or merge.",
+      "No approved private config or verified deployed Kydos program identity recorded in the repository. Operator provisioning and on-chain route binding remain pending.",
+      "Permanent locking is not selected; no extra migration fee is added.",
+      "Existing Anchor macro and Solana SDK syscall-inventory warnings remain; future handler compute/heap, atomic rollback and deployed Meteora version parity are unverified."
     ],
-    "upstream_note": "PR #17 is merged. Main reverified at b5c76cd9500ed368a82395eb5a8f2fb83f241a14 before publication."
+    "upstream_note": "PR #19 is merged as 9eb9da645fd65bb99db941e6d31039c0bfc4dc38. Both Lint and build and anchor checks on fee delivery 17757bac5a8c359a36af8fcf95c69faff79152aa completed successfully. Main has the same tree as that delivery.",
+    "references": {
+      "implementation_contract": "docs/meteora-adapter.md",
+      "sdk": "@meteora-ag/cp-amm-sdk@1.4.10",
+      "sdk_revision": "37cd9e690d7b5fb6182638a21b86e0e1bf636a7e",
+      "program_revision": "a85c926607433f23f0ea60f4ca7b1ae92f4156cb",
+      "idl_version": "0.2.4"
+    }
   },
   "maintenance": "Update this record in place at a bounded work milestone, not after every read. Keep detailed source findings in the reference index, approved design in the build specification, and human handoff in the rolling checkpoint. Remove completed task detail once durable evidence is linked. Final delivery SHA belongs in chat, not a recursive self-SHA commit."
 }

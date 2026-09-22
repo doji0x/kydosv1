@@ -37,9 +37,13 @@ policy are rejected. Existing deployed accounts need an explicit rollout plan.
 
 `programs/kydos_amm` contains a compiling account/interface scaffold with source-bound
 pool derivation and migration receipt types. It has no deployable entrypoint,
-program ID, executable migration or swaps yet. It is no longer the destination:
-Meteora DAMM v2 migration, pool verification, position locking and fee claims are
-subsequent milestones.
+program ID, executable migration or swaps yet. It is no longer the destination.
+The compatible DAMM v2 adapter foundation lives in launchpad `meteora.rs` and
+`migration.rs`, with offline client preparation in `src/lib/solana/meteora.js`.
+See [the adapter contract](../docs/meteora-adapter.md). It supplies SDK-checked
+instruction construction, private-config validation, custody addresses, seed
+calculations and a proposed receipt body. Executable migration, pool verification,
+position locking and fee claims remain subsequent work.
 
 ## Program identity and network boundaries
 
@@ -123,7 +127,7 @@ Host checks (no validator or token creation):
 ```sh
 cd solana
 cargo test --workspace --lib --locked
-cargo test -p kydos_launchpad --test account_validation --locked
+cargo test -p kydos_launchpad --test account_validation --test meteora_adapter --locked
 ```
 
 Build the SBF program and generate its IDL without deploying or creating tokens:
@@ -150,6 +154,13 @@ had pulled in Rust 2024 manifests or a Rust requirement beyond the SBF compiler.
 Preserve the lockfile and verify intentional dependency updates with the SBF
 build as well as host tests. CI checks that the lockfile stays unchanged and
 uploads only the program binary, IDL and TypeScript definitions.
+
+`npm --prefix solana test` also regenerates the expected DAMM instruction bytes,
+account metas, config layout and seed vectors in memory using the pinned
+`@meteora-ag/cp-amm-sdk` 1.4.10 dev dependency, then rejects fixture drift. For an
+intentional reviewed SDK update, use `node solana/scripts/meteora-fixtures.mjs --write`
+from the repository root and recheck both Rust and JavaScript parity. The SDK and
+high-precision Decimal oracle are test-only; the browser uses integer arithmetic.
 
 The official Solana 2.1.21 Linux archive contains an empty `sdk/sbf/syscalls.txt`,
 which causes its build checker to warn about known Solana syscalls. The 12

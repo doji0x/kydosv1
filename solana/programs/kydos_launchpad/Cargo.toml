@@ -19,3 +19,8 @@ idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
 anchor-lang = { version = "0.31.1", features = ["init-if-needed"] }
 anchor-spl = { version = "0.31.1", features = ["metadata"] }
 mpl-token-metadata = "5.1.0"
+num-bigint = "=0.4.8"
+num-traits = "=0.2.19"
+
+[dev-dependencies]
+serde_json = "=1.0.151"
