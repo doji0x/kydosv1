@@ -96,7 +96,7 @@ test('buy uses full authorized input, existing ATA has no rent, missing ATA adds
 
 test('sell requires valid existing ATA and enough tokens; proceeds never pay upfront fees', async () => {
   const args = { ...tradeArgs, side: 'sell', minOut: 100000n };
-  const tx = await buildTradeTransaction(args);
+  const tx = await buildTradeTransaction({ ...args, connection: rpc().connection });
   assert.equal(tx.instructions.length, 1, 'sell must not create an empty ATA');
   for (const [info, error] of [[null, /existing/], [tokenInfo(99n), /Insufficient sell tokens/]]) {
     const { connection } = rpc({ getAccountInfo: async () => info });
@@ -147,7 +147,7 @@ test('submission checks refreshed actual transaction before signer/broadcast; ex
     getBalance: async () => createRequired,
     getFeeForMessage: async message => { feeMessage = Buffer.from(message.serialize()); return { value: 10000 }; },
     sendRawTransaction: async wire => { calls.broadcasts++; assert.ok(wire.length > 0); return encodeSignature(built.transaction.signature); },
-    confirmTransaction: async () => ({ value: { err: null } }),
+    getSignatureStatuses: async () => ({ context: { slot: 1 }, value: [{ err: null, confirmationStatus: 'confirmed' }] }),
   });
   await sendTransaction(connection, { ...wallet, signTransaction: async tx => {
     signed++; assert.deepEqual(Buffer.from(tx.serializeMessage()), feeMessage);
@@ -174,13 +174,13 @@ test('failed submission costs never invoke signer or broadcast, including absent
   for (const context of [undefined, { operation: 'unknown', mint: mint.toBase58() }, { operation: 'buy', mint: mint.toBase58() }]) {
     const { connection, calls } = rpc(); let signed = 0;
     await assert.rejects(sendTransaction(connection, { ...wallet, signTransaction: async () => { signed++; } },
-      await buildTradeTransaction(tradeArgs), [], context, activity));
+      await buildTradeTransaction({ ...tradeArgs, connection }), [], context, activity));
     assert.equal(signed, 0); assert.equal(calls.broadcasts, 0);
   }
   for (const info of [null, tokenInfo(99n)]) {
     const { connection, calls } = rpc({ getAccountInfo: async () => info }); let signed = 0;
     await assert.rejects(sendTransaction(connection, { ...wallet, signTransaction: async () => { signed++; } },
-      await buildTradeTransaction({ ...tradeArgs, side: 'sell' }), [],
+      await buildTradeTransaction({ ...tradeArgs, side: 'sell', connection }), [],
       { operation: 'sell', mint: mint.toBase58(), amount: '100', minOut: '1' }, activity));
     assert.equal(signed, 0); assert.equal(calls.broadcasts, 0);
   }
@@ -192,7 +192,7 @@ test('preview success does not authorize submission after balance or ATA changes
   connection.getBalance = async () => 5099;
   let signed = 0;
   await assert.rejects(sendTransaction(connection, { ...wallet, signTransaction: async () => { signed++; } },
-    await buildTradeTransaction(tradeArgs), [], { operation: 'buy', mint: mint.toBase58(), amount: '100', minOut: '1' }, activity), /short 1 lamports/);
+    await buildTradeTransaction({ ...tradeArgs, connection }), [], { operation: 'buy', mint: mint.toBase58(), amount: '100', minOut: '1' }, activity), /short 1 lamports/);
   assert.equal(signed, 0); assert.equal(calls.broadcasts, 0);
   assert.equal(calls.blockhashes, 2);
   assert.notEqual(calls.fees[0].recentBlockhash, calls.fees[1].recentBlockhash);
@@ -200,5 +200,5 @@ test('preview success does not authorize submission after balance or ATA changes
 
 test('estimator itself rejects absent context', async () => {
   const { connection } = rpc();
-  await assert.rejects(estimateTransactionCosts({ connection, transaction: await buildTradeTransaction(tradeArgs), payer: payer.publicKey }), /context required/);
+  await assert.rejects(estimateTransactionCosts({ connection, transaction: await buildTradeTransaction({ ...tradeArgs, connection }), payer: payer.publicKey }), /context required/);
 });

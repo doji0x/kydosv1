@@ -56,3 +56,15 @@ test('copies only public contract fields, not arbitrary environment values', () 
   const result = readSolanaDevelopmentConfig({ ...example, unrelated: 'omit' });
   assert.deepEqual(Object.keys(result).sort(), ['cluster', 'rpcUrl']);
 });
+
+test('Rust, localnet config, browser IDL and admin launcher use one program identity', () => {
+  const read = path => readFileSync(new URL(path, import.meta.url), 'utf8');
+  const idl = JSON.parse(read('../../src/lib/solana/idl/kydos_launchpad.json'));
+  const rust = read('../programs/kydos_launchpad/src/lib.rs');
+  const anchor = read('../Anchor.toml');
+  const admin = read('../../base44/functions/adminLaunchToken/entry.ts');
+  assert.equal(rust.match(/declare_id!\("([^"]+)"\)/)[1], idl.address);
+  assert.equal(anchor.match(/kydos_launchpad = "([^"]+)"/)[1], idl.address);
+  assert.equal(admin.match(/const PROGRAM_ID = new PublicKey\('([^']+)'\)/)[1], idl.address);
+  assert.match(anchor, /cluster = "localnet"/, 'validator tests must stay local');
+});

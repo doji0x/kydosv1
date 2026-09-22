@@ -2,10 +2,10 @@ name: Solana Anchor
 on:
   push:
     branches: [astra/latest]
-    paths: ['solana/**','src/lib/solana/**','src/lib/SolanaWalletContext.jsx','src/pages/SolanaLaunch.jsx','base44/functions/indexSolanaTransactions/**','base44/functions/solanaRpc/**','base44/entities/SolanaTrade.jsonc','package.json','.github/workflows/solana-scaffold.yml']
+    paths: ['solana/**','src/lib/solana/**','src/lib/SolanaWalletContext.jsx','src/pages/SolanaLaunch.jsx','base44/functions/indexSolanaTransactions/**','base44/functions/solanaRpc/**','base44/shared/solanaRpc.js','base44/entities/SolanaTrade.jsonc','package.json','.github/workflows/solana-scaffold.yml']
   pull_request:
     branches: [main]
-    paths: ['solana/**','src/lib/solana/**','src/lib/SolanaWalletContext.jsx','src/pages/SolanaLaunch.jsx','base44/functions/indexSolanaTransactions/**','base44/functions/solanaRpc/**','base44/entities/SolanaTrade.jsonc','package.json','.github/workflows/solana-scaffold.yml']
+    paths: ['solana/**','src/lib/solana/**','src/lib/SolanaWalletContext.jsx','src/pages/SolanaLaunch.jsx','base44/functions/indexSolanaTransactions/**','base44/functions/solanaRpc/**','base44/shared/solanaRpc.js','base44/entities/SolanaTrade.jsonc','package.json','.github/workflows/solana-scaffold.yml']
 permissions: {contents: read}
 jobs:
   anchor:
