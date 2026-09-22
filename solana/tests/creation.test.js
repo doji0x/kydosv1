@@ -18,7 +18,7 @@ const TOTAL = 1_000_000_000n * SCALE;
 const CURVE_ALLOCATION = 793_100_000n * SCALE;
 const LIQUIDITY_ALLOCATION = 206_900_000n * SCALE;
 const VIRTUAL_SOL_RESERVES = 30_000_000_000n;
-const GRADUATION_TARGET = 85_000_000_000n;
+const GRADUATION_TARGET = 85_005_359_057n;
 const NAME = 'Kydos Test Coin';
 const SYMBOL = 'KYTEST';
 const URI = 'https://example.com/kydos-test.json';
@@ -28,6 +28,7 @@ anchor.setProvider(provider);
 const program = anchor.workspace.KydosLaunchpad;
 const mint = Keypair.generate();
 const [curve, bump] = PublicKey.findProgramAddressSync([Buffer.from('curve'), mint.publicKey.toBuffer()], program.programId);
+const [feePolicy] = PublicKey.findProgramAddressSync([Buffer.from('fee_policy'), curve.toBuffer()], program.programId);
 const [vault] = PublicKey.findProgramAddressSync([Buffer.from('vault'), mint.publicKey.toBuffer()], program.programId);
 const [metadata] = PublicKey.findProgramAddressSync([Buffer.from('metadata'), METADATA_PROGRAM_ID.toBuffer(), mint.publicKey.toBuffer()], METADATA_PROGRAM_ID);
 
@@ -43,6 +44,7 @@ before(async () => {
     creator: provider.wallet.publicKey,
     mint: mint.publicKey,
     curve,
+    feePolicy,
     vault,
     metadata,
     metadataProgram: METADATA_PROGRAM_ID,
@@ -66,7 +68,7 @@ test('creates the deterministic mint, curve and vault with canonical allocations
   assert.equal(BigInt(state.totalSupply.toString()), TOTAL);
   assert.equal(BigInt(state.curveTokenAllocation.toString()), CURVE_ALLOCATION);
   assert.equal(BigInt(state.liquidityTokenAllocation.toString()), LIQUIDITY_ALLOCATION);
-  assert.equal(BigInt(state.virtualTokenReserves.toString()), CURVE_ALLOCATION);
+  assert.equal(BigInt(state.virtualTokenReserves.toString()), 1_073_000_000n * SCALE);
   assert.equal(BigInt(state.virtualSolReserves.toString()), VIRTUAL_SOL_RESERVES);
   assert.equal(BigInt(state.realTokenReserves.toString()), CURVE_ALLOCATION);
   assert.equal(BigInt(state.realSolReserves.toString()), 0n);
@@ -115,6 +117,7 @@ test('rejects duplicate initialization for the same mint and launch PDAs', async
     creator: provider.wallet.publicKey,
     mint: mint.publicKey,
     curve,
+    feePolicy,
     vault,
     metadata,
     metadataProgram: METADATA_PROGRAM_ID,

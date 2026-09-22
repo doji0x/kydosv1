@@ -29,9 +29,9 @@ export default function useMarketTrading(mint, onConfirmed) {
     if (market && amount) { quote = quoteTrade(market, side, parseAmount(amount, side === 'buy' ? 9 : market.decimals), Number(bps));
       if (balances && quote.input > (side === 'buy' ? balances.sol : balances.tokens)) throw new Error('Input exceeds confirmed balance'); }
   } catch (error) { quoteError = error.message; quote = null; }
-  const blocked = busy || activity.blocked || !!market?.graduated;
+  const blocked = busy || activity.blocked || !!market?.graduated || !!loadError;
   const submit = async event => {
-    event.preventDefault(); if (lock.current || blocked || !quote || !balances || !market || !wallet.connected) return;
+    event.preventDefault(); if (lock.current || blocked || stale || loading || !quote || !balances || !market || !wallet.connected) return;
     lock.current = true; setBusy(true); setOutcome('Approve the mainnet transaction in Phantom.');
     try { await trade({ connection: rpc.connection, wallet, mint, side, amount: quote.input, minOut: quote.minOut }); setOutcome('Trade confirmed on mainnet.'); setAmount(''); await refresh(); await onConfirmed?.(); }
     catch (error) { setOutcome(transactionError(error)); }

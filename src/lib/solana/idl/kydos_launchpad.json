@@ -1,91 +1,840 @@
 {
   "address": "Fg6PaFpoGXkYsidMpWxTWqkZqvFmR6UJA4R9C3bZ9S2",
   "metadata": {
-    "name": "kydos_launchpad",
+    "name": "kydosLaunchpad",
     "version": "0.1.0",
-    "spec": "0.1.0",
-    "description": "Generated Anchor interface for the Kydos launchpad program"
+    "spec": "0.1.0"
   },
   "instructions": [
     {
-      "name": "initialize",
-      "discriminator": [175, 175, 109, 31, 13, 152, 155, 237],
+      "name": "buy",
+      "discriminator": [
+        102,
+        6,
+        61,
+        18,
+        1,
+        218,
+        235,
+        234
+      ],
       "accounts": [
-        {"name": "creator", "writable": true, "signer": true},
-        {"name": "mint", "writable": true, "signer": true},
-        {"name": "curve", "writable": true, "pda": {"seeds": [{"kind": "const", "value": [99,117,114,118,101]}, {"kind": "account", "path": "mint"}]}},
-        {"name": "vault", "writable": true, "pda": {"seeds": [{"kind": "const", "value": [118,97,117,108,116]}, {"kind": "account", "path": "mint"}]}},
-        {"name": "metadata", "writable": true},
-        {"name": "metadataProgram", "address": "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"},
-        {"name": "tokenProgram", "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"},
-        {"name": "systemProgram", "address": "11111111111111111111111111111111"},
-        {"name": "rent", "address": "SysvarRent111111111111111111111111111111111"}
+        {
+          "name": "trader",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "curve",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  114,
+                  118,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ]
+          },
+          "relations": [
+            "feePolicy"
+          ]
+        },
+        {
+          "name": "feePolicy",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  101,
+                  101,
+                  95,
+                  112,
+                  111,
+                  108,
+                  105,
+                  99,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "curve"
+              }
+            ]
+          }
+        },
+        {
+          "name": "treasury",
+          "writable": true,
+          "address": "5ZuV8eqkvzYFVEKbLvGBdexL2tFv7E5BCd2HZpjqbdg",
+          "relations": [
+            "feePolicy"
+          ]
+        },
+        {
+          "name": "mint",
+          "relations": [
+            "curve"
+          ]
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "traderTokens",
+          "writable": true
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
       ],
       "args": [
-        {"name": "name", "type": "string"},
-        {"name": "symbol", "type": "string"},
-        {"name": "metadataUri", "type": "string"}
+        {
+          "name": "solIn",
+          "type": "u64"
+        },
+        {
+          "name": "minTokensOut",
+          "type": "u64"
+        }
       ]
     },
     {
-      "name": "buy",
-      "discriminator": [102, 6, 61, 18, 1, 218, 235, 234],
-      "accounts": [
-        {"name": "trader", "writable": true, "signer": true},
-        {"name": "curve", "writable": true},
-        {"name": "mint"},
-        {"name": "vault", "writable": true},
-        {"name": "traderTokens", "writable": true},
-        {"name": "tokenProgram", "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"},
-        {"name": "systemProgram", "address": "11111111111111111111111111111111"}
+      "name": "initialize",
+      "discriminator": [
+        175,
+        175,
+        109,
+        31,
+        13,
+        152,
+        155,
+        237
       ],
-      "args": [{"name": "solIn", "type": "u64"}, {"name": "minTokensOut", "type": "u64"}]
+      "accounts": [
+        {
+          "name": "creator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "mint",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "curve",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  114,
+                  118,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "feePolicy",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  101,
+                  101,
+                  95,
+                  112,
+                  111,
+                  108,
+                  105,
+                  99,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "curve"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "metadata",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  116,
+                  97,
+                  100,
+                  97,
+                  116,
+                  97
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  11,
+                  112,
+                  101,
+                  177,
+                  227,
+                  209,
+                  124,
+                  69,
+                  56,
+                  157,
+                  82,
+                  127,
+                  107,
+                  4,
+                  195,
+                  205,
+                  88,
+                  184,
+                  108,
+                  115,
+                  26,
+                  160,
+                  253,
+                  181,
+                  73,
+                  182,
+                  209,
+                  188,
+                  3,
+                  248,
+                  41,
+                  70
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                11,
+                112,
+                101,
+                177,
+                227,
+                209,
+                124,
+                69,
+                56,
+                157,
+                82,
+                127,
+                107,
+                4,
+                195,
+                205,
+                88,
+                184,
+                108,
+                115,
+                26,
+                160,
+                253,
+                181,
+                73,
+                182,
+                209,
+                188,
+                3,
+                248,
+                41,
+                70
+              ]
+            }
+          }
+        },
+        {
+          "name": "metadataProgram",
+          "address": "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "symbol",
+          "type": "string"
+        },
+        {
+          "name": "metadataUri",
+          "type": "string"
+        }
+      ]
     },
     {
       "name": "sell",
-      "discriminator": [51, 230, 133, 164, 1, 127, 131, 173],
-      "accounts": [
-        {"name": "trader", "writable": true, "signer": true},
-        {"name": "curve", "writable": true},
-        {"name": "mint"},
-        {"name": "vault", "writable": true},
-        {"name": "traderTokens", "writable": true},
-        {"name": "tokenProgram", "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"},
-        {"name": "systemProgram", "address": "11111111111111111111111111111111"}
+      "discriminator": [
+        51,
+        230,
+        133,
+        164,
+        1,
+        127,
+        131,
+        173
       ],
-      "args": [{"name": "tokensIn", "type": "u64"}, {"name": "minSolOut", "type": "u64"}]
+      "accounts": [
+        {
+          "name": "trader",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "curve",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  114,
+                  118,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ]
+          },
+          "relations": [
+            "feePolicy"
+          ]
+        },
+        {
+          "name": "feePolicy",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  101,
+                  101,
+                  95,
+                  112,
+                  111,
+                  108,
+                  105,
+                  99,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "curve"
+              }
+            ]
+          }
+        },
+        {
+          "name": "treasury",
+          "writable": true,
+          "address": "5ZuV8eqkvzYFVEKbLvGBdexL2tFv7E5BCd2HZpjqbdg",
+          "relations": [
+            "feePolicy"
+          ]
+        },
+        {
+          "name": "mint",
+          "relations": [
+            "curve"
+          ]
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "traderTokens",
+          "writable": true
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "tokensIn",
+          "type": "u64"
+        },
+        {
+          "name": "minSolOut",
+          "type": "u64"
+        }
+      ]
     }
   ],
-  "accounts": [{"name": "curve", "discriminator": [191, 180, 249, 66, 180, 71, 51, 182]}],
+  "accounts": [
+    {
+      "name": "curve",
+      "discriminator": [
+        191,
+        180,
+        249,
+        66,
+        180,
+        71,
+        51,
+        182
+      ]
+    },
+    {
+      "name": "feePolicy",
+      "discriminator": [
+        98,
+        183,
+        86,
+        160,
+        232,
+        222,
+        82,
+        45
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "graduated",
+      "discriminator": [
+        51,
+        241,
+        66,
+        50,
+        140,
+        245,
+        156,
+        192
+      ]
+    },
+    {
+      "name": "launchCreated",
+      "discriminator": [
+        59,
+        38,
+        190,
+        230,
+        33,
+        34,
+        89,
+        20
+      ]
+    },
+    {
+      "name": "tradeExecuted",
+      "discriminator": [
+        41,
+        110,
+        64,
+        129,
+        60,
+        79,
+        179,
+        80
+      ]
+    },
+    {
+      "name": "tradeFeePaid",
+      "discriminator": [
+        222,
+        30,
+        41,
+        148,
+        251,
+        148,
+        228,
+        222
+      ]
+    }
+  ],
   "errors": [
-    {"code": 6000, "name": "zeroAmount", "msg": "Amount must be positive"},
-    {"code": 6001, "name": "slippage", "msg": "Slippage exceeded"},
-    {"code": 6002, "name": "mathOverflow", "msg": "Arithmetic overflow"},
-    {"code": 6003, "name": "graduated", "msg": "Curve complete; awaiting AMM migration"},
-    {"code": 6004, "name": "liquidity", "msg": "Insufficient liquidity"},
-    {"code": 6005, "name": "nameTooLong", "msg": "Name too long"},
-    {"code": 6006, "name": "symbolTooLong", "msg": "Symbol too long"},
-    {"code": 6007, "name": "uriTooLong", "msg": "URI too long"},
-    {"code": 6008, "name": "invalidCurve", "msg": "Invalid curve configuration"}
+    {
+      "code": 6000,
+      "name": "zeroAmount",
+      "msg": "Amount must be positive"
+    },
+    {
+      "code": 6001,
+      "name": "slippage",
+      "msg": "Slippage exceeded"
+    },
+    {
+      "code": 6002,
+      "name": "mathOverflow",
+      "msg": "Arithmetic overflow"
+    },
+    {
+      "code": 6003,
+      "name": "graduated",
+      "msg": "Curve complete; awaiting AMM migration"
+    },
+    {
+      "code": 6004,
+      "name": "liquidity",
+      "msg": "Insufficient liquidity"
+    },
+    {
+      "code": 6005,
+      "name": "nameTooLong",
+      "msg": "Name too long"
+    },
+    {
+      "code": 6006,
+      "name": "symbolTooLong",
+      "msg": "Symbol too long"
+    },
+    {
+      "code": 6007,
+      "name": "uriTooLong",
+      "msg": "URI too long"
+    },
+    {
+      "code": 6008,
+      "name": "invalidCurve",
+      "msg": "Invalid curve configuration"
+    },
+    {
+      "code": 6009,
+      "name": "invalidFeePolicy",
+      "msg": "Invalid or unsupported fee policy"
+    }
   ],
   "types": [
-    {"name": "curve", "type": {"kind": "struct", "fields": [
-      {"name": "creator", "type": "pubkey"},
-      {"name": "mint", "type": "pubkey"},
-      {"name": "bump", "type": "u8"},
-      {"name": "decimals", "type": "u8"},
-      {"name": "name", "type": "string"},
-      {"name": "symbol", "type": "string"},
-      {"name": "metadataUri", "type": "string"},
-      {"name": "totalSupply", "type": "u64"},
-      {"name": "curveTokenAllocation", "type": "u64"},
-      {"name": "liquidityTokenAllocation", "type": "u64"},
-      {"name": "virtualTokenReserves", "type": "u64"},
-      {"name": "virtualSolReserves", "type": "u64"},
-      {"name": "realTokenReserves", "type": "u64"},
-      {"name": "realSolReserves", "type": "u64"},
-      {"name": "graduationTarget", "type": "u64"},
-      {"name": "graduated", "type": "bool"}
-    ]}}
+    {
+      "name": "curve",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "creator",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "decimals",
+            "type": "u8"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "symbol",
+            "type": "string"
+          },
+          {
+            "name": "metadataUri",
+            "type": "string"
+          },
+          {
+            "name": "totalSupply",
+            "type": "u64"
+          },
+          {
+            "name": "curveTokenAllocation",
+            "type": "u64"
+          },
+          {
+            "name": "liquidityTokenAllocation",
+            "type": "u64"
+          },
+          {
+            "name": "virtualTokenReserves",
+            "type": "u64"
+          },
+          {
+            "name": "virtualSolReserves",
+            "type": "u64"
+          },
+          {
+            "name": "realTokenReserves",
+            "type": "u64"
+          },
+          {
+            "name": "realSolReserves",
+            "type": "u64"
+          },
+          {
+            "name": "graduationTarget",
+            "type": "u64"
+          },
+          {
+            "name": "graduated",
+            "docs": [
+              "True means curve complete / awaiting migration, NOT an active AMM."
+            ],
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "feePolicy",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "version",
+            "type": "u8"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "curve",
+            "type": "pubkey"
+          },
+          {
+            "name": "treasury",
+            "type": "pubkey"
+          },
+          {
+            "name": "tradingFeeBps",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "graduated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "solReserve",
+            "type": "u64"
+          },
+          {
+            "name": "tokenReserve",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "launchCreated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "creator",
+            "type": "pubkey"
+          },
+          {
+            "name": "totalSupply",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "tradeExecuted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "trader",
+            "type": "pubkey"
+          },
+          {
+            "name": "side",
+            "type": "u8"
+          },
+          {
+            "name": "solAmount",
+            "type": "u64"
+          },
+          {
+            "name": "tokenAmount",
+            "type": "u64"
+          },
+          {
+            "name": "graduated",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "tradeFeePaid",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "trader",
+            "type": "pubkey"
+          },
+          {
+            "name": "side",
+            "type": "u8"
+          },
+          {
+            "name": "treasury",
+            "type": "pubkey"
+          },
+          {
+            "name": "grossSol",
+            "type": "u64"
+          },
+          {
+            "name": "feeSol",
+            "type": "u64"
+          },
+          {
+            "name": "netSol",
+            "type": "u64"
+          }
+        ]
+      }
+    }
   ]
 }

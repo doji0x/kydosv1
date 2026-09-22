@@ -1,7 +1,8 @@
 // Owner-confirmed allocation: 79.31% curve, 20.69% liquidity, 30 virtual SOL.
 // Quotes mirror lib.rs; deployment and graduation behavior need separate validation.
 export const U64_MAX = (1n << 64n) - 1n;
-import { quoteCurve, INITIAL_VIRTUAL_SOL, INITIAL_VIRTUAL_TOKENS, COMPLETION_ESTIMATE } from './curveMath.js';
+import { INITIAL_VIRTUAL_SOL, INITIAL_VIRTUAL_TOKENS, COMPLETION_ESTIMATE } from './curveMath.js';
+import { quoteWithFees, validateFeePolicy } from './fees.js';
 
 export function rawAmount(value, label = 'Amount') {
   if (typeof value !== 'bigint' && !(typeof value === 'string' && /^\d+$/.test(value))) {
@@ -52,18 +53,18 @@ export function quoteTrade(market, side, amount, slippageBps) {
     throw new Error('Unsupported curve configuration; legacy markets require an explicit migration plan');
   }
   if (market.graduated) throw new Error('Curve complete; awaiting AMM migration');
-  const { acceptedInput, output, willGraduate } = quoteCurve(side,
+  validateFeePolicy(market.feePolicy);
+  const quote = quoteWithFees(side,
     rawAmount(market.realSolReserve), rawAmount(market.tokenReserve), input);
   // Round the minimum UP: never allow more loss than the selected tolerance.
-  const minOut = (output * BigInt(10000 - slippageBps) + 9999n) / 10000n;
-  return Object.freeze({ side, input, acceptedInput, output, minOut,
-    willGraduate });
+  const minOut = (quote.output * BigInt(10000 - slippageBps) + 9999n) / 10000n;
+  return Object.freeze({ ...quote, side, input, minOut });
 }
 
 export function transactionError(error) {
   if (error?.signature) return `Transaction ${error.signature}: ${error.message}`;
   if (error?.code === 4001 || /reject/i.test(error?.message || '')) return 'Wallet request rejected. Nothing was submitted by this action.';
-  const messages = ['Amount must be positive', 'Slippage exceeded; refresh the quote', 'Arithmetic overflow', 'Curve complete; awaiting AMM migration', 'Insufficient liquidity', 'Name too long', 'Symbol too long', 'Metadata URI too long'];
+  const messages = ['Amount must be positive', 'Slippage exceeded; refresh the quote', 'Arithmetic overflow', 'Curve complete; awaiting AMM migration', 'Insufficient liquidity', 'Name too long', 'Symbol too long', 'Metadata URI too long', 'Unsupported curve configuration', 'Invalid or unsupported fee policy'];
   const match = /custom program error: 0x([0-9a-f]+)/i.exec(error?.message || '');
   const code = error?.error?.errorCode?.number ?? (match ? parseInt(match[1], 16) : undefined);
   return messages[code - 6000] || error?.message || 'Transaction failed';

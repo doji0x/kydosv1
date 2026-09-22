@@ -39,7 +39,7 @@ test('initial buy is initialize, creator ATA and buy in one transaction with two
   assert.ok(buy.keys.some(k => k.pubkey.equals(creatorAta)));
   assert.equal(buy.data.readBigUInt64LE(8), args.initialBuyLamports);
   assert.equal(buy.data.readBigUInt64LE(16), quote.minOut);
-  assert.equal(quote.output, 34_612_903_225_806n);
+  assert.equal(quote.output, 34_277_831_558_567n);
   transaction.feePayer = payer.publicKey;
   transaction.recentBlockhash = Keypair.generate().publicKey.toBase58();
   assert.equal(transaction.compileMessage().header.numRequiredSignatures, 2);
@@ -50,7 +50,7 @@ test('zero buy preserves creation only; invalid amounts and slippage rejected', 
   assert.equal(transaction.instructions.length, 2);
   for (const amount of [-1n, '0.1', 1, 1n << 64n]) assert.throws(() => quoteInitialBuy(amount));
   for (const bps of [-1, 10000, 0.5]) assert.throws(() => quoteInitialBuy(1n, bps));
-  assert.equal(quoteInitialBuy(100_000_000_000n).acceptedInput, 85_005_359_057n);
+  assert.equal(quoteInitialBuy(100_000_000_000n).acceptedInput, 85_863_999_048n);
 });
 
 test('review includes creator ATA rent and full authorized buy input, retains the same mint for one signing/broadcast', async () => {

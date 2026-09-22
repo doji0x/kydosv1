@@ -1,5 +1,5 @@
 import { Buffer } from 'buffer';
-import { buildCreateTransaction, CURVE_SPACE, METADATA_SPACE, METADATA_PROGRAM_ID, PROGRAM_ID, sendTransaction } from './client.js';
+import { buildCreateTransaction, CURVE_SPACE, FEE_POLICY_SPACE, METADATA_SPACE, METADATA_PROGRAM_ID, PROGRAM_ID, sendTransaction } from './client.js';
 import { estimateTransactionCosts } from './costs.js';
 
 // Public cluster identities, verified via getGenesisHash on the Solana public RPCs.
@@ -27,7 +27,7 @@ export async function prepareLaunchReview(args) {
   const network = await verifyLaunchNetwork(args.connection);
   const built = await buildCreateTransaction(args);
   const costs = await estimateTransactionCosts({ connection: args.connection, transaction: built.transaction, payer: args.wallet.publicKey,
-    context: { ...built.metadata, curveSpace: CURVE_SPACE, metadataSpace: METADATA_SPACE } });
+    context: { ...built.metadata, curveSpace: CURVE_SPACE, feePolicySpace: FEE_POLICY_SPACE, metadataSpace: METADATA_SPACE } });
   built.transaction.serialize({ requireAllSignatures: false, verifySignatures: false });
   const review = {
     wallet: args.wallet.publicKey.toBase58(), mint: built.metadata.mint, network, costs, quote: built.quote,

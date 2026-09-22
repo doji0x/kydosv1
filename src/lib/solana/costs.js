@@ -26,8 +26,9 @@ export async function estimateTransactionCosts({ connection, transaction, payer,
   let rentLamports = 0n;
   if (context.operation === 'create') {
     if (!Number.isSafeInteger(context.curveSpace) || context.curveSpace <= 0) throw new Error('Curve account size required');
+    if (!Number.isSafeInteger(context.feePolicySpace) || context.feePolicySpace <= 0) throw new Error('Fee policy account size required');
     if (!Number.isSafeInteger(context.metadataSpace) || context.metadataSpace <= 0) throw new Error('Metadata account size required');
-    rentLamports = await rent(MINT_SIZE) + await rent(context.curveSpace) + await rent(ACCOUNT_SIZE) + await rent(context.metadataSpace);
+    rentLamports = await rent(MINT_SIZE) + await rent(context.curveSpace) + await rent(context.feePolicySpace) + await rent(ACCOUNT_SIZE) + await rent(context.metadataSpace);
     // The mint is new, so the optional creator buy needs a new associated token account.
     if (amount > 0n) rentLamports += await rent(ACCOUNT_SIZE);
   } else {
@@ -44,7 +45,8 @@ export async function estimateTransactionCosts({ connection, transaction, payer,
       rentLamports = await rent(ACCOUNT_SIZE);
     }
   }
-  // No proceeds credit, quote cap, arbitrary buffer or additional protocol fee.
+  // The submitted buy limit already includes the 1% fee. Do not add it twice.
+  // Budget the full input limit; do not credit sell proceeds or a final-fill cap.
   const inputLamports = context.operation === 'buy' || context.operation === 'create' ? amount : 0n;
   const requiredLamports = inputLamports + networkFeeLamports + rentLamports;
   const shortfallLamports = requiredLamports > balanceLamports ? requiredLamports - balanceLamports : 0n;

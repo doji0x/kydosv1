@@ -36,7 +36,7 @@ export default function LaunchForm({ flow }) {
         </label>}
         <label className="block space-y-2 text-sm font-medium" htmlFor="initial-buy"><span>Initial buy <span className="font-normal text-muted-foreground">(optional)</span></span>
           <div className="relative"><Input id="initial-buy" value={form.initialBuy} inputMode="decimal" disabled={disabled} onChange={flow.set('initialBuy')} className="pr-14" placeholder="0"/><span className="absolute right-3 top-2.5 text-sm text-muted-foreground">SOL</span></div>
-          <span className="block text-xs font-normal text-muted-foreground">Your purchase is included in the creation transaction. Enter 0 to create only.</span>
+          <span className="block text-xs font-normal text-muted-foreground">Includes the 1% Kydos trading fee. Your purchase is part of the creation transaction. Enter 0 to create only.</span>
         </label>
         <details className="rounded-lg border border-border/60 p-3">
           <summary className="cursor-pointer text-sm text-muted-foreground">Advanced options</summary>
@@ -60,6 +60,8 @@ export default function LaunchForm({ flow }) {
         <dl className="space-y-2 text-sm">
           <div className="flex justify-between gap-4"><dt>Initial buy limit</dt><dd>{formatAmount(review.costs.inputLamports, 9)} SOL</dd></div>
           {review.quote.input > 0n && <>
+            <div className="flex justify-between gap-4 text-muted-foreground"><dt>1% Kydos fee (included)</dt><dd>{formatAmount(review.quote.feeSol, 9)} SOL</dd></div>
+            <div className="flex justify-between gap-4 text-muted-foreground"><dt>Purchase into curve</dt><dd>{formatAmount(review.quote.netSol, 9)} SOL</dd></div>
             <div className="flex justify-between gap-4"><dt>Estimated tokens</dt><dd className="text-right">{formatAmount(review.quote.output, 6)}</dd></div>
             <div className="flex justify-between gap-4 text-muted-foreground"><dt>Minimum tokens ({review.slippage}% slippage)</dt><dd className="text-right">{formatAmount(review.quote.minOut, 6)}</dd></div>
           </>}

@@ -8,11 +8,14 @@ import { rawAmount, validateLaunch } from './market.js';
 import { encodeSignature, confirmTransactionHttp } from './transactions.js';
 import { browserActivity } from './lifecycle.js';
 import { estimateTransactionCosts } from './costs.js';
-import { CURVE_TOKENS, quoteCurve } from './curveMath.js';
+import { CURVE_TOKENS } from './curveMath.js';
+import { quoteWithFees, TREASURY_ADDRESS, validateFeePolicy } from './fees.js';
 
 export const PROGRAM_ID = new PublicKey(idl.address);
 export const METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
 export const CURVE_SPACE = 397;
+export const FEE_POLICY_SPACE = 76;
+export const TREASURY = new PublicKey(TREASURY_ADDRESS);
 export const METADATA_SPACE = 679;
 const accountsCoder = new BorshAccountsCoder(idl);
 const bn = value => new BN(rawAmount(value).toString());
@@ -21,12 +24,13 @@ const programFor = (connection, wallet) => new Program(idl, new AnchorProvider(c
 export function deriveMarketAddresses(mint) {
   const key = new PublicKey(mint);
   const [curve, bump] = PublicKey.findProgramAddressSync([Buffer.from('curve'), key.toBuffer()], PROGRAM_ID);
+  const [feePolicy, feePolicyBump] = PublicKey.findProgramAddressSync([Buffer.from('fee_policy'), curve.toBuffer()], PROGRAM_ID);
   const [vault] = PublicKey.findProgramAddressSync([Buffer.from('vault'), key.toBuffer()], PROGRAM_ID);
   const [metadata] = PublicKey.findProgramAddressSync(
     [Buffer.from('metadata'), METADATA_PROGRAM_ID.toBuffer(), key.toBuffer()],
     METADATA_PROGRAM_ID,
   );
-  return { curve, vault, metadata, bump };
+  return { curve, feePolicy, feePolicyBump, vault, metadata, bump };
 }
 
 export function decodeMarket(data, mint) {
@@ -51,12 +55,25 @@ export function decodeMarket(data, mint) {
   };
 }
 
+export function decodeFeePolicy(data, mint) {
+  const decoded = accountsCoder.decode('feePolicy', Buffer.from(data));
+  const { curve, feePolicyBump } = deriveMarketAddresses(mint);
+  if (!new PublicKey(decoded.curve).equals(curve) || decoded.bump !== feePolicyBump) throw new Error('Fee policy curve or bump mismatch');
+  const policy = { version: decoded.version, tradingFeeBps: decoded.tradingFeeBps, treasury: new PublicKey(decoded.treasury).toBase58() };
+  validateFeePolicy(policy);
+  return Object.freeze(policy);
+}
+
 export async function fetchMarket(connection, mint) {
-  const { curve, vault, metadata } = deriveMarketAddresses(mint);
+  const { curve, feePolicy, vault, metadata } = deriveMarketAddresses(mint);
   const { value, context } = await connection.getAccountInfoAndContext(curve, 'confirmed');
   if (!value) throw new Error('Market not found on this RPC');
   if (!value.owner.equals(PROGRAM_ID) || value.executable) throw new Error('Invalid market account owner');
-  return { ...decodeMarket(value.data, mint), curve, vault, metadata, slot: context.slot };
+  const policy = await connection.getAccountInfo(feePolicy, 'confirmed');
+  if (!policy) throw new Error('Missing fee policy; this market requires an explicit rollout plan');
+  if (!policy.owner.equals(PROGRAM_ID) || policy.executable) throw new Error('Invalid fee policy account owner');
+  return { ...decodeMarket(value.data, mint), curve, vault, metadata, slot: context.slot,
+    feePolicy: decodeFeePolicy(policy.data, mint), feePolicyAddress: feePolicy };
 }
 
 export async function fetchBalances(connection, wallet, mint) {
@@ -88,7 +105,7 @@ export async function sendTransaction(connection, wallet, tx, extra = [], metada
     tx.feePayer = payer;
     tx.recentBlockhash = latest.blockhash;
     const costs = await estimateTransactionCosts({ connection, transaction: tx, payer,
-      context: { ...metadata, curveSpace: CURVE_SPACE, metadataSpace: METADATA_SPACE }, prepared: true });
+      context: { ...metadata, curveSpace: CURVE_SPACE, feePolicySpace: FEE_POLICY_SPACE, metadataSpace: METADATA_SPACE }, prepared: true });
     if (!costs.sufficient) throw new Error(`Insufficient SOL: short ${costs.shortfallLamports} lamports for input, network fee and account rent`);
     if (options.maxCostLamports !== undefined && costs.requiredLamports > options.maxCostLamports) {
       throw new Error('Estimated cost increased. Review the launch again.');
@@ -126,8 +143,8 @@ export async function sendTransaction(connection, wallet, tx, extra = [], metada
 export function quoteInitialBuy(amount = 0n, slippageBps = 100) {
   const input = rawAmount(amount, 'Initial buy');
   if (!Number.isInteger(slippageBps) || slippageBps < 0 || slippageBps >= 10000) throw new Error('Invalid slippage');
-  if (input === 0n) return { input, acceptedInput: 0n, output: 0n, minOut: 0n };
-  const quote = quoteCurve('buy', 0n, CURVE_TOKENS, input);
+  if (input === 0n) return { input, acceptedInput: 0n, output: 0n, minOut: 0n, grossSol: 0n, feeSol: 0n, netSol: 0n };
+  const quote = quoteWithFees('buy', 0n, CURVE_TOKENS, input);
   return { ...quote, input, minOut: (quote.output * BigInt(10000 - slippageBps) + 9999n) / 10000n };
 }
 
@@ -137,9 +154,9 @@ export async function buildCreateTransaction({ connection, wallet, name, symbol,
   if (!wallet.publicKey) throw new Error('Connect a signing wallet first');
   const quote = quoteInitialBuy(initialBuyLamports, slippageBps);
   const mint = Keypair.generate();
-  const { curve, vault, metadata } = deriveMarketAddresses(mint.publicKey);
+  const { curve, feePolicy, vault, metadata } = deriveMarketAddresses(mint.publicKey);
   const ix = await programFor(connection, wallet).methods.initialize(name, symbol, metadataUri).accountsStrict({
-    creator: wallet.publicKey, mint: mint.publicKey, curve, vault, metadata,
+    creator: wallet.publicKey, mint: mint.publicKey, curve, feePolicy, vault, metadata,
     metadataProgram: METADATA_PROGRAM_ID, tokenProgram: TOKEN_PROGRAM_ID,
     systemProgram: SystemProgram.programId, rent: SYSVAR_RENT_PUBKEY,
   }).instruction();
@@ -173,10 +190,10 @@ export async function buildTradeTransaction({ connection, wallet, mint, side, am
   if (!wallet.publicKey) throw new Error('Connect a signing wallet first');
   if (side !== 'buy' && side !== 'sell') throw new Error('Choose buy or sell');
   if (rawAmount(amount) === 0n || rawAmount(minOut, 'Minimum output') === 0n) throw new Error('Amount and minimum output must be positive');
-  const key = new PublicKey(mint), { curve, vault } = deriveMarketAddresses(key);
+  const key = new PublicKey(mint), { curve, feePolicy, vault } = deriveMarketAddresses(key);
   const ata = await getAssociatedTokenAddress(key, wallet.publicKey);
   const ix = await programFor(connection, wallet).methods[side](bn(amount), bn(minOut)).accountsStrict({
-    trader: wallet.publicKey, curve, mint: key, vault, traderTokens: ata,
+    trader: wallet.publicKey, curve, feePolicy, treasury: TREASURY, mint: key, vault, traderTokens: ata,
     tokenProgram: TOKEN_PROGRAM_ID, systemProgram: SystemProgram.programId,
   }).instruction();
   const transaction = new Transaction();

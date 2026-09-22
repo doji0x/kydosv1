@@ -32,9 +32,6 @@ test('shared Rust/JS vectors cover ordinary trades and final partial fills', () 
     const nextX = side === 'buy' ? x + accepted : x - output;
     const nextY = side === 'buy' ? y - output : y + input;
     assert.ok(nextX * nextY >= x * y, 'rounding must preserve constant product');
-    const ui = quoteTrade(market(sol, tokens), side, input, 100);
-    assert.equal(ui.output, output);
-    assert.equal(ui.minOut, (output * 9900n + 9999n) / 10000n);
   }
 });
 

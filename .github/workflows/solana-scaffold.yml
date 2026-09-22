@@ -42,6 +42,9 @@ jobs:
       - name: Generate IDL with locked dependencies
         working-directory: solana
         run: anchor idl build --program-name kydos_launchpad --out target/idl/kydos_launchpad.json --out-ts target/types/kydos_launchpad.ts -- --locked
+      - name: Verify browser IDL matches the built program
+        working-directory: solana
+        run: node scripts/sync-idl.mjs --check
       - name: Verify build outputs and unchanged lockfile
         working-directory: solana
         run: |
