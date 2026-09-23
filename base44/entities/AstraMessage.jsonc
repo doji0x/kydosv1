@@ -66,6 +66,13 @@
     },
     "detailRef": {
       "type": "string"
+    },
+    "trace_uri": {
+      "type": "string",
+      "description": "Private turn transcript for administrator-reviewed training export; excludes internal reasoning."
+    },
+    "prompt_version": {
+      "type": "string"
     }
   },
   "required": [

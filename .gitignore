@@ -36,3 +36,7 @@ dist-ssr
 .env
 .vite
 base44/.app.jsonc
+
+# Private Astra training exports and job receipts
+/astra-training/
+*.astra-training.jsonl

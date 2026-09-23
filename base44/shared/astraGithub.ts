@@ -2,7 +2,7 @@ const apiBase = 'https://api.github.com';
 export const ASTRA_WORKING_BRANCH = 'astra/latest';
 function headers(token) { return { authorization: `Bearer ${token}`, accept: 'application/vnd.github+json', 'user-agent': 'kydos-astra', 'x-github-api-version': '2022-11-28' }; }
 async function github(token, path, options = {}) {
-  const response = await fetch(`${apiBase}${path}`, { ...options, headers: { ...headers(token), ...(options.body ? { 'content-type': 'application/json' } : {}) } });
+  const response = await fetch(`${apiBase}${path}`, { ...options, signal: options.signal || AbortSignal.timeout(20000), headers: { ...headers(token), ...(options.body ? { 'content-type': 'application/json' } : {}) } });
   const text = await response.text(); const body = text ? JSON.parse(text) : {};
   if (!response.ok) throw Object.assign(new Error(`GitHub ${response.status}: ${body.message || text.slice(0, 200)}`), { status: response.status });
   return body;
