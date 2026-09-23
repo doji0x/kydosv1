@@ -2,64 +2,45 @@
   "schema_version": 1,
   "purpose": "Small navigation and resume record; not a repository inventory, execution engine, authorization, or passing-check claim.",
   "owner": "Codex",
-  "delivery_branch": "codex/chart-launch-reliability",
-  "observed_source_sha": "71be092a487bb5fc8a5ff7c369039b0c29747f75",
-  "observed_upstream_sha": "71be092a487bb5fc8a5ff7c369039b0c29747f75",
+  "delivery_branch": "codex/homepage-market-discovery",
+  "observed_source_sha": "83f3f9ca6818494e8838e38e7d2f13811aecf64e",
+  "observed_upstream_sha": "83f3f9ca6818494e8838e38e7d2f13811aecf64e",
   "active_task": {
-    "id": "chart-launch-reliability",
-    "request": "Commit chart/UI solutions and fix admin/native-SOL/network/deployment diagnostics on a new branch.",
-    "status": "locally-verified-awaiting-publication-and-ci",
+    "id": "homepage-market-discovery",
+    "request": "Implement approved homepage discovery milestones 1\u20132 using the existing server JUP_API_KEY.",
+    "status": "implemented-locally-verified-delivery-in-progress",
     "scope": [
-      ".github/workflows/solana-scaffold.yml",
-      "base44/entities/AdminLaunchReceipt.jsonc",
-      "base44/entities/SolanaIndexState.jsonc",
-      "base44/entities/SolanaTrade.jsonc",
-      "base44/functions/adminLaunchToken/entry.ts",
-      "base44/functions/indexSolanaTransactions/entry.ts",
-      "base44/functions/solanaBoard/entry.ts",
-      "base44/functions/solanaTokenChart/entry.ts",
-      "base44/shared/adminLaunch.js",
-      "base44/shared/heliusSolanaTrades.js",
-      "base44/shared/heliusSolanaTrades.ts",
-      "base44/shared/solanaAssets.js",
-      "base44/shared/solanaEvents.js",
-      "base44/shared/solanaIndex.js",
-      "base44/shared/solanaNetwork.js",
-      "base44/shared/solanaProtocol.js",
-      "docs/architecture/launchpad-stages.md",
-      "docs/astra-delivery-checkpoint.md",
-      "docs/astra-work-state.json",
-      "docs/launch-and-chart-rollout.md",
-      "solana/README.md",
-      "solana/package.json",
-      "solana/scripts/check-deployment.mjs",
-      "solana/scripts/run-indexer.mjs",
-      "solana/tests/admin-launch.test.js",
-      "solana/tests/chart.test.js",
-      "solana/tests/config.test.js",
-      "src/components/board/BoardTokenCard.jsx",
-      "src/components/solana/AdminLaunchForm.jsx",
-      "src/components/solana/IndexedTradeSample.jsx",
-      "src/components/solana/LaunchForm.jsx",
-      "src/components/solana/MarketCandleChart.jsx",
-      "src/components/solana/MarketChartSection.jsx",
-      "src/components/solana/MarketHeader.jsx",
-      "src/components/solana/MarketStats.jsx",
-      "src/components/solana/TradePanel.jsx",
-      "src/hooks/useLaunchFlow.js",
-      "src/hooks/useMarketTrading.js",
-      "src/hooks/useSolanaChartFeed.js",
-      "src/lib/solana/candles.js",
-      "src/lib/solana/chartFeed.js",
-      "src/lib/solana/launchReview.js",
-      "src/lib/solana/marketMetrics.js",
-      "src/lib/solana/preflight.js",
-      "src/pages/AdminLaunch.jsx",
+      "base44/shared/marketCatalog.js",
+      "base44/shared/jupiterMarkets.js",
+      "base44/shared/marketDiscovery.js",
+      "base44/entities/MarketDiscoverySnapshot.jsonc",
+      "base44/functions/marketDiscovery/entry.ts",
+      "base44/functions/refreshMarketDiscovery/entry.ts",
+      "base44/functions/refreshMarketDiscovery/function.jsonc",
+      "src/lib/markets.js",
+      "src/hooks/useMarketDiscovery.js",
+      "src/hooks/useMarketWatchlist.js",
+      "src/components/markets/MarketPrimitives.jsx",
+      "src/components/markets/FeaturedMarkets.jsx",
+      "src/components/markets/MarketTable.jsx",
+      "src/components/markets/KydosMarkets.jsx",
       "src/pages/Board.jsx",
-      "src/pages/SolanaMarket.jsx"
+      "src/pages/ExternalMarket.jsx",
+      "src/App.jsx",
+      "src/components/nav/TopBar.jsx",
+      "src/components/nav/BottomTabBar.jsx",
+      "scripts/run-market-discovery.mjs",
+      "tests/market-discovery.test.mjs",
+      ".github/workflows/ci.yml",
+      "docs/homepage-market-discovery-plan.md",
+      "docs/market-discovery-rollout.md",
+      "docs/astra-delivery-checkpoint.md",
+      "docs/astra-work-state.json"
     ],
-    "acceptance": "Preserve current main wallet precedence/photo uploads; correct admin ABI/costs/simulation/recovery; detect missing deployment before uploads; canonical event indexing and cursor-based chart reads; publish isolated branch.",
-    "next_action": "Commit/push verified tree, inspect delivery SHA checks. Owner merges and configures rollout. No funded/deployment action performed."
+    "acceptance": "Public exact-mint discovery and external overview, shared bounded snapshots, explicit missing/stale data, responsive UI and local watchlist; preserve private Kydos routes.",
+    "design_record": "docs/homepage-market-discovery-plan.md",
+    "rollout_record": "docs/market-discovery-rollout.md",
+    "next_action": "Commit/publish review branch, inspect resulting delivery-SHA checks; owner performs hosted rollout checks before release."
   },
   "read_policy": {
     "startup": [
@@ -126,6 +107,19 @@
         "solana/programs/kydos_launchpad/Cargo.toml"
       ],
       "evidence_status": "Read program and direct dependencies only for a program task; do not repeat program review for documentation work."
+    },
+    "market-discovery": {
+      "start": [
+        "docs/market-discovery-rollout.md",
+        "src/pages/Board.jsx"
+      ],
+      "only_if_needed": [
+        "base44/shared/jupiterMarkets.js",
+        "base44/shared/marketDiscovery.js",
+        "src/lib/markets.js",
+        "src/pages/ExternalMarket.jsx"
+      ],
+      "focused_check": "node --test tests/market-discovery.test.mjs"
     }
   },
   "unfinished_work": [
@@ -157,23 +151,31 @@
     }
   ],
   "verification": {
-    "source_sha": "71be092a487bb5fc8a5ff7c369039b0c29747f75",
+    "source_sha": "83f3f9ca6818494e8838e38e7d2f13811aecf64e",
     "prepared_tree_checks": [
-      "npm ci --ignore-scripts --no-audit --no-fund --prefer-offline: pass",
-      "npm --prefix solana test: 68 pass plus SDK fixture parity",
-      "npm --prefix solana run check: pass",
-      "npm run lint: pass",
-      "npm run build: pass (hosted app configuration not supplied)",
-      "Backend TypeScript transpilation, entity JSON and utility-script syntax: pass",
-      "git diff --check: pass"
+      "19 market discovery tests and 68 offline Solana tests: pass (87 total).",
+      "npm run lint and npm run build: pass; no new dependencies.",
+      "Eight fixture component-render cases: populated board, external links, empty watchlist, guest Kydos, wrapped BTC, invalid mint, unknown mint and stale prices: pass.",
+      "Worker node --check and git diff --check: pass."
     ],
     "limitations": [
-      "Publication/CI inspection follows this record.",
-      "No live Base44/Phantom/funded launch or deployment.",
-      "Program deployment and configured single indexing worker remain required.",
-      "No Rust/IDL changes; those builds and known failing full-app typecheck not repeated."
+      "No local JUP_API_KEY or HELIUS_RPC_URL; no authenticated provider or mainnet mint smoke check.",
+      "No hosted Base44 settings, scheduler identity, entity quota or anonymous-access verification.",
+      "Browser localhost preview rejected with ERR_BLOCKED_BY_CLIENT; responsive browser visual/interaction checks unrun.",
+      "Initial broad test glob included validator-only creation.test.js, which failed at missing ANCHOR_PROVIDER_URL before execution. Corrected offline suite passes.",
+      "No funded transactions, validator tests, deployment, merge or optional chart/swap implementation.",
+      "Build warnings: missing local public Base44 app configuration and existing large chunks."
     ],
-    "rollout": "docs/launch-and-chart-rollout.md"
+    "delivery_evidence": "Resulting commit SHA and exact-SHA CI inspection are reported in the final chat handoff, without recursive self-SHA commits.",
+    "plan": "docs/homepage-market-discovery-plan.md"
   },
-  "maintenance": "Update this record in place at a bounded work milestone, not after every read. Keep detailed source findings in the reference index, approved design in the build specification, and human handoff in the rolling checkpoint. Remove completed task detail once durable evidence is linked. Final delivery SHA belongs in chat, not a recursive self-SHA commit."
+  "maintenance": "Update this record in place at a bounded work milestone, not after every read. Keep detailed source findings in the reference index, approved design in the build specification, and human handoff in the rolling checkpoint. Remove completed task detail once durable evidence is linked. Final delivery SHA belongs in chat, not a recursive self-SHA commit.",
+  "previous_delivery": {
+    "id": "chart-launch-reliability",
+    "commit_sha": "4a729780b487248a98c079a89d7122b59eb3fab7",
+    "merge_sha": "ec825f741b249db8d5913a46a2926a32be57fbec",
+    "pull_request": "https://github.com/doji0x/kydosv1/pull/22",
+    "status": "merged; present in inspected main history",
+    "validation": "Prior handoff recorded 68 JS tests, lint/build and successful exact-delivery-SHA CI. Not rerun for this documentation-only plan."
+  }
 }

@@ -18,4 +18,5 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint --if-present
+      - run: node --test tests/market-discovery.test.mjs
       - run: npm run build
