@@ -4,6 +4,12 @@ Milestones 1–2 add a public discovery homepage and external token overviews.
 Implementation base: `83f3f9ca6818494e8838e38e7d2f13811aecf64e`.
 Branch: `codex/homepage-market-discovery`. The feature is not deployed by this change.
 
+The subsequent approved chart milestone adds interactive pool OHLCV to external
+market pages and sparklines to the featured cards. See
+[interactive-market-charts.md](interactive-market-charts.md) for its additional
+entity/function, caching limits and rollout checks. The Jupiter discovery
+snapshot configuration below remains applicable.
+
 ## What ships
 
 - Featured SOL, cbBTC, Portal/Wormhole ETH, FARTCOIN, WIF and ANSEM (The Black Bull).

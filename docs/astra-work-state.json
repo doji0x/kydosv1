@@ -2,45 +2,35 @@
   "schema_version": 1,
   "purpose": "Small navigation and resume record; not a repository inventory, execution engine, authorization, or passing-check claim.",
   "owner": "Codex",
-  "delivery_branch": "codex/homepage-market-discovery",
-  "observed_source_sha": "83f3f9ca6818494e8838e38e7d2f13811aecf64e",
-  "observed_upstream_sha": "83f3f9ca6818494e8838e38e7d2f13811aecf64e",
+  "delivery_branch": "codex/interactive-market-charts",
+  "observed_source_sha": "96406b05bc707882eab41df619da7036af985177",
+  "observed_upstream_sha": "96406b05bc707882eab41df619da7036af985177",
   "active_task": {
-    "id": "homepage-market-discovery",
-    "request": "Implement approved homepage discovery milestones 1\u20132 using the existing server JUP_API_KEY.",
+    "id": "interactive-market-charts",
+    "request": "Correct external discovery coins without visible chart data and commit the corrections.",
     "status": "implemented-locally-verified-delivery-in-progress",
     "scope": [
-      "base44/shared/marketCatalog.js",
-      "base44/shared/jupiterMarkets.js",
-      "base44/shared/marketDiscovery.js",
-      "base44/entities/MarketDiscoverySnapshot.jsonc",
-      "base44/functions/marketDiscovery/entry.ts",
-      "base44/functions/refreshMarketDiscovery/entry.ts",
-      "base44/functions/refreshMarketDiscovery/function.jsonc",
-      "src/lib/markets.js",
-      "src/hooks/useMarketDiscovery.js",
-      "src/hooks/useMarketWatchlist.js",
-      "src/components/markets/MarketPrimitives.jsx",
+      "base44/shared/marketCandles.js",
+      "base44/entities/MarketChartCache.jsonc",
+      "base44/functions/marketCandles/entry.ts",
+      "src/lib/marketCandles.js",
+      "src/hooks/useMarketCandles.js",
+      "src/components/markets/ExternalMarketChart.jsx",
+      "src/components/markets/MarketSparkline.jsx",
       "src/components/markets/FeaturedMarkets.jsx",
-      "src/components/markets/MarketTable.jsx",
-      "src/components/markets/KydosMarkets.jsx",
-      "src/pages/Board.jsx",
+      "src/components/solana/MarketCandleChart.jsx",
       "src/pages/ExternalMarket.jsx",
-      "src/App.jsx",
-      "src/components/nav/TopBar.jsx",
-      "src/components/nav/BottomTabBar.jsx",
-      "scripts/run-market-discovery.mjs",
-      "tests/market-discovery.test.mjs",
+      "tests/market-candles.test.mjs",
       ".github/workflows/ci.yml",
-      "docs/homepage-market-discovery-plan.md",
+      "docs/interactive-market-charts.md",
       "docs/market-discovery-rollout.md",
       "docs/astra-delivery-checkpoint.md",
       "docs/astra-work-state.json"
     ],
-    "acceptance": "Public exact-mint discovery and external overview, shared bounded snapshots, explicit missing/stale data, responsive UI and local watchlist; preserve private Kydos routes.",
-    "design_record": "docs/homepage-market-discovery-plan.md",
-    "rollout_record": "docs/market-discovery-rollout.md",
-    "next_action": "Commit/publish review branch, inspect resulting delivery-SHA checks; owner performs hosted rollout checks before release."
+    "acceptance": "Interactive external USD charts, verified pool OHLCV, interval/style controls, backfill, actual featured sparklines and explicit stale/empty states; preserve SOL defaults for existing Kydos charts.",
+    "design_record": "docs/interactive-market-charts.md",
+    "rollout_record": "docs/interactive-market-charts.md",
+    "next_action": "Commit/publish review branch and inspect exact delivery-SHA checks. Owner merges and deploys backend/frontend, then verifies hosted provider coverage and chart interactions."
   },
   "read_policy": {
     "startup": [
@@ -120,6 +110,19 @@
         "src/pages/ExternalMarket.jsx"
       ],
       "focused_check": "node --test tests/market-discovery.test.mjs"
+    },
+    "market-charts": {
+      "start": [
+        "docs/interactive-market-charts.md",
+        "src/components/markets/ExternalMarketChart.jsx"
+      ],
+      "only_if_needed": [
+        "src/hooks/useMarketCandles.js",
+        "src/components/solana/MarketCandleChart.jsx",
+        "base44/functions/marketCandles/entry.ts",
+        "base44/shared/marketCandles.js"
+      ],
+      "focused_check": "node --test tests/market-candles.test.mjs tests/market-discovery.test.mjs"
     }
   },
   "unfinished_work": [
@@ -151,31 +154,31 @@
     }
   ],
   "verification": {
-    "source_sha": "83f3f9ca6818494e8838e38e7d2f13811aecf64e",
+    "source_sha": "96406b05bc707882eab41df619da7036af985177",
     "prepared_tree_checks": [
-      "19 market discovery tests and 68 offline Solana tests: pass (87 total).",
-      "npm run lint and npm run build: pass; no new dependencies.",
-      "Eight fixture component-render cases: populated board, external links, empty watchlist, guest Kydos, wrapped BTC, invalid mint, unknown mint and stale prices: pass.",
-      "Worker node --check and git diff --check: pass."
+      "18 chart tests, 19 discovery tests and 68 offline Solana tests: pass (105 total).",
+      "npm run lint and npm run build: pass; no new package dependencies.",
+      "Seven fixture-render cases: loaded controls, stale, empty, loading, invalid mint, wrapped BTC and featured sparklines/internal routes: pass.",
+      "git diff --check: pass."
     ],
     "limitations": [
-      "No local JUP_API_KEY or HELIUS_RPC_URL; no authenticated provider or mainnet mint smoke check.",
-      "No hosted Base44 settings, scheduler identity, entity quota or anonymous-access verification.",
-      "Browser localhost preview rejected with ERR_BLOCKED_BY_CLIENT; responsive browser visual/interaction checks unrun.",
-      "Initial broad test glob included validator-only creation.test.js, which failed at missing ANCHOR_PROVIDER_URL before execution. Corrected offline suite passes.",
-      "No funded transactions, validator tests, deployment, merge or optional chart/swap implementation.",
-      "Build warnings: missing local public Base44 app configuration and existing large chunks."
+      "Anonymous live GeckoTerminal request returned HTTP 403 in this environment; no live mint/pool coverage claim.",
+      "No hosted Base44 settings, entity quotas or anonymous function-access verification.",
+      "Earlier browser localhost preview rejected with ERR_BLOCKED_BY_CLIENT; canvas interaction and responsive browser checks remain unrun.",
+      "Per-instance admission and shared cache/cooldown are not distributed atomic quota enforcement; cold cards can be delayed by the public provider limit.",
+      "No funded transactions, validator run, merge or deployment.",
+      "Build warnings retain missing local public Base44 configuration and existing large chunks."
     ],
-    "delivery_evidence": "Resulting commit SHA and exact-SHA CI inspection are reported in the final chat handoff, without recursive self-SHA commits.",
-    "plan": "docs/homepage-market-discovery-plan.md"
+    "delivery_evidence": "Resulting commit SHA and exact-SHA CI inspection are reported in the final chat handoff without recursive self-SHA commits.",
+    "plan": "docs/interactive-market-charts.md"
   },
   "maintenance": "Update this record in place at a bounded work milestone, not after every read. Keep detailed source findings in the reference index, approved design in the build specification, and human handoff in the rolling checkpoint. Remove completed task detail once durable evidence is linked. Final delivery SHA belongs in chat, not a recursive self-SHA commit.",
   "previous_delivery": {
-    "id": "chart-launch-reliability",
-    "commit_sha": "4a729780b487248a98c079a89d7122b59eb3fab7",
-    "merge_sha": "ec825f741b249db8d5913a46a2926a32be57fbec",
-    "pull_request": "https://github.com/doji0x/kydosv1/pull/22",
+    "id": "homepage-market-discovery",
+    "commit_sha": "9ab013404038a19ae8c31866aebb48b9c5c4236f",
+    "merge_sha": "e35dcdcbd01951c1e09a9541f3b0de011904aebf",
+    "pull_request": "https://github.com/doji0x/kydosv1/pull/23",
     "status": "merged; present in inspected main history",
-    "validation": "Prior handoff recorded 68 JS tests, lint/build and successful exact-delivery-SHA CI. Not rerun for this documentation-only plan."
+    "validation": "Discovery tests included in the current 105 passing offline tests; main also contains later Astra defaults changes."
   }
 }
