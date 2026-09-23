@@ -1,5 +1,5 @@
 import React from "react";
-import { NavLink, Link } from "react-router-dom";
+import { NavLink, Link, useLocation } from "react-router-dom";
 import { LayoutGrid, MessagesSquare, Bell, Plus, UserRound } from "lucide-react";
 import { motion } from "framer-motion";
 import { useUnreadCount } from "@/hooks/useUnreadCount";
@@ -26,11 +26,13 @@ function Tab({ to, icon: Icon, label, end, badge }) {
 
 export default function BottomTabBar() {
   const unread = useUnreadCount();
+  const { pathname } = useLocation();
+  const marketPage = pathname === '/' || pathname.startsWith('/markets/solana/');
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-40 border-t border-border/60 bg-background/85 backdrop-blur-xl pb-[env(safe-area-inset-bottom)]">
+    <nav aria-label="Mobile navigation" className={`fixed bottom-0 inset-x-0 z-40 border-t border-border/60 bg-background/85 backdrop-blur-xl pb-[env(safe-area-inset-bottom)] ${marketPage ? 'lg:hidden' : ''}`}>
       <div className="mx-auto max-w-lg grid grid-cols-5 h-16">
-        <Tab to="/" icon={LayoutGrid} label="Board" end />
+        <Tab to="/" icon={LayoutGrid} label="Discover" end />
         <Tab to="/forum" icon={MessagesSquare} label="Forum" />
         <div className="relative flex items-center justify-center">
           <Link

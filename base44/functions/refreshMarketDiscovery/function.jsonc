@@ -1,0 +1,14 @@
+{
+  "name": "refreshMarketDiscovery",
+  "entry": "entry.ts",
+  "automations": [
+    {
+      "type": "scheduled",
+      "name": "solana_market_snapshot",
+      "is_active": true,
+      "schedule_mode": "recurring",
+      "schedule_type": "cron",
+      "cron_expression": "* * * * *"
+    }
+  ]
+}

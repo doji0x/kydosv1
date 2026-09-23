@@ -1,0 +1,13 @@
+{
+  "name": "MarketDiscoverySnapshot",
+  "type": "object",
+  "description": "Immutable complete Jupiter market snapshots; public access goes through a sanitized read function.",
+  "properties": {
+    "scope": { "type": "string" },
+    "started_at": { "type": "number" },
+    "fetched_at": { "type": "number" },
+    "payload_json": { "type": "string" }
+  },
+  "required": ["scope", "started_at", "fetched_at", "payload_json"],
+  "rls": { "read": false, "create": false, "update": false, "delete": false }
+}
