@@ -4,20 +4,19 @@ Architecture remains in [launchpad-build-spec.md](launchpad-build-spec.md) and
 [meteora-adapter.md](meteora-adapter.md). Launch/indexer rollout remains in
 [launch-and-chart-rollout.md](launch-and-chart-rollout.md).
 
-## Current handoff — interactive external market charts
+## Current handoff — chart overlap cleanup and Jupiter SDK verification
 
-- **Scope/status:** Owner requested corrections for coins without visible chart data and a commit. Implementation is locally verified on `codex/interactive-market-charts`; delivery is for review. [Chart design and rollout](interactive-market-charts.md).
-- **Source/base:** Main `96406b05bc707882eab41df619da7036af985177`. Discovery PR #23 is merged as `e35dcdc`; its mint catalog and Jupiter snapshot remain the foundation. Isolated worktree `kydos-discovery-plan`; historical fee work and newer Astra settings are preserved.
-- **Changes:** Public bounded OHLCV function and protected cache entity, verified pool selection and pinned backfill, native interactive USD candle/line views, five intervals, volume/crosshair and older-history controls, six visible featured sparklines, stale/empty handling, CI tests and rollout documentation. The shared renderer retains SOL defaults for existing Kydos charts.
-- **Decisions:** GeckoTerminal public OHLCV needs no additional secret. Jupiter still provides discovery/statistics. Actual provider candles only; no synthetic history. Shared immutable caches retain original age on failure. Eight upstream calls/minute per instance plus shared provider cooldown reduce calls but do not establish an atomic deployment-wide quota. Cold homepage charts can take an extra minute to fill.
-- **Prepared-tree evidence:** 18 chart + 19 discovery + 68 offline Solana tests pass (105 total); lint/build and seven fixture-render cases pass. Exact resulting delivery SHA and its CI inspection belong in the final chat handoff.
-- **Limits:** Live GeckoTerminal request returned HTTP 403 from this environment, so live pool coverage remains unverified. Hosted Base44 public access and entity quotas need rollout verification. Earlier browser preview rejected localhost; canvas pan/zoom and mobile browser checks are unrun. No funded transactions, validator tests, merge or deployment. Existing build warnings cover missing local Base44 configuration and large chunks.
+- **Scope/status:** Owner requested removal of overlapping chart code and a correct Jupiter public SDK integration. Cleanup is verified on `codex/chart-overlap-cleanup`; no historical Jupiter SDK replacement is claimed. [Research and rollout](interactive-market-charts.md).
+- **Source/base:** Main `282d7ac016d0eaa42eba101ada2b0485dd7ba250`, including PR #24 merged as `d61c693be585ebc18bd43c57f5473fe946b36487`. Preserve the later Base44 request configuration and 16-call instance budget. Historical fee work and Astra settings are untouched.
+- **Changes:** Remove unreachable `src/pages/SolanaChart.jsx` and `src/components/solana/TokenPriceChart.jsx`. Coalesce `base44/shared/marketCandles.js` requests after resolving mint/pool/interval/cursor. Add two concurrency regression tests and update chart documentation. Both active chart pages retain the single shared renderer.
+- **Jupiter finding:** Official Plugin docs describe an embedded swap interface. The Price API guide explicitly provides current prices only, without historical data. No supported historical chart SDK was found. Installing the swap plugin would not supply the requested charts. Existing Jupiter discovery and historical provider remain; a Jupiter-only sampled-price chart would require accepting history accumulated only from deployment onward and no historical trade volume.
+- **Prepared-tree evidence:** 20 chart + 19 discovery + nine Solana chart tests pass (48 total); lint/build and diff whitespace pass. Search confirms only one active chart renderer and no references to removed components. Final delivery SHA and its CI inspection belong in chat.
+- **Limits:** Coalescing fixes the reproduced overlap within one instance; separate instances can still race on a cache miss. No hosted provider/browser verification, funded transaction, validator run, merge or deployment. Earlier GeckoTerminal request returned HTTP 403 in this environment. Existing build warnings concern missing local Base44 configuration and large chunks.
 
 ## Next owner/action
 
-Review the branch/PR, then merge through the normal workflow. Deploy the new
-cache entity, shared module, function and frontend together. Check live charts
-for the six featured exact mints, public access, interval/style controls,
-backfill, pan/zoom and stale-data behavior using the chart rollout document.
-The existing Jupiter refresh configuration remains in
-[market-discovery-rollout.md](market-discovery-rollout.md).
+Review the cleanup branch/PR and deploy its backend/frontend changes after merge.
+A Jupiter chart replacement requires a supported chart/data SDK reference or an
+explicit choice to collect current-price samples going forward. Preserve actual
+historical charts until that replacement is viable. Hosted provider and browser
+checks remain in [interactive-market-charts.md](interactive-market-charts.md).

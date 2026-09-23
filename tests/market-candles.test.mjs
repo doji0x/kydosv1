@@ -89,6 +89,40 @@ test('in-process requests coalesce before pool resolution and publication', asyn
   assert.equal(p.calls.length, 2); assert.deepEqual(values[0], values[2]);
   assert.equal(entity.rows.filter(row => row.cache_key.startsWith('candles:')).length, 1);
 });
+test('automatic and pinned pool requests share one expired candle refresh', async () => {
+  const p = provider(), entity = entityFixture(); let time = TIME;
+  const read = createCandleService({ ...p, now: () => time });
+  await read(entity, input); time += 61_000; p.calls.length = 0;
+  const results = await Promise.all([
+    read(entity, input), read(entity, { ...input, pool: POOL }), read(entity, input),
+  ]);
+  assert.equal(p.calls.length, 1);
+  assert.match(p.calls[0].url, /\/ohlcv\/hour\?/);
+  assert.deepEqual(results[0], results[1]); assert.deepEqual(results[1], results[2]);
+  assert.equal(entity.rows.filter(row => row.cache_key.startsWith('candles:')).length, 2);
+});
+test('resolved coalescing keeps different pools, intervals and history pages separate', async () => {
+  const p = provider(), entity = entityFixture(); let time = TIME;
+  const fetchImpl = async (url, init) => {
+    if (new URL(url).pathname.endsWith(`/pools/${WRONG_POOL}`)) {
+      p.calls.push({ url, init });
+      return Response.json({ data: poolRow({ address: WRONG_POOL }) });
+    }
+    return p.fetchImpl(url, init);
+  };
+  const read = createCandleService({ fetchImpl, now: () => time });
+  await read(entity, input); time += 61_000; p.calls.length = 0;
+  const before = Math.floor(TIME / 1000 / 3600) * 3600 - 1;
+  const [latest, otherPool, otherInterval, older] = await Promise.all([
+    read(entity, input), read(entity, { ...input, pool: WRONG_POOL }),
+    read(entity, { ...input, pool: POOL, interval: '5m' }), read(entity, { ...input, pool: POOL, before }),
+  ]);
+  const requests = p.calls.filter(call => call.url.includes('/ohlcv/'));
+  assert.equal(requests.length, 4); assert.equal(new Set(requests.map(call => call.url)).size, 4);
+  assert.equal(latest.pool.address, POOL); assert.equal(otherPool.pool.address, WRONG_POOL);
+  assert.equal(otherInterval.interval, '5m'); assert.equal(older.before, before);
+  assert.ok(older.candles.at(-1).time < latest.candles.at(-1).time);
+});
 test('repeated refreshes retain only the latest two candle generations', async () => {
   const p = provider(), entity = entityFixture(); let time = TIME;
   const read = createCandleService({ ...p, now: () => time });

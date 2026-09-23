@@ -2,35 +2,26 @@
   "schema_version": 1,
   "purpose": "Small navigation and resume record; not a repository inventory, execution engine, authorization, or passing-check claim.",
   "owner": "Codex",
-  "delivery_branch": "codex/interactive-market-charts",
-  "observed_source_sha": "96406b05bc707882eab41df619da7036af985177",
-  "observed_upstream_sha": "96406b05bc707882eab41df619da7036af985177",
+  "delivery_branch": "codex/chart-overlap-cleanup",
+  "observed_source_sha": "282d7ac016d0eaa42eba101ada2b0485dd7ba250",
+  "observed_upstream_sha": "282d7ac016d0eaa42eba101ada2b0485dd7ba250",
   "active_task": {
-    "id": "interactive-market-charts",
-    "request": "Correct external discovery coins without visible chart data and commit the corrections.",
-    "status": "implemented-locally-verified-delivery-in-progress",
+    "id": "chart-overlap-cleanup",
+    "request": "Remove overlapping chart code and use Jupiter public SDK for in-app charts after verifying the official contract.",
+    "status": "cleanup-verified-jupiter-historical-chart-sdk-unavailable",
     "scope": [
       "base44/shared/marketCandles.js",
-      "base44/entities/MarketChartCache.jsonc",
-      "base44/functions/marketCandles/entry.ts",
-      "src/lib/marketCandles.js",
-      "src/hooks/useMarketCandles.js",
-      "src/components/markets/ExternalMarketChart.jsx",
-      "src/components/markets/MarketSparkline.jsx",
-      "src/components/markets/FeaturedMarkets.jsx",
-      "src/components/solana/MarketCandleChart.jsx",
-      "src/pages/ExternalMarket.jsx",
+      "src/pages/SolanaChart.jsx (removed)",
+      "src/components/solana/TokenPriceChart.jsx (removed)",
       "tests/market-candles.test.mjs",
-      ".github/workflows/ci.yml",
       "docs/interactive-market-charts.md",
-      "docs/market-discovery-rollout.md",
       "docs/astra-delivery-checkpoint.md",
       "docs/astra-work-state.json"
     ],
-    "acceptance": "Interactive external USD charts, verified pool OHLCV, interval/style controls, backfill, actual featured sparklines and explicit stale/empty states; preserve SOL defaults for existing Kydos charts.",
+    "acceptance": "Remove unreachable legacy charts and duplicate resolved-page fetches. Do not represent a swap SDK or current-price samples as a historical chart SDK.",
     "design_record": "docs/interactive-market-charts.md",
     "rollout_record": "docs/interactive-market-charts.md",
-    "next_action": "Commit/publish review branch and inspect exact delivery-SHA checks. Owner merges and deploys backend/frontend, then verifies hosted provider coverage and chart interactions."
+    "next_action": "Publish the reviewed cleanup. Owner reviews and deploys it. A Jupiter chart replacement needs a supported chart/data contract; existing historical charts remain available."
   },
   "read_policy": {
     "startup": [
@@ -154,31 +145,31 @@
     }
   ],
   "verification": {
-    "source_sha": "96406b05bc707882eab41df619da7036af985177",
+    "source_sha": "282d7ac016d0eaa42eba101ada2b0485dd7ba250",
     "prepared_tree_checks": [
-      "18 chart tests, 19 discovery tests and 68 offline Solana tests: pass (105 total).",
-      "npm run lint and npm run build: pass; no new package dependencies.",
-      "Seven fixture-render cases: loaded controls, stale, empty, loading, invalid mint, wrapped BTC and featured sparklines/internal routes: pass.",
+      "20 market chart tests, 19 discovery tests and nine Solana chart tests: pass (48 total).",
+      "Regression proves automatic and explicit requests for the same resolved pool share a refresh; other pools, intervals and cursors remain separate.",
+      "npm run lint and npm run build: pass; no package dependencies added.",
+      "Import search finds only one active createChart implementation and no remaining references to the removed legacy components.",
       "git diff --check: pass."
     ],
     "limitations": [
-      "Anonymous live GeckoTerminal request returned HTTP 403 in this environment; no live mint/pool coverage claim.",
-      "No hosted Base44 settings, entity quotas or anonymous function-access verification.",
-      "Earlier browser localhost preview rejected with ERR_BLOCKED_BY_CLIENT; canvas interaction and responsive browser checks remain unrun.",
-      "Per-instance admission and shared cache/cooldown are not distributed atomic quota enforcement; cold cards can be delayed by the public provider limit.",
+      "Official Jupiter Plugin is a swap interface; Price API V3 explicitly has no historical data. No historical Jupiter chart SDK integration is claimed.",
+      "Per-instance request coalescing does not eliminate cross-instance cache-miss races.",
+      "Hosted provider responses, background jobs and browser canvas interactions remain unverified. Earlier GeckoTerminal request returned HTTP 403 from this environment.",
       "No funded transactions, validator run, merge or deployment.",
-      "Build warnings retain missing local public Base44 configuration and existing large chunks."
+      "Build retains missing local Base44 app configuration and existing large chunk warnings."
     ],
-    "delivery_evidence": "Resulting commit SHA and exact-SHA CI inspection are reported in the final chat handoff without recursive self-SHA commits.",
+    "delivery_evidence": "Final chat reports the resulting delivery commit and its inspected CI without recursive self-SHA commits.",
     "plan": "docs/interactive-market-charts.md"
   },
   "maintenance": "Update this record in place at a bounded work milestone, not after every read. Keep detailed source findings in the reference index, approved design in the build specification, and human handoff in the rolling checkpoint. Remove completed task detail once durable evidence is linked. Final delivery SHA belongs in chat, not a recursive self-SHA commit.",
   "previous_delivery": {
-    "id": "homepage-market-discovery",
-    "commit_sha": "9ab013404038a19ae8c31866aebb48b9c5c4236f",
-    "merge_sha": "e35dcdcbd01951c1e09a9541f3b0de011904aebf",
-    "pull_request": "https://github.com/doji0x/kydosv1/pull/23",
-    "status": "merged; present in inspected main history",
-    "validation": "Discovery tests included in the current 105 passing offline tests; main also contains later Astra defaults changes."
+    "id": "interactive-market-charts",
+    "commit_sha": "b7fa58f697f345f76f7b8bb9235765c156a20e88",
+    "merge_sha": "d61c693be585ebc18bd43c57f5473fe946b36487",
+    "pull_request": "https://github.com/doji0x/kydosv1/pull/24",
+    "status": "merged; main subsequently includes Base44 chart request changes in 282d7ac",
+    "validation": "Original delivery CI and Solana Anchor checks passed. Review of main 282d7ac found successful CI and reproduced the automatic/explicit pool duplicate fetch now fixed by this cleanup."
   }
 }

@@ -3,7 +3,33 @@
 The external market page now displays historical price and volume inside Kydos.
 Jupiter remains the discovery and summary-statistics source; GeckoTerminal supplies
 pool OHLCV. This completes the chart milestone approved after discovery PR #23.
-Branch: `codex/interactive-market-charts`. Deployment is a separate rollout step.
+The original chart implementation merged in PR #24. Follow-up cleanup is on
+`codex/chart-overlap-cleanup`. Deployment is a separate rollout step.
+
+## Jupiter SDK verification — September 23, 2026
+
+The owner requested Jupiter's public SDK for in-app charts. Jupiter documents
+its public [Plugin](https://developers.jup.ag/docs/tool-kits/plugin) and
+[`@jup-ag/plugin` React integration](https://developers.jup.ag/docs/tool-kits/plugin/react-app-example)
+as an embedded swap interface. The documented customization API does not expose
+a historical chart component. Its
+[Price API guide](https://developers.jup.ag/docs/guides/how-to-get-token-price)
+explicitly provides current prices only; historical prices must be recorded by
+the integrator going forward. Those observations cannot backfill past candles
+or supply historical trade volume.
+
+Consequently no Jupiter chart SDK replacement is claimed or installed. Jupiter
+continues supplying discovery/statistics, and the existing historical candle
+provider remains available. A Jupiter-only sampled-price chart would be a
+separate product choice with no pre-existing history, not an equivalent candle
+source. A future SDK replacement requires a documented chart/data contract.
+
+The cleanup removes the unreachable `SolanaChart.jsx` and `TokenPriceChart.jsx`.
+Both active market pages continue to use `MarketCandleChart`. Candle work now
+coalesces by resolved mint, pool, interval and history cursor, so automatic pool
+selection and an explicit address share one refresh when they resolve to the
+same page. This fixes the reproduced duplicate fetch within one function
+instance; separate instances can still race on a cache miss.
 
 ## Visible behavior
 
@@ -68,23 +94,25 @@ sweep removes up to 50 records expired more than 14 days ago. A failed cleanup
 does not hide fetched data. Check actual entity quotas and usage during rollout.
 
 Unlike the scheduled Jupiter snapshot reader, candle requests can initiate
-provider work on cache misses. Identical work coalesces within an instance; the
-durable cache is shared. Admission is limited to eight upstream calls per minute
+provider work on cache misses. Work for the same resolved page coalesces within
+an instance; the durable cache is shared. Admission is limited to 16 upstream calls per minute
 **per function instance**. This is not an atomic, deployment-wide rate limiter.
 The provider's free limit is variable: its OpenAPI description says approximately
 10 calls/minute, while its FAQ says 30. A cold six-card homepage requires up to
-12 calls and can take an additional minute as requests retry. Featured cards do
+12 calls; provider throttling can still delay some cards. Featured cards do
 not continuously poll; detail views poll no faster than once a minute and honor
 cooldowns. New instances/uncached traffic can still exhaust the provider quota.
 Higher traffic requires an appropriate provider plan and shared quota control.
 
 ## Verification and hosted rollout
 
-Prepared-tree checks: 18 chart tests, 19 discovery tests and 68 offline Solana
-tests pass (105 total). Lint and production build pass without adding package
-dependencies. Seven fixture render cases cover loaded controls, delayed/empty/
-loading states, invalid mint, wrapped BTC, and six featured sparklines/internal
-links. These render checks do not execute browser canvas interaction.
+Cleanup checks: 20 chart tests, 19 discovery tests and nine Solana chart tests
+pass (48 total), including automatic/explicit pool request coalescing and
+separation of different pools, intervals and history cursors. Lint and production
+build pass without adding package dependencies. Only one active `createChart`
+implementation remains. The original PR #24 also passed 105 offline tests and
+seven fixture-render cases; those broader checks were not repeated for this
+focused cleanup. None of these checks executes browser canvas interaction.
 
 The anonymous GeckoTerminal smoke request from this environment returned HTTP
 403. Fixture tests therefore verify the documented API contract, not live pool

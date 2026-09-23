@@ -149,9 +149,11 @@ export function createCandleService({ fetchImpl = fetch, now = Date.now, request
   }
   return async (entity, input) => {
     const params = chartInput(input, now());
-    return coalesce(JSON.stringify(params), async () => {
-      const pool = await poolFor(entity, params.mint, params.pool);
-      const pinned = { ...params, pool: pool.address }, key = `candles:${params.mint}:${pool.address}:${params.interval}:${params.before ?? 'latest'}`;
+    const pool = await poolFor(entity, params.mint, params.pool);
+    const pinned = { ...params, pool: pool.address }, key = `candles:${params.mint}:${pool.address}:${params.interval}:${params.before ?? 'latest'}`;
+    // Automatic selection and an explicit pool address can resolve to the same page.
+    // Share the cache read, provider request and publication by that resolved identity.
+    return coalesce(key, async () => {
       const cached = await read(entity, key), previous = safeChart(cached?.value, pinned, now());
       if (cached?.fresh && previous) return { ...previous, stale: false };
       const frame = CHART_INTERVALS[params.interval], startedAt = now();
