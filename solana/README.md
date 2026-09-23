@@ -47,6 +47,8 @@ position locking and fee claims remain subsequent work.
 
 ## Program identity and network boundaries
 
+For a reproducible mainnet keypair, ID update, build and deployment, follow the [mainnet deployment runbook](docs/deployment.md). Do not deploy from the app preview.
+
 The checked-in program address is
 `Fg6PaFpoGXkYsidMpWxTWqkZqvFmR6UJA4R9C3bZ9S2` in Rust, Anchor.toml, the client
 IDL and `base44/shared/solanaProtocol.js`, used by the admin launcher and indexer. Configuration tests detect divergence.

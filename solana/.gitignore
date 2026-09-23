@@ -8,3 +8,4 @@
 /keys/
 /keypairs/
 **/*-keypair.json
+/.program-id
