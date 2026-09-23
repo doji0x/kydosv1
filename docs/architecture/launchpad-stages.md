@@ -6,19 +6,19 @@ The creator connects Phantom and submits token metadata to the Anchor program. T
 
 ## 2. Bonding curve
 
-Eighty percent of the one-billion-token supply is available through the constant-product curve. Quotes are snapshots, slippage limits are explicit, and confirmed balances are reloaded after each transaction.
+793.1 million tokens (79.31% of the one-billion-token supply) is available through the constant-product curve. Quotes are snapshots, slippage limits are explicit, and confirmed balances are reloaded after each transaction.
 
 ## 3. Graduation
 
-The curve targets 85 SOL. When the program graduation condition is reached, trading state is finalized for the liquidity transition; external migration must remain explicit and separately verified.
+Graduation occurs when real curve inventory is exhausted; about 85.005 SOL net reserves is indicative, not a fixed trigger. When that condition is reached, trading state is finalized for the liquidity transition; external migration must remain explicit and separately verified.
 
 ## 4. Liquidity
 
-The remaining twenty percent of supply pairs with the collected 85 SOL for AMM liquidity. Authority, destination accounts, and lock behavior must be validated on chain before production activation.
+The 206.9 million reserved tokens pair with the collected real SOL for the planned Meteora DAMM v2 migration. Executable migration is not implemented yet. Authority, destination accounts, and lock behavior must be validated on chain before production activation.
 
 ## 5. Indexing and product state
 
-Helius transaction parsing and RPC services feed bounded Base44 functions. Indexed transactions update durable activity records, while the UI always distinguishes estimated quotes from confirmed receipts.
+Helius RPC supplies finalized Kydos program events to a single reconciliation worker. Chart requests read the index; they do not ingest history. Indexed transactions update durable activity records, while the UI always distinguishes estimated quotes from confirmed receipts.
 
 ## Safety gates
 

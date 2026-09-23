@@ -15,6 +15,10 @@ export default function LaunchForm({ flow }) {
   return <Card className="border-primary/20 bg-card/80">
     <CardHeader><CardTitle>Token details</CardTitle><CardDescription>Create your coin and review the cost before opening Phantom.</CardDescription></CardHeader>
     <CardContent className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-secondary/50 p-3 text-sm">
+        <p>{flow.availability.network?.name || 'Solana network'} · {flow.availability.programDeployed ? 'Program available' : 'Launch unavailable'}</p>
+        <Button type="button" size="sm" variant="outline" disabled={busy} onClick={flow.refreshAvailability}>Check availability</Button>
+      </div>
       <form onSubmit={flow.prepare} className="space-y-4">
         {!form.manualMetadata && <div className="flex items-center gap-4 rounded-xl border border-dashed border-primary/30 bg-secondary/30 p-4">
           {flow.imagePreview ? <img src={flow.imagePreview} alt="Token preview" className="h-20 w-20 shrink-0 rounded-xl object-cover"/> :

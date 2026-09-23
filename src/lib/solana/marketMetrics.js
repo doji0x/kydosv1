@@ -1,19 +1,19 @@
 const finite = value => value != null && value !== '' && Number.isFinite(Number(value)) && Number(value) >= 0 ? Number(value) : null;
 
-export function deriveMarketMetrics(trades, marketInfo) {
+export function deriveMarketMetrics(trades, marketInfo, now = Date.now()) {
   const priceSol = finite(trades.at(-1)?.price);
   const decimals = Number.isInteger(marketInfo?.decimals) ? marketInfo.decimals : null;
   const rawSupply = finite(marketInfo?.supply);
   const supply = rawSupply != null && decimals != null ? rawSupply / 10 ** decimals : null;
-  const solUsdPrice = finite(marketInfo?.solUsdPrice);
-  const directUsd = finite(marketInfo?.tokenUsdPrice);
-  const priceUsd = directUsd ?? (priceSol != null && solUsdPrice != null ? priceSol * solUsdPrice : null);
+  const age = now - Number(marketInfo?.solUsdObservedAt);
+  const solUsdPrice = age >= 0 && age < 120000 ? finite(marketInfo?.solUsdPrice) : null;
+  const priceUsd = priceSol != null && solUsdPrice != null ? priceSol * solUsdPrice : null;
   return {
     priceSol,
     priceUsd,
     supply,
-    marketCapSol: priceSol != null && supply != null ? priceSol * supply : null,
-    marketCapUsd: priceUsd != null && supply != null ? priceUsd * supply : null,
+    fdvSol: priceSol != null && supply != null ? priceSol * supply : null,
+    fdvUsd: priceUsd != null && supply != null ? priceUsd * supply : null,
   };
 }
 
@@ -25,6 +25,6 @@ export function formatCompact(value, prefix = '', suffix = '') {
 
 export function formatPrice(value, prefix = '', suffix = '') {
   if (value == null || !Number.isFinite(value)) return '—';
-  const formatted = value > 0 && value < 0.01 ? value.toPrecision(4) : new Intl.NumberFormat('en-US', { maximumFractionDigits: 6 }).format(value);
+  const formatted = new Intl.NumberFormat('en-US', { maximumSignificantDigits: 6, useGrouping: value >= 1 }).format(value);
   return `${prefix}${formatted}${suffix}`;
 }

@@ -1,7 +1,7 @@
 {
   "name": "SolanaTrade",
   "type": "object",
-  "description": "Normalized Solana launchpad transaction indexed through Helius.",
+  "description": "Finalized Kydos events; readers deduplicate canonical event_id before aggregation.",
   "properties": {
     "signature": {
       "type": "string"
@@ -39,11 +39,77 @@
         "confirmed",
         "failed"
       ]
+    },
+    "event_id": {
+      "type": "string"
+    },
+    "chain": {
+      "type": "string"
+    },
+    "program": {
+      "type": "string"
+    },
+    "order_key": {
+      "type": "string"
+    },
+    "commitment": {
+      "type": "string"
+    },
+    "source": {
+      "type": "string"
+    },
+    "sol_raw": {
+      "type": "string"
+    },
+    "token_raw": {
+      "type": "string"
+    },
+    "gross_sol_raw": {
+      "type": "string"
+    },
+    "net_sol_raw": {
+      "type": "string"
+    },
+    "fee_sol_raw": {
+      "type": "string"
+    },
+    "supply_raw": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "symbol": {
+      "type": "string"
+    },
+    "metadata_uri": {
+      "type": "string"
+    },
+    "event_index": {
+      "type": "number"
+    },
+    "transaction_index": {
+      "type": "number"
+    },
+    "decoder_version": {
+      "type": "number"
+    },
+    "decimals": {
+      "type": "number"
+    },
+    "graduated": {
+      "type": "boolean"
     }
   },
   "required": [
     "signature",
     "side",
     "status"
-  ]
+  ],
+  "rls": {
+    "read": false,
+    "create": false,
+    "update": false,
+    "delete": false
+  }
 }

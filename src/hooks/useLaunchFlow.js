@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useSolanaWallet } from '@/lib/SolanaWalletContext';
 import { quoteInitialBuy } from '@/lib/solana/client';
 import { mainnetConnection } from '@/lib/solana/development';
 import { parseAmount, transactionError, validateLaunch } from '@/lib/solana/market';
-import { prepareLaunchReview, submitReviewedLaunch, verifyLaunchNetwork } from '@/lib/solana/launchReview';
+import { getLaunchAvailability, prepareLaunchReview, submitReviewedLaunch, verifyLaunchNetwork } from '@/lib/solana/launchReview';
 import { uploadLaunchMetadata, validateLaunchImage, validateMetadataDetails } from '@/lib/solana/launchMetadata';
 import { useActivity } from '@/lib/solana/Activity';
 
@@ -24,6 +24,13 @@ export function useLaunchFlow() {
   const [phase, setPhase] = useState('idle'), [error, setError] = useState('');
   const [review, setReview] = useState(null), [result, setResult] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [availability, setAvailability] = useState({ blockedReason: 'Checking launch availability…' });
+  const refreshAvailability = useCallback(async () => {
+    if (!rpc.connection) return;
+    try { setAvailability(await getLaunchAvailability(rpc.connection)); }
+    catch (failure) { setAvailability({ blockedReason: transactionError(failure) }); }
+  }, [rpc]);
+  useEffect(() => { refreshAvailability(); }, [refreshAvailability]);
   // Mint secret stays in memory; never rendered, stored, uploaded or logged.
   const prepared = useRef(null), lock = useRef(false), revision = useRef(0);
   /** @type {import('react').MutableRefObject<{ file?: File, key?: string, imageCid?: string, metadataUri?: string }>} */
@@ -40,7 +47,7 @@ export function useLaunchFlow() {
   }, [file]);
 
   const busy = phase !== 'idle';
-  const blockedReason = busy ? stages[phase] : rpc.error || activity.error ||
+  const blockedReason = busy ? stages[phase] : rpc.error || availability.blockedReason || activity.error ||
     (!rpc.connection ? 'Solana connection unavailable.' : !activity.chain ? 'Checking the RPC connection…' :
       activity.pending.length ? 'An earlier launch is unresolved. Check transaction activity below.' : '');
   const invalidate = () => { revision.current++; prepared.current = null; setReview(null); setError(''); setResult(null); setCopied(false); };
@@ -118,6 +125,6 @@ export function useLaunchFlow() {
     try { await navigator.clipboard.writeText(result.mint); setCopied(true); }
     catch { setError('Could not copy. Select the token address below to copy it.'); }
   };
-  return { wallet, walletId, rpc, activity, form, file, imagePreview, busy, phase, statusText: stages[phase],
+  return { wallet, walletId, rpc, activity, availability, refreshAvailability, form, file, imagePreview, busy, phase, statusText: stages[phase],
     blockedReason, error, review, result, copied, set, chooseImage, connect, prepare, launch, edit: invalidate, copyMint };
 }

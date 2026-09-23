@@ -1,22 +1,15 @@
 import { Buffer } from 'buffer';
 import { buildCreateTransaction, CURVE_SPACE, FEE_POLICY_SPACE, METADATA_SPACE, METADATA_PROGRAM_ID, PROGRAM_ID, sendTransaction } from './client.js';
 import { estimateTransactionCosts } from './costs.js';
-import { LAUNCH_NETWORKS } from './preflight.js';
+import { inspectLaunchNetwork } from '../../../base44/shared/solanaNetwork.js';
 export { LAUNCH_NETWORKS } from './preflight.js';
 
+export const getLaunchAvailability = connection => inspectLaunchNetwork(connection, PROGRAM_ID, METADATA_PROGRAM_ID);
 export async function verifyLaunchNetwork(connection) {
-  const chain = await connection.getGenesisHash();
-  const network = LAUNCH_NETWORKS[chain];
-  if (!network) throw new Error('This RPC is not a supported Solana mainnet or devnet endpoint.');
-  const [program, metadata] = await Promise.all([
-    connection.getAccountInfo(PROGRAM_ID, 'confirmed'),
-    connection.getAccountInfo(METADATA_PROGRAM_ID, 'confirmed'),
-  ]);
-  if (!program?.executable) throw new Error('Kydos launch program is not deployed on this network.');
-  if (!metadata?.executable) throw new Error('Token metadata program is unavailable on this network.');
-  // Executability does not prove the deployed binary matches this source; that
-  // deployment verification remains a prerequisite for the deferred funded test.
-  return { chain, ...network };
+  const { network, blockedReason } = await getLaunchAvailability(connection);
+  if (blockedReason) throw new Error(blockedReason);
+  // Executability does not verify the deployed binary against this source.
+  return network;
 }
 
 export async function prepareLaunchReview(args) {
