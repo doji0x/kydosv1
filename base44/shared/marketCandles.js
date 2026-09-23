@@ -71,7 +71,7 @@ function safeChart(value, input, now) {
   } catch { return null; }
 }
 
-export function createCandleService({ fetchImpl = fetch, now = Date.now, requestsPerMinute = 8 } = {}) {
+export function createCandleService({ fetchImpl = fetch, now = Date.now, requestsPerMinute = 16 } = {}) {
   const pending = new Map(); let calls = [], lastCleanup = 0;
   const coalesce = async (key, run) => {
     if (pending.has(key)) return pending.get(key);
@@ -109,7 +109,7 @@ export function createCandleService({ fetchImpl = fetch, now = Date.now, request
     calls.push(now());
     const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 8000);
     try {
-      const response = await fetchImpl(`https://api.geckoterminal.com/api/v2/networks/solana/${path}`, { headers: { Accept: 'application/json;version=20230203' }, signal: controller.signal, redirect: 'error' });
+      const response = await fetchImpl(`https://api.geckoterminal.com/api/v2/networks/solana/${path}`, { headers: { Accept: 'application/json;version=20230203' }, signal: controller.signal, redirect: 'manual' });
       if (!response.ok) {
         await response.body?.cancel();
         if (response.status === 429) {
@@ -122,7 +122,11 @@ export function createCandleService({ fetchImpl = fetch, now = Date.now, request
         throw new CandleError('provider_unavailable', 'The chart provider is temporarily unavailable.');
       }
       return await boundedJson(response);
-    } catch (error) { if (error instanceof CandleError) throw error; throw new CandleError('provider_unavailable', 'The chart provider could not be reached.'); }
+    } catch (error) {
+      if (error instanceof CandleError) throw error;
+      console.error('Chart provider request failed', error?.name, error?.message);
+      throw new CandleError('provider_unavailable', 'The chart provider could not be reached.');
+    }
     finally { clearTimeout(timer); }
   }
   async function poolFor(entity, mint, address) {

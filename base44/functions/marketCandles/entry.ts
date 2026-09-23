@@ -33,7 +33,10 @@ export default async function(request: Request): Promise<Response> {
     }
     return Response.json(await candles(entities.MarketChartCache, input), { headers });
   } catch (error) {
-    if (error instanceof CandleError) return Response.json({ error: error.message, code: error.code, retryAfter: error.retryAfter }, { status: error.status, headers: { ...headers, 'Retry-After': String(error.retryAfter) } });
+    if (error instanceof CandleError) {
+      console.error('Market chart unavailable', error.code, error.message);
+      return Response.json({ error: error.message, code: error.code, retryAfter: error.retryAfter }, { status: error.status, headers: { ...headers, 'Retry-After': String(error.retryAfter) } });
+    }
     return Response.json({ error: 'Chart data is temporarily unavailable.', retryAfter: 60 }, { status: 503, headers });
   }
 }

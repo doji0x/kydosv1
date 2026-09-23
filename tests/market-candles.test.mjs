@@ -64,7 +64,7 @@ test('initial chart obtains verified pool and real OHLCV using versioned bounded
   const url = new URL(p.calls[1].url);
   assert.match(url.pathname, /\/pools\/.*\/ohlcv\/hour$/); assert.equal(url.searchParams.get('token'), 'base');
   assert.equal(url.searchParams.get('currency'), 'usd'); assert.equal(url.searchParams.get('include_empty_intervals'), 'false'); assert.equal(url.searchParams.get('limit'), '300');
-  for (const call of p.calls) { assert.equal(call.init.redirect, 'error'); assert.equal(call.init.headers.Accept, 'application/json;version=20230203'); }
+  for (const call of p.calls) { assert.equal(call.init.redirect, 'manual'); assert.equal(call.init.headers.Accept, 'application/json;version=20230203'); }
   assert.ok(!JSON.stringify(result).includes('private-user'));
 });
 test('quote-side assets request provider inversion and keep the same pool during history', async () => {
@@ -131,7 +131,7 @@ test('admission control limits upstream calls within each instance', async () =>
 test('pool mismatch, provider HTTP errors and transport details never become candles', async () => {
   const p = provider(); p.state.mismatch = true;
   await assert.rejects(createCandleService({ ...p, now: () => TIME })(entityFixture(), input), /identity did not match/);
-  for (const status of [403, 404, 500]) {
+  for (const status of [302, 307, 403, 404, 500]) {
     const fake = provider(); fake.state.fail = status;
     await assert.rejects(createCandleService({ ...fake, now: () => TIME })(entityFixture(), input), error => error instanceof CandleError && !error.message.includes('private'));
   }
