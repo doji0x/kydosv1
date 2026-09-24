@@ -1,4 +1,4 @@
-//! Preparation only: no migration instruction, transfers, receipt writes or lock policy.
+//! Preparation only: no migration instruction, transfers, receipt writes or lock execution.
 use anchor_lang::prelude::*;
 use num_bigint::BigUint;
 use num_traits::ToPrimitive;
@@ -7,6 +7,7 @@ use crate::{validate_curve_configuration, Curve, LIQUIDITY_TOKEN_ALLOCATION};
 
 pub const MIN_SQRT_PRICE: u128 = 4_295_048_016;
 pub const MAX_SQRT_PRICE: u128 = 79_226_673_521_066_979_257_578_248_091;
+pub const LOCK_POLICY_PERMANENT: u8 = 1;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum MigrationError {
@@ -130,7 +131,8 @@ pub struct MigrationReceiptV1 {
     pub sqrt_price: u128,
     pub liquidity: u128,
     pub completed_slot: u64,
-    // 0 = program custody, 1 = permanently locked. No policy is selected here.
+    // Milestone 1 selects LOCK_POLICY_PERMANENT. The executable handler must
+    // prove the full position was locked before it writes a successful receipt.
     pub lock_policy: u8,
 }
 

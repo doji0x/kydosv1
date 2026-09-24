@@ -4,11 +4,24 @@ import { readFileSync } from 'node:fs';
 import { PublicKey, SystemProgram } from '@solana/web3.js';
 import { LIQUIDITY_TOKENS } from '../../src/lib/solana/curveMath.js';
 import { quoteSeedLiquidity, deriveMigrationAddresses, deriveConfigAddress, validatePrivateConfig,
-  DAMM_PROGRAM_ID, WSOL_MINT, MIN_SQRT_PRICE, MAX_SQRT_PRICE } from '../../src/lib/solana/meteora.js';
+  DAMM_PROGRAM_ID, WSOL_MINT, MIN_SQRT_PRICE, MAX_SQRT_PRICE, DAMM_BASE_FEE_BPS,
+  DAMM_COLLECT_FEE_MODE, DAMM_CURRENT_PROTOCOL_FEE_PERCENT, DAMM_EXPECTED_KYDOS_FEE_BPS,
+  DAMM_LOCK_POLICY } from '../../src/lib/solana/meteora.js';
 
 const fixture = JSON.parse(readFileSync(new URL('./fixtures/meteora-v2.json', import.meta.url), 'utf8'));
 const U64_MAX = (1n << 64n) - 1n;
 const ceil = (n, d) => (n + d - 1n) / d;
+
+test('pinned DAMM policy is 1% BothToken with permanent lock and no migration fee', () => {
+  assert.deepEqual(fixture.feePolicy, {
+    baseFeeBps: DAMM_BASE_FEE_BPS,
+    collectFeeMode: DAMM_COLLECT_FEE_MODE,
+    expectedProtocolFeePercent: DAMM_CURRENT_PROTOCOL_FEE_PERCENT,
+    expectedKydosFeeBps: DAMM_EXPECTED_KYDOS_FEE_BPS,
+    extraMigrationFeeBps: 0,
+    lockPolicy: DAMM_LOCK_POLICY,
+  });
+});
 
 test('integer seeding matches official SDK golden vectors, including u64 extremes', () => {
   assert.equal(MIN_SQRT_PRICE.toString(), fixture.minSqrtPrice);

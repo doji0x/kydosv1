@@ -2,35 +2,32 @@
   "schema_version": 1,
   "purpose": "Small navigation and resume record; not a repository inventory, execution engine, authorization, or passing-check claim.",
   "owner": "Codex",
-  "delivery_branch": "codex/interactive-market-charts",
-  "observed_source_sha": "96406b05bc707882eab41df619da7036af985177",
-  "observed_upstream_sha": "96406b05bc707882eab41df619da7036af985177",
+  "delivery_branch": "codex/damm-v2-milestone-1",
+  "observed_source_sha": "7c28478921248489a1d9c9cb4322fdede643d3a8",
+  "observed_upstream_sha": "7c28478921248489a1d9c9cb4322fdede643d3a8",
   "active_task": {
-    "id": "interactive-market-charts",
-    "request": "Correct external discovery coins without visible chart data and commit the corrections.",
-    "status": "implemented-locally-verified-delivery-in-progress",
+    "id": "damm-v2-milestone-1",
+    "request": "Lock the Base + Quote fee contract and DAMM v2 migration plan, then commit it without utility or executable migration.",
+    "status": "idl-newline-corrected-local-parity-verified-ci-pending",
     "scope": [
-      "base44/shared/marketCandles.js",
-      "base44/entities/MarketChartCache.jsonc",
-      "base44/functions/marketCandles/entry.ts",
-      "src/lib/marketCandles.js",
-      "src/hooks/useMarketCandles.js",
-      "src/components/markets/ExternalMarketChart.jsx",
-      "src/components/markets/MarketSparkline.jsx",
-      "src/components/markets/FeaturedMarkets.jsx",
-      "src/components/solana/MarketCandleChart.jsx",
-      "src/pages/ExternalMarket.jsx",
-      "tests/market-candles.test.mjs",
-      ".github/workflows/ci.yml",
-      "docs/interactive-market-charts.md",
-      "docs/market-discovery-rollout.md",
+      "docs/launchpad-build-spec.md",
+      "docs/meteora-adapter.md",
+      "solana/README.md",
+      "solana/programs/kydos_launchpad/src/meteora.rs",
+      "solana/programs/kydos_launchpad/src/migration.rs",
+      "solana/programs/kydos_launchpad/tests/meteora_adapter.rs",
+      "solana/scripts/meteora-fixtures.mjs",
+      "solana/tests/fixtures/meteora-v2.json",
+      "solana/tests/meteora.test.js",
+      "src/lib/solana/meteora.js",
       "docs/astra-delivery-checkpoint.md",
-      "docs/astra-work-state.json"
+      "docs/astra-work-state.json",
+      "src/lib/solana/idl/kydos_launchpad.json"
     ],
-    "acceptance": "Interactive external USD charts, verified pool OHLCV, interval/style controls, backfill, actual featured sparklines and explicit stale/empty states; preserve SOL defaults for existing Kydos charts.",
-    "design_record": "docs/interactive-market-charts.md",
-    "rollout_record": "docs/interactive-market-charts.md",
-    "next_action": "Commit/publish review branch and inspect exact delivery-SHA checks. Owner merges and deploys backend/frontend, then verifies hosted provider coverage and chart interactions."
+    "acceptance": "Pin a 100 bps DAMM fee with BothToken collection, current expected 80 bps Kydos share, no migration fee, permanent lock and fixed treasury custody; document atomic migration while excluding executable migration and utility.",
+    "design_record": "docs/meteora-adapter.md",
+    "rollout_record": "docs/launchpad-build-spec.md",
+    "next_action": "Inspect corrected PR #27 head CI; merge only after Anchor validation passes. Private config and executable migration remain subsequent work."
   },
   "read_policy": {
     "startup": [
@@ -154,23 +151,30 @@
     }
   ],
   "verification": {
-    "source_sha": "96406b05bc707882eab41df619da7036af985177",
+    "source_sha": "7c28478921248489a1d9c9cb4322fdede643d3a8",
     "prepared_tree_checks": [
-      "18 chart tests, 19 discovery tests and 68 offline Solana tests: pass (105 total).",
-      "npm run lint and npm run build: pass; no new package dependencies.",
-      "Seven fixture-render cases: loaded controls, stale, empty, loading, invalid mint, wrapped BTC and featured sparklines/internal routes: pass.",
+      "npm --prefix solana test: 69/69 pass.",
+      "Meteora SDK 1.4.10 fixture check: 12 seed vectors and two account/config/instruction cases pass.",
+      "npm --prefix solana run check: pass.",
+      "npm run lint: pass.",
       "git diff --check: pass."
     ],
     "limitations": [
-      "Anonymous live GeckoTerminal request returned HTTP 403 in this environment; no live mint/pool coverage claim.",
-      "No hosted Base44 settings, entity quotas or anonymous function-access verification.",
-      "Earlier browser localhost preview rejected with ERR_BLOCKED_BY_CLIENT; canvas interaction and responsive browser checks remain unrun.",
-      "Per-instance admission and shared cache/cooldown are not distributed atomic quota enforcement; cold cards can be delayed by the public provider limit.",
-      "No funded transactions, validator run, merge or deployment.",
-      "Build warnings retain missing local public Base44 configuration and existing large chunks."
+      "Prior delivery Anchor CI passed Rust parity and account-validation tests, SBF compilation and IDL generation; corrected-head CI still pending.",
+      "No executable migration, provisioned private config, validator/devnet run, funded transaction, pool, permanent lock or fee claim.",
+      "Meteora's current 20% protocol share is external policy; expected 80 bps Kydos revenue is not immutable.",
+      "BothToken is a canonical-pool swap fee, not a universal SPL transfer tax; secondary pools can bypass it."
     ],
     "delivery_evidence": "Resulting commit SHA and exact-SHA CI inspection are reported in the final chat handoff without recursive self-SHA commits.",
-    "plan": "docs/interactive-market-charts.md"
+    "plan": "docs/meteora-adapter.md",
+    "idl_review": {
+      "reviewed_sha": "c2d0e27257744df721e86861ec905a748cb3b600",
+      "failed_run": 36002097799,
+      "cause": "Browser IDL JSON was structurally identical but missing the trailing newline required by sync-idl.mjs.",
+      "fix": "Regenerated browser IDL using the pinned Anchor IDL builder; only one trailing newline added.",
+      "local_check": "node solana/scripts/sync-idl.mjs --check: pass.",
+      "ci_status": "Corrected-head CI pending; prior run passed Rust tests, SBF compilation and IDL generation."
+    }
   },
   "maintenance": "Update this record in place at a bounded work milestone, not after every read. Keep detailed source findings in the reference index, approved design in the build specification, and human handoff in the rolling checkpoint. Remove completed task detail once durable evidence is linked. Final delivery SHA belongs in chat, not a recursive self-SHA commit.",
   "previous_delivery": {

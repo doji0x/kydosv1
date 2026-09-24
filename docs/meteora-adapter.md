@@ -1,9 +1,31 @@
-# Meteora DAMM v2 adapter foundation
+# Meteora DAMM v2 migration and fee contract
 
-Milestone 2 adds a compatible interface and offline preparation. It does not add
-a launchpad migration instruction, fund a pool, initialize a receipt, lock a
-position or enable AMM trading. The existing launchpad instruction/account ABI is
-unchanged. Source main: `9eb9da645fd65bb99db941e6d31039c0bfc4dc38` (PR #19 merged).
+Milestone 1 locks the Kydos fee, custody and migration policy and updates the
+SDK-parity pool initialization to `BothToken`. It remains offline preparation:
+there is no launchpad migration instruction, funded pool, receipt account,
+position lock or enabled AMM trading in this milestone. The existing launchpad
+instruction/account ABI is unchanged. The executable work is deliberately split
+into later reviewable milestones.
+
+## Approved v1 policy
+
+| Item | Fixed v1 decision |
+| --- | --- |
+| Curve fee | 100 bps of gross SOL, already paid directly to the Kydos treasury |
+| DAMM headline fee | 100 bps fixed base fee; no dynamic fee or scheduler |
+| Collection | `BothToken`: fees accrue in the coin and WSOL according to swap direction |
+| Meteora share | Currently 20% of the trading fee; controlled by Meteora, not Kydos |
+| Expected Kydos share | Currently 80 bps of volume after the 20% protocol share |
+| Extra migration fee | None |
+| Liquidity | Entire initial Kydos position permanently locked atomically with migration |
+| Fee custody | Claim only to fixed Kydos treasury token accounts |
+| Utility | Deferred: no burn, split, buyback, holder reward, creator reward or compounding |
+
+The 100 bps DAMM fee is the pool's swap fee, not a second transfer tax. Original
+SPL tokens do not tax wallet transfers or trading in unrelated pools. Likewise,
+80 bps is the expected Kydos LP share under Meteora's current 20% protocol share,
+not an immutable promise. Runtime and UI surfaces must disclose the gross fee and
+current protocol split separately.
 
 ## Pinned contract
 
@@ -47,15 +69,17 @@ The declared Kydos program ID is also not deployment evidence. Required setup:
    deployed DAMM executable. Passing an arbitrary config argument is not approval.
 
 Dynamic here means initialization supplies the fee/range parameters. It does not
-enable volatility fees. The adapter fixes **100 bps headline fee**, `OnlyB`, no
+enable volatility fees. The adapter fixes **100 bps headline fee**, `BothToken`, no
 compounding, no dynamic fee, no changing fee schedule, no AlphaVault, the full
 allowed price range, and timestamp activation with `activation_point=None`.
 Coin is always token A (original SPL, 6 decimals); original SPL WSOL is token B.
 Position NFTs use Token-2022, as required by Meteora.
 
-Meteora's protocol share remains separate: with its current 20% share, a 1% pool
-fee leaves 0.8% for LPs; Kydos receives that LP portion while holding all liquidity.
-It is not a promise of 1% net treasury revenue. No extra migration fee is selected.
+In `BothToken`, coin-to-WSOL swaps take fees from WSOL output and WSOL-to-coin
+swaps take fees from coin output. With Meteora's current 20% protocol share, the
+1% pool fee leaves an expected 0.8% for the Kydos position. No extra migration
+fee is selected. Secondary pools can bypass this canonical-pool fee; a universal
+transfer tax would require a different token design and is outside this scope.
 
 ## Address and custody contract
 
@@ -87,7 +111,8 @@ The data-bearing Curve account cannot serve as that system payer. The future
 caller supplies rent/transaction funding separately; Kydos moves tracked assets
 into staging and signs with the payer, creator-authority and NFT-mint PDAs.
 The position beneficiary is the position-owner PDA. There is no wallet-held
-position NFT or permission to withdraw liquidity in this milestone.
+position NFT. The executable migration must permanently lock all position
+liquidity before finalizing its receipt; fees remain claimable.
 
 ## Integer seeding and receipt schema
 
@@ -119,15 +144,49 @@ budgets, actual deposits, dust, price, liquidity, completion slot and lock polic
 It must be created only after successful atomic migration and full pool/position
 validation. Serialization tests do not establish runtime idempotency.
 
-## Next executable milestone
+## Executable migration contract
 
-The remaining policy choice is program custody versus a **permanent liquidity
-lock**; no irreversible lock is selected or executed here. Before enabling the
-handler, resolve that choice and the private-config setup above. Implement atomic
-staging/SyncNative, initialization, post-CPI validation, the approved lock,
-receipt finalization and dust/rent refunds with fixed destinations. Fee claims
-must authenticate the program-held NFT and route proceeds to the fixed treasury.
-Keep repeat migrations from funding twice and reject mismatched receipts/pools.
+Anyone may request migration, while the caller pays transaction and permanent
+pool-account rent. Curve liquidity is never reduced to pay setup costs. One
+atomic Kydos instruction must:
+
+1. Validate the completed canonical curve, fee policy and absent receipt.
+2. Preserve curve rent and isolate tracked reserves from unsolicited donations.
+3. Move exactly the accounted 206.9M coin reserve into canonical staging.
+4. Wrap only `curve.real_sol_reserves` into the canonical WSOL staging account
+   and call `SyncNative`; the virtual 30 SOL is never transferred.
+5. Recompute the opening price/liquidity and invoke the pinned DAMM initializer
+   with the approved private config, 100 bps fee and `BothToken` collection.
+6. Validate the created pool, mints, vaults, position, liquidity and deposits.
+7. CPI into `permanent_lock_position` for the complete position and validate the
+   permanent-lock state.
+8. Create the canonical receipt only after those checks pass, then return allowed
+   dust and temporary-account rent to fixed destinations.
+
+Any failure rolls back every effect. A repeated or competing request must never
+transfer reserves twice; an existing destination is accepted only when a matching
+successful receipt and complete pool/position state validate.
+
+## Fee claim contract
+
+A separate permissionless Kydos instruction will authenticate the program-held
+position NFT, CPI into `claim_position_fee`, and send coin and WSOL only to the
+canonical Kydos treasury associated token accounts. The caller may pay network
+and missing-ATA rent but cannot redirect either asset. A claim event records both
+amounts. This milestone selects custody only: claimed assets remain untouched
+until a later, separately approved utility policy.
+
+## Remaining delivery gates
+
+- Provision and bind the private dynamic config for the deployed Kydos program.
+- Implement the migration and fee-claim handlers plus receipt account/events.
+- Measure packet size, compute and heap; use a versioned transaction only if the
+  atomic account set cannot fit a legacy transaction.
+- Add local-validator/devnet coverage for migration, both swap directions, fee
+  accrual/claim, permanent lock, rollback, replay and account substitution.
+- Add client migration recovery, receipt/pool verification, indexing and routing.
+- Complete an independent program audit and move upgrade authority to a multisig
+  before unrestricted public graduation.
 
 The present host tests cover 12 independent SDK seed vectors (including nonzero
 dust), price/budget invariants, full CPI parity, both mint orders, synthetic config
@@ -139,4 +198,6 @@ and end-to-end graduation still need validator/runtime verification before use.
 Sources: [Meteora CPI guidance](https://docs.meteora.ag/developer-guides/damm-v2/rust-integration/cpi),
 [pinned program](https://github.com/MeteoraAg/damm-v2/tree/a85c926607433f23f0ea60f4ca7b1ae92f4156cb),
 [pinned SDK and IDL](https://github.com/MeteoraAg/damm-v2-sdk/tree/37cd9e690d7b5fb6182638a21b86e0e1bf636a7e),
-[fee breakdown](https://docs.meteora.ag/core-products/damm-v2/fees/overview).
+[fee breakdown](https://docs.meteora.ag/core-products/damm-v2/fees/overview),
+[program instructions](https://docs.meteora.ag/developer-guides/damm-v2/program/instructions),
+[permanent locks](https://docs.meteora.ag/user-guides/how-to-use-damm-v2/damm-v2-pool-detail#permanent-lock-liquidity).

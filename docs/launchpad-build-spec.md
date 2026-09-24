@@ -1,12 +1,13 @@
 # Kydos curve fees and DAMM v2 migration plan
 
-The curve fee milestone is merged in PR #19. Current milestone: the compatible
-Meteora DAMM v2 adapter foundation, based on main
-`9eb9da645fd65bb99db941e6d31039c0bfc4dc38`. Its pinned interface, private-config
-route, custody addresses, integer seed math and receipt schema are specified in
-[meteora-adapter.md](meteora-adapter.md). Executable migration follows separately.
-No validator/token creation tests, funded transactions or deployment. The earlier
-custom AMM scaffold is not the migration target.
+The curve fee milestone is merged in PR #19. The DAMM v2 policy milestone fixes a
+100 bps pool fee, `BothToken` collection, no extra migration fee, permanent
+liquidity lock and fixed Kydos treasury fee custody. Its pinned interface,
+private-config route, custody addresses, integer seed math, receipt schema and
+atomic migration contract are specified in [meteora-adapter.md](meteora-adapter.md).
+Executable migration follows separately. No validator migration, funded pool or
+deployment is part of this policy milestone. The earlier custom AMM scaffold is
+not the migration target.
 
 ## Economics and completion decision
 
@@ -135,9 +136,10 @@ A single atomic transaction must:
    charges. The 30 virtual SOL is never transferred. Preserve account rent.
 3. Wrap actual SOL into the canonical WSOL account and SyncNative.
 4. Move 206.9M reserved tokens and the approved actual SOL amount into AMM vaults.
-5. Initialize the pool using range-aware integer seed calculations, verify minimum liquidity
-   and apply the explicitly selected Meteora position lock/custody policy.
-6. Write the receipt only after successful pool initialization; all effects
+5. Initialize the pool using range-aware integer seed calculations, a fixed 100
+   bps fee and `BothToken` collection, then verify minimum liquidity.
+6. Permanently lock the complete initial position and validate that state.
+7. Write the receipt only after successful initialization and locking; all effects
    roll back together on any failure. Competing calls cannot fund twice.
 
 A repeated request may return the validated existing receipt, but never repeat
@@ -164,12 +166,12 @@ DAMM fee claims, live readiness gates, custom event indexing and end-to-end vali
 subsequent milestones. No live-readiness claim follows from these host tests.
 
 The adapter foundation selects private dynamic config initialization, strict mint
-validation, program position custody and a pinned ABI compatible with the current
-toolchain. The approved config still needs operator provisioning for a verified
-Kydos program ID. Executable receipt/retry enforcement, lock policy, claims and
-client routing remain pending. A 1% DAMM pool fee does not imply 1% treasury
-receipts: Meteora's protocol share must be accounted for separately. Permanent
-locking requires an explicit decision; no extra migration charge is implemented.
+validation, a pinned ABI, `BothToken`, permanent locking and fixed treasury fee
+custody. The approved config still needs operator provisioning for the deployed
+Kydos program. Executable receipt/retry enforcement, locking, claims and client
+routing remain pending. A 1% DAMM pool fee currently yields an expected 0.8% LP
+share after Meteora's 20% protocol share; Kydos does not control that protocol
+share. No extra migration charge or utility distribution is implemented.
 
 ## References reviewed
 

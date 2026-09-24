@@ -4,20 +4,39 @@ Architecture remains in [launchpad-build-spec.md](launchpad-build-spec.md) and
 [meteora-adapter.md](meteora-adapter.md). Launch/indexer rollout remains in
 [launch-and-chart-rollout.md](launch-and-chart-rollout.md).
 
-## Current handoff — interactive external market charts
+## Current handoff — DAMM v2 fee and migration policy
 
-- **Scope/status:** Owner requested corrections for coins without visible chart data and a commit. Implementation is locally verified on `codex/interactive-market-charts`; delivery is for review. [Chart design and rollout](interactive-market-charts.md).
-- **Source/base:** Main `96406b05bc707882eab41df619da7036af985177`. Discovery PR #23 is merged as `e35dcdc`; its mint catalog and Jupiter snapshot remain the foundation. Isolated worktree `kydos-discovery-plan`; historical fee work and newer Astra settings are preserved.
-- **Changes:** Public bounded OHLCV function and protected cache entity, verified pool selection and pinned backfill, native interactive USD candle/line views, five intervals, volume/crosshair and older-history controls, six visible featured sparklines, stale/empty handling, CI tests and rollout documentation. The shared renderer retains SOL defaults for existing Kydos charts.
-- **Decisions:** GeckoTerminal public OHLCV needs no additional secret. Jupiter still provides discovery/statistics. Actual provider candles only; no synthetic history. Shared immutable caches retain original age on failure. Eight upstream calls/minute per instance plus shared provider cooldown reduce calls but do not establish an atomic deployment-wide quota. Cold homepage charts can take an extra minute to fill.
-- **Prepared-tree evidence:** 18 chart + 19 discovery + 68 offline Solana tests pass (105 total); lint/build and seven fixture-render cases pass. Exact resulting delivery SHA and its CI inspection belong in the final chat handoff.
-- **Limits:** Live GeckoTerminal request returned HTTP 403 from this environment, so live pool coverage remains unverified. Hosted Base44 public access and entity quotas need rollout verification. Earlier browser preview rejected localhost; canvas pan/zoom and mobile browser checks are unrun. No funded transactions, validator tests, merge or deployment. Existing build warnings cover missing local Base44 configuration and large chunks.
+- **Scope/status:** Owner approved Milestone 1 only: fix the DAMM v2 fee,
+  collection, custody and migration policy without adding executable migration
+  or utility. PR #27 remains open on `codex/damm-v2-milestone-1`.
+  Pre-merge review fixed its browser-IDL check: only the final newline was absent.
+- **Source/base:** Main `7c28478921248489a1d9c9cb4322fdede643d3a8`.
+- **Decisions:** Curve fee remains 100 bps. DAMM uses a 100 bps fixed fee and
+  `BothToken`; Meteora's current 20% protocol share leaves an expected 80 bps
+  Kydos share. There is no extra migration fee. The complete initial position
+  must be permanently locked. Claims go only to fixed Kydos treasury token
+  accounts. Burns, splits, rewards, buybacks and all utility remain deferred.
+- **Changes:** SDK-parity initialization and regenerated fixtures now encode
+  `BothToken`; Rust/browser policy constants and tests pin the approved policy.
+  The migration contract documents atomic staging, WSOL funding, DAMM CPI,
+  post-validation, permanent lock, receipt finalization, replay protection,
+  fixed fee claims and delivery gates.
+- **IDL review:** On delivery `c2d0e27257744df721e86861ec905a748cb3b600`,
+  Anchor CI run `36002097799` passed Rust tests, SBF build and IDL generation,
+  then failed byte-for-byte browser IDL comparison. Reproduced with Anchor
+  IDL builder 0.1.2 (used by CLI 0.31.1), locked program dependencies and nightly
+  Rust 1.100.0 (2026-09-24). Generated and browser JSON were structurally equal;
+  synchronization adds exactly one trailing newline, with no interface changes.
+- **Evidence:** `npm --prefix solana test` passes 69/69; fixture generation checks
+  SDK 1.4.10, 12 seed vectors and two account/instruction cases; JavaScript syntax
+  checks and root lint pass; `git diff --check` passes.
+- **Limits:** No executable migration, private config, validator/devnet run,
+  funded transaction, pool, lock or claim. Rust parity tests were not run in this
+  original environment; the cited CI run supplies that evidence. The corrected
+  browser IDL passes local `sync-idl.mjs --check`; new exact-SHA CI is pending.
 
 ## Next owner/action
 
-Review the branch/PR, then merge through the normal workflow. Deploy the new
-cache entity, shared module, function and frontend together. Check live charts
-for the six featured exact mints, public access, interval/style controls,
-backfill, pan/zoom and stale-data behavior using the chart rollout document.
-The existing Jupiter refresh configuration remains in
-[market-discovery-rollout.md](market-discovery-rollout.md).
+Wait for corrected-head Anchor CI to pass before merging Milestone 1. Next, provision and bind the private Meteora dynamic
+config before implementing the executable atomic migration handler. Do not add
+utility behavior to this milestone.
