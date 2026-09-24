@@ -60,7 +60,7 @@ function fixture({ balance = 1000000000, deployed = true, simulation = null, tra
   return { invoke, calls, receipts, payer };
 }
 test('admin handler preserves mainnet-wallet precedence and blocks an unfunded payer', async () => {
-  const f = fixture({ balance: 0 }), status = await f.invoke('status'); assert.equal(status.data.wallet, f.payer.publicKey.toBase58()); assert.equal(status.data.ready, false);
+  const f = fixture({ balance: 0 }), status = await f.invoke('status'); assert.equal(status.data.wallet, f.payer.publicKey.toBase58()); assert.equal(status.data.programId, PROGRAM_ADDRESS); assert.equal(status.data.ready, false);
   const result = await f.invoke('launch'); assert.equal(result.status, 422); assert.equal(result.data.submitted, false); assert.deepEqual(f.calls, []);
 });
 test('admin handler rejects missing deployment and network changes before simulation', async () => {
