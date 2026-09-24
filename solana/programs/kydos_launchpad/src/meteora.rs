@@ -14,7 +14,9 @@ pub const WSOL_MINT: Pubkey = pubkey!("So111111111111111111111111111111111111111
 pub const CONFIG_LEN: usize = 328;
 pub const CONFIG_DISCRIMINATOR: [u8; 8] = [155, 12, 170, 224, 30, 250, 204, 130];
 pub const INITIALIZE_DISCRIMINATOR: [u8; 8] = [149, 82, 72, 197, 253, 252, 68, 15];
+pub const BASE_FEE_BPS: u16 = 100;
 pub const BASE_FEE_NUMERATOR: u64 = 10_000_000; // 1% of Meteora's 1e9 denominator.
+pub const COLLECT_FEE_MODE_BOTH_TOKEN: u8 = 0;
 
 pub const RECEIPT_SEED: &[u8] = b"migration_receipt";
 pub const PAYER_SEED: &[u8] = b"migration_payer";
@@ -127,7 +129,7 @@ pub fn validate_private_config(
     Ok(index)
 }
 
-/// Fixed policy: 100 bps, OnlyB, full range, timestamp activation now, no dynamic
+/// Fixed policy: 100 bps, BothToken, full range, timestamp activation now, no dynamic
 /// fee, schedule, compounding or AlphaVault. Payer also owns both staging accounts.
 /// The future handler must rederive these addresses and recompute the seed quote.
 pub fn initialize_pool_instruction(a: &MigrationAddresses, quote: &SeedLiquidity) -> Instruction {
@@ -140,7 +142,7 @@ pub fn initialize_pool_instruction(a: &MigrationAddresses, quote: &SeedLiquidity
     data.push(0); // has_alpha_vault
     data.extend_from_slice(&quote.liquidity.to_le_bytes());
     data.extend_from_slice(&quote.sqrt_price.to_le_bytes());
-    data.extend_from_slice(&[1, 1, 0]); // Timestamp, OnlyB, activation_point None
+    data.extend_from_slice(&[1, COLLECT_FEE_MODE_BOTH_TOKEN, 0]); // Timestamp, BothToken, activation_point None
     let ro = |key| AccountMeta::new_readonly(key, false);
     let rw = |key| AccountMeta::new(key, false);
     Instruction {

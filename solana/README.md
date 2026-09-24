@@ -22,6 +22,10 @@ The curve math and completion policy are specified in [the build specification](
 | Initial virtual token reserve | 1,073,000,000 tokens |
 | Completion | Real curve inventory exhausted; approximately 85.005 SOL net reserves |
 | Curve trading fee | 1% of gross SOL, rounded up to a lamport, all to Kydos treasury |
+| DAMM v2 trading fee | 1% fixed, Base + Quote (`BothToken`) collection |
+| Expected Kydos DAMM share | 0.8% at Meteora's current 20% protocol share |
+| Migration fee | None |
+| DAMM liquidity | Complete initial position permanently locked |
 | Treasury | `5ZuV8eqkvzYFVEKbLvGBdexL2tFv7E5BCd2HZpjqbdg` |
 
 Creation mints all supply into the curve-controlled vault, creates Metaplex
@@ -42,8 +46,10 @@ The compatible DAMM v2 adapter foundation lives in launchpad `meteora.rs` and
 `migration.rs`, with offline client preparation in `src/lib/solana/meteora.js`.
 See [the adapter contract](../docs/meteora-adapter.md). It supplies SDK-checked
 instruction construction, private-config validation, custody addresses, seed
-calculations and a proposed receipt body. Executable migration, pool verification,
-position locking and fee claims remain subsequent work.
+calculations and a proposed receipt body. The pinned pool policy is a 100 bps fee,
+`BothToken` collection, permanent lock, fixed treasury claims and no extra
+migration fee or utility. Executable migration, pool verification, locking and
+fee claims remain subsequent work.
 
 ## Program identity and network boundaries
 

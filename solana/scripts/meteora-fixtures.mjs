@@ -85,7 +85,7 @@ for (const [mintByte, programByte, index] of [[1, 7, '1'], [254, 8, '18446744073
       compoundingFeeBps: 0, padding: 0, dynamicFee: null },
     sqrtMinPrice: min, sqrtMaxPrice: max, hasAlphaVault: false,
     liquidity: bn(quote.liquidity), sqrtPrice: bn(quote.sqrtPrice),
-    activationType: sdk.ActivationType.Timestamp, collectFeeMode: sdk.CollectFeeMode.OnlyB, activationPoint: null,
+    activationType: sdk.ActivationType.Timestamp, collectFeeMode: sdk.CollectFeeMode.BothToken, activationPoint: null,
   }).accountsStrict({
     creator: addresses.positionOwner, positionNftMint: nft, positionNftAccount: addresses.positionNftAccount,
     payer: addresses.payer, poolCreatorAuthority: addresses.poolCreatorAuthority, config,
@@ -102,12 +102,14 @@ for (const [mintByte, programByte, index] of [[1, 7, '1'], [254, 8, '18446744073
       accounts: instruction.keys.map(k => ({ pubkey: k.pubkey.toBase58(), isSigner: k.isSigner, isWritable: k.isWritable })) } });
 }
 const fixture = {
-  schemaVersion: 1, sdkVersion: version, sdkRevision: '37cd9e690d7b5fb6182638a21b86e0e1bf636a7e',
+  schemaVersion: 2, sdkVersion: version, sdkRevision: '37cd9e690d7b5fb6182638a21b86e0e1bf636a7e',
   programRevision: 'a85c926607433f23f0ea60f4ca7b1ae92f4156cb',
   idlVersion: sdk.CpAmmIdl.metadata.version,
   // Canonical JSON hash also pins the complete IDL carried by the npm package.
   idlJsonSha256: createHash('sha256').update(JSON.stringify(sdk.CpAmmIdl)).digest('hex'),
   minSqrtPrice: min.toString(), maxSqrtPrice: max.toString(), oracleDecimalPrecision: 120,
+  feePolicy: { baseFeeBps: 100, collectFeeMode: 'BothToken', expectedProtocolFeePercent: 20,
+    expectedKydosFeeBps: 80, extraMigrationFeeBps: 0, lockPolicy: 'permanent' },
   seeds, addressCases,
 };
 const target = new URL('../tests/fixtures/meteora-v2.json', import.meta.url);

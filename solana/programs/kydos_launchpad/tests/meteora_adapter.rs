@@ -71,6 +71,13 @@ fn seed_math_matches_sdk_and_brackets_exact_root() {
 #[test]
 fn addresses_and_initialize_bytes_and_metas_match_sdk() {
     let fixture = fixture();
+    assert_eq!(fixture["schemaVersion"], 2);
+    assert_eq!(fixture["feePolicy"]["baseFeeBps"], BASE_FEE_BPS);
+    assert_eq!(fixture["feePolicy"]["collectFeeMode"], "BothToken");
+    assert_eq!(fixture["feePolicy"]["expectedKydosFeeBps"], 80);
+    assert_eq!(fixture["feePolicy"]["extraMigrationFeeBps"], 0);
+    assert_eq!(fixture["feePolicy"]["lockPolicy"], "permanent");
+    assert_eq!(LOCK_POLICY_PERMANENT, 1);
     for row in fixture["addressCases"].as_array().unwrap() {
         let expected = &row["addresses"];
         let a = derive_addresses(
@@ -117,6 +124,7 @@ fn addresses_and_initialize_bytes_and_metas_match_sdk() {
         assert_eq!(ix.program_id, key(&row["initialize"]["programId"]));
         assert_eq!(ix.data, bytes(&row["initialize"]["dataHex"]));
         assert_eq!(ix.data.len(), 107);
+        assert_eq!(ix.data[105], COLLECT_FEE_MODE_BOTH_TOKEN);
         let metas = row["initialize"]["accounts"].as_array().unwrap();
         assert_eq!(ix.accounts.len(), metas.len());
         for (actual, expected) in ix.accounts.iter().zip(metas) {

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "sdkVersion": "1.4.10",
   "sdkRevision": "37cd9e690d7b5fb6182638a21b86e0e1bf636a7e",
   "programRevision": "a85c926607433f23f0ea60f4ca7b1ae92f4156cb",
@@ -8,6 +8,14 @@
   "minSqrtPrice": "4295048016",
   "maxSqrtPrice": "79226673521066979257578248091",
   "oracleDecimalPrecision": 120,
+  "feePolicy": {
+    "baseFeeBps": 100,
+    "collectFeeMode": "BothToken",
+    "expectedProtocolFeePercent": 20,
+    "expectedKydosFeeBps": 80,
+    "extraMigrationFeeBps": 0,
+    "lockPolicy": "permanent"
+  },
   "seeds": [
     {
       "name": "one-lamport",
@@ -169,7 +177,7 @@
       "initialize": {
         "seed": "completion",
         "programId": "cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG",
-        "dataHex": "955248c5fdfc440f80969800000000000000000000000000000000000000000000000000000000503b01000100000000000000000000009b57694ea91a5c84b1c4feff000000000014b694b702635147c4d8796fd0030000dd04206eae6130050000000000000000010100",
+        "dataHex": "955248c5fdfc440f80969800000000000000000000000000000000000000000000000000000000503b01000100000000000000000000009b57694ea91a5c84b1c4feff000000000014b694b702635147c4d8796fd0030000dd04206eae6130050000000000000000010000",
         "accounts": [
           {
             "pubkey": "AZt6jWxdjHYEWeiSNKZDxzwyhZoNeHEBGdZa586eQKDG",
@@ -305,7 +313,7 @@
       "initialize": {
         "seed": "completion",
         "programId": "cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG",
-        "dataHex": "955248c5fdfc440f80969800000000000000000000000000000000000000000000000000000000503b01000100000000000000000000009b57694ea91a5c84b1c4feff000000000014b694b702635147c4d8796fd0030000dd04206eae6130050000000000000000010100",
+        "dataHex": "955248c5fdfc440f80969800000000000000000000000000000000000000000000000000000000503b01000100000000000000000000009b57694ea91a5c84b1c4feff000000000014b694b702635147c4d8796fd0030000dd04206eae6130050000000000000000010000",
         "accounts": [
           {
             "pubkey": "BEA14Dr1CD9f2QysxBd3bM6pQEJAE7uW2CcSkAuU6jsV",

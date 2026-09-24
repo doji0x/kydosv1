@@ -4,6 +4,13 @@ import { Buffer } from 'buffer';
 
 export const DAMM_PROGRAM_ID = new PublicKey('cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG');
 export const WSOL_MINT = new PublicKey('So11111111111111111111111111111111111111112');
+export const DAMM_BASE_FEE_BPS = 100;
+export const DAMM_COLLECT_FEE_MODE = 'BothToken';
+// Meteora controls the protocol share. Twenty percent currently leaves Kydos
+// an expected 80 bps of volume; it is not a second fee or an immutable promise.
+export const DAMM_CURRENT_PROTOCOL_FEE_PERCENT = 20;
+export const DAMM_EXPECTED_KYDOS_FEE_BPS = 80;
+export const DAMM_LOCK_POLICY = 'permanent';
 export const MIN_SQRT_PRICE = 4_295_048_016n;
 export const MAX_SQRT_PRICE = 79_226_673_521_066_979_257_578_248_091n;
 export const CONFIG_SPACE = 328;
