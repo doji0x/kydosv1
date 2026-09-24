@@ -2,28 +2,32 @@
   "schema_version": 1,
   "purpose": "Small navigation and resume record; not a repository inventory, execution engine, authorization, or passing-check claim.",
   "owner": "Codex",
-  "delivery_branch": "codex/damm-v2-milestone-2",
-  "observed_source_sha": "d4779592d9efe31911f53d02edd26e2073a6f644",
-  "observed_upstream_sha": "d4779592d9efe31911f53d02edd26e2073a6f644",
+  "delivery_branch": "codex/damm-v2-milestone-1",
+  "observed_source_sha": "7c28478921248489a1d9c9cb4322fdede643d3a8",
+  "observed_upstream_sha": "7c28478921248489a1d9c9cb4322fdede643d3a8",
   "active_task": {
-    "id": "damm-v2-milestone-2",
-    "request": "Set up the next milestone: private Meteora config operator handoff, verification and approval preflight.",
-    "status": "setup-implemented-live-provisioning-and-binding-pending",
+    "id": "damm-v2-milestone-1",
+    "request": "Lock the Base + Quote fee contract and DAMM v2 migration plan, then commit it without utility or executable migration.",
+    "status": "idl-newline-corrected-local-parity-verified-ci-pending",
     "scope": [
-      "solana/scripts/meteora-config.mjs",
-      "solana/scripts/lib/meteora-config.mjs",
-      "solana/config/meteora-mainnet-request.json",
-      "solana/config/meteora-routes.json",
-      "solana/tests/meteora-config.test.js",
-      "solana/package.json",
-      "solana/README.md",
+      "docs/launchpad-build-spec.md",
       "docs/meteora-adapter.md",
+      "solana/README.md",
+      "solana/programs/kydos_launchpad/src/meteora.rs",
+      "solana/programs/kydos_launchpad/src/migration.rs",
+      "solana/programs/kydos_launchpad/tests/meteora_adapter.rs",
+      "solana/scripts/meteora-fixtures.mjs",
+      "solana/tests/fixtures/meteora-v2.json",
+      "solana/tests/meteora.test.js",
+      "src/lib/solana/meteora.js",
       "docs/astra-delivery-checkpoint.md",
-      "docs/astra-work-state.json"
+      "docs/astra-work-state.json",
+      "src/lib/solana/idl/kydos_launchpad.json"
     ],
-    "acceptance": "Generate a reproducible operator request; validate cluster, executable programs and strict private config; require explicit reviewed cluster binding and fresh account hash; keep migration disabled. Full prerequisite completion needs operator provisioning and approved binding.",
+    "acceptance": "Pin a 100 bps DAMM fee with BothToken collection, current expected 80 bps Kydos share, no migration fee, permanent lock and fixed treasury custody; document atomic migration while excluding executable migration and utility.",
     "design_record": "docs/meteora-adapter.md",
-    "next_action": "Publish setup PR. Owner supplies operator-returned config address, index and signature; verify independently and review the binding before the executable migration milestone."
+    "rollout_record": "docs/launchpad-build-spec.md",
+    "next_action": "Inspect corrected PR #27 head CI; merge only after Anchor validation passes. Private config and executable migration remain subsequent work."
   },
   "read_policy": {
     "startup": [
@@ -147,33 +151,38 @@
     }
   ],
   "verification": {
-    "source_sha": "d4779592d9efe31911f53d02edd26e2073a6f644",
+    "source_sha": "7c28478921248489a1d9c9cb4322fdede643d3a8",
     "prepared_tree_checks": [
-      "npm --prefix solana test: 76/76 pass.",
+      "npm --prefix solana test: 69/69 pass.",
+      "Meteora SDK 1.4.10 fixture check: 12 seed vectors and two account/config/instruction cases pass.",
       "npm --prefix solana run check: pass.",
+      "npm run lint: pass.",
       "git diff --check: pass."
     ],
-    "live_read": {
-      "cluster": "mainnet-beta",
-      "commitment": "finalized",
-      "slot": 450045280,
-      "creator_authority": "3tGjXG9oGyRDS3ppv1QsCNvYgr5XtAizKe75XcyHxuAd",
-      "matching_configs": 0
-    },
     "limitations": [
-      "No live private config or approved binding.",
-      "Registry is off-chain review/preflight only; future handler must enforce approved address on-chain.",
-      "No transaction submission, deployment, executable migration, locks or claims.",
-      "No claim of deployed binary/source equivalence."
+      "Prior delivery Anchor CI passed Rust parity and account-validation tests, SBF compilation and IDL generation; corrected-head CI still pending.",
+      "No executable migration, provisioned private config, validator/devnet run, funded transaction, pool, permanent lock or fee claim.",
+      "Meteora's current 20% protocol share is external policy; expected 80 bps Kydos revenue is not immutable.",
+      "BothToken is a canonical-pool swap fee, not a universal SPL transfer tax; secondary pools can bypass it."
     ],
-    "delivery_evidence": "Resulting SHA and initial exact-head CI state are reported in chat."
+    "delivery_evidence": "Resulting commit SHA and exact-SHA CI inspection are reported in the final chat handoff without recursive self-SHA commits.",
+    "plan": "docs/meteora-adapter.md",
+    "idl_review": {
+      "reviewed_sha": "c2d0e27257744df721e86861ec905a748cb3b600",
+      "failed_run": 36002097799,
+      "cause": "Browser IDL JSON was structurally identical but missing the trailing newline required by sync-idl.mjs.",
+      "fix": "Regenerated browser IDL using the pinned Anchor IDL builder; only one trailing newline added.",
+      "local_check": "node solana/scripts/sync-idl.mjs --check: pass.",
+      "ci_status": "Corrected-head CI pending; prior run passed Rust tests, SBF compilation and IDL generation."
+    }
   },
   "maintenance": "Update this record in place at a bounded work milestone, not after every read. Keep detailed source findings in the reference index, approved design in the build specification, and human handoff in the rolling checkpoint. Remove completed task detail once durable evidence is linked. Final delivery SHA belongs in chat, not a recursive self-SHA commit.",
   "previous_delivery": {
-    "id": "damm-v2-milestone-1",
-    "commit_sha": "d6ad1d81fc3ed719506bada5971e708d7a83b6fe",
-    "merge_sha": "d4779592d9efe31911f53d02edd26e2073a6f644",
-    "pull_request": "https://github.com/doji0x/kydosv1/pull/27",
-    "status": "merged; both CI and Solana Anchor passed on delivered head"
+    "id": "homepage-market-discovery",
+    "commit_sha": "9ab013404038a19ae8c31866aebb48b9c5c4236f",
+    "merge_sha": "e35dcdcbd01951c1e09a9541f3b0de011904aebf",
+    "pull_request": "https://github.com/doji0x/kydosv1/pull/23",
+    "status": "merged; present in inspected main history",
+    "validation": "Discovery tests included in the current 105 passing offline tests; main also contains later Astra defaults changes."
   }
 }
