@@ -50,7 +50,7 @@ position locking and fee claims remain subsequent work.
 For a reproducible mainnet keypair, ID update, build and deployment, follow the [mainnet deployment runbook](docs/deployment.md). Do not deploy from the app preview.
 
 The checked-in program address is
-`Fg6PaFpoGXkYsidMpWxTWqkZqvFmR6UJA4R9C3bZ9S2` in Rust, Anchor.toml, the client
+`GnWBA3sdhKYCAZt2TnBEQmFiF7mvP7ydzUyjcompioQE` in Rust, Anchor.toml, the client
 IDL and `base44/shared/solanaProtocol.js`, used by the admin launcher and indexer. Configuration tests detect divergence.
 Matching addresses do not establish a deployment or control of its keypair.
 Do not generate an unrelated keypair and assume it matches this address.
@@ -128,10 +128,12 @@ If app simulation passes but Phantom reports this error, verify its account and
 selected network match the launch review. Failed app simulations and funding
 errors from Phantom identify the payer, network and last checked SOL balance.
 
-The public RPC checks on 2026-09-22 found no account at the configured Kydos
-address `Fg6PaFpoGXkYsidMpWxTWqkZqvFmR6UJA4R9C3bZ9S2` on mainnet (slot
-449384808) or devnet (slot 502433751). A verified deployment and matching IDL/
-program identity are still prerequisites for live launches. The admin launcher now validates the server wallet, funding and deployment, includes FeePolicy, and preserves submission receipts. See [rollout and indexing setup](../docs/launch-and-chart-rollout.md).
+The public RPC checks on 2026-09-22 applied to the superseded configured address,
+not `GnWBA3sdhKYCAZt2TnBEQmFiF7mvP7ydzUyjcompioQE`. Verify the current address on
+the same cluster used by `HELIUS_RPC_URL`; matching configuration alone does not
+establish that the deployed binary matches this source and IDL. The admin launcher
+validates the server wallet, funding and executable deployment, includes FeePolicy,
+and preserves submission receipts. See [rollout and indexing setup](../docs/launch-and-chart-rollout.md).
 
 ## Checks
 
