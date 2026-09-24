@@ -2,10 +2,10 @@
 
 ## Deployment blocker
 
-The checked-in Kydos address is `Fg6PaFpoGXkYsidMpWxTWqkZqvFmR6UJA4R9C3bZ9S2`.
-The reported error means that address is not executable on the configured RPC
-network. A frontend commit cannot create the missing program. Both launch paths
-now show the actual RPC network and stop before metadata uploads when blocked.
+The checked-in Kydos address is `GnWBA3sdhKYCAZt2TnBEQmFiF7mvP7ydzUyjcompioQE`.
+The earlier deployment error was reported while the repository still targeted a
+different address. Both launch paths show the actual RPC network and stop before
+metadata uploads when the currently configured address is not executable there.
 Phantom's selected network does not change Base44's `HELIUS_RPC_URL`.
 
 For an existing deployment, establish its cluster, program address, authority and
