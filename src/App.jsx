@@ -4,8 +4,8 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClientInstance } from '@/lib/query-client';
 import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
-import { AuthProvider, useAuth } from '@/lib/AuthContext';
-import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import { AuthProvider } from '@/lib/AuthContext';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import ScrollToTop from './components/ScrollToTop';
 import Layout from '@/components/Layout';
 import Board from '@/pages/Board';
@@ -27,22 +27,7 @@ import SolanaMarket from '@/pages/SolanaMarket';
 import LegacyChartRedirect from '@/components/solana/LegacyChartRedirect';
 import { SolanaWalletProvider } from '@/lib/SolanaWalletContext';
 
-const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
-  if (isLoadingPublicSettings || isLoadingAuth) return <div className="fixed inset-0 flex items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-slate-800"/></div>;
-  if (authError?.type === 'user_not_registered') return <UserNotRegisteredError/>;
-  if (authError?.type === 'auth_required') { navigateToLogin(); return null; }
-  return <Routes><Route element={<Layout/>}>
-    <Route path="/launch" element={<SolanaLaunch/>}/>
-    <Route path="/solana/:mint" element={<SolanaMarket/>}/>
-    <Route path="/chart" element={<Navigate to="/solana/GTBxUiw6wJdmmkCGZgRHLyYxqu1vG4KtRpeox6yDpump" replace/>}/>
-    <Route path="/chart/:mint" element={<LegacyChartRedirect/>}/>
-    <Route path="/forum" element={<Forum/>}/><Route path="/post/:id" element={<Thread/>}/>
-    <Route path="/notifications" element={<Notifications/>}/><Route path="/releases" element={<Releases/>}/>
-    <Route path="/admin/astra" element={<AdminAstra/>}/><Route path="/admin/launch" element={<AdminLaunch/>}/>
-    <Route path="/profile" element={<Profile/>}/><Route path="/profile/:userId" element={<Profile/>}/>
-  </Route><Route path="*" element={<PageNotFound/>}/></Routes>;
-};
+
 export default function App() {
   return <AuthProvider><SolanaWalletProvider><QueryClientProvider client={queryClientInstance}><Router><ScrollToTop/><Routes>
     <Route element={<Layout/>}>
@@ -51,6 +36,19 @@ export default function App() {
     </Route>
     <Route path="/login" element={<Login/>}/><Route path="/register" element={<Register/>}/>
     <Route path="/forgot-password" element={<ForgotPassword/>}/><Route path="/reset-password" element={<ResetPassword/>}/>
-    <Route path="/oauth/consent" element={<OAuthConsent/>}/><Route path="/*" element={<AuthenticatedApp/>}/>
+    <Route path="/oauth/consent" element={<OAuthConsent/>}/>
+    <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
+      <Route element={<Layout/>}>
+        <Route path="/launch" element={<SolanaLaunch/>}/>
+        <Route path="/solana/:mint" element={<SolanaMarket/>}/>
+        <Route path="/chart" element={<Navigate to="/solana/GTBxUiw6wJdmmkCGZgRHLyYxqu1vG4KtRpeox6yDpump" replace/>}/>
+        <Route path="/chart/:mint" element={<LegacyChartRedirect/>}/>
+        <Route path="/forum" element={<Forum/>}/><Route path="/post/:id" element={<Thread/>}/>
+        <Route path="/notifications" element={<Notifications/>}/><Route path="/releases" element={<Releases/>}/>
+        <Route path="/admin/astra" element={<AdminAstra/>}/><Route path="/admin/launch" element={<AdminLaunch/>}/>
+        <Route path="/profile" element={<Profile/>}/><Route path="/profile/:userId" element={<Profile/>}/>
+      </Route>
+    </Route>
+    <Route path="*" element={<PageNotFound/>}/>
   </Routes></Router><Toaster/><SonnerToaster position="top-center"/></QueryClientProvider></SolanaWalletProvider></AuthProvider>;
 }
