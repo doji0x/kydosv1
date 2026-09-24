@@ -201,3 +201,83 @@ Sources: [Meteora CPI guidance](https://docs.meteora.ag/developer-guides/damm-v2
 [fee breakdown](https://docs.meteora.ag/core-products/damm-v2/fees/overview),
 [program instructions](https://docs.meteora.ag/developer-guides/damm-v2/program/instructions),
 [permanent locks](https://docs.meteora.ag/user-guides/how-to-use-damm-v2/damm-v2-pool-detail#permanent-lock-liquidity).
+
+## Milestone 2: private-config setup and approval preflight
+
+The repository now provides an offline operator request and read-only RPC tools.
+This is the setup portion of Milestone 2. Provisioning and approval remain open
+until a Meteora operator creates the config. The registry is a release-review
+input, not an on-chain authorization account or an enabled migration handler.
+
+The release program `GnWBA3sdhKYCAZt2TnBEQmFiF7mvP7ydzUyjcompioQE` derives creator
+PDA `3tGjXG9oGyRDS3ppv1QsCNvYgr5XtAizKe75XcyHxuAd`. This is the authority the
+operator must store. A mainnet finalized lookup on 2026-09-24 at slot `450045280`
+returned no matching 328-byte configs for that authority. This observation is
+point-in-time evidence; rerun discovery before requesting another config.
+
+### Operator handoff
+
+The ready-to-share request is [meteora-mainnet-request.json](../solana/config/meteora-mainnet-request.json).
+It contains only public information. Ask a Meteora operator with `CreateConfigKey`
+to choose an unused u64 index and call `create_dynamic_config` on mainnet with:
+
+- `pool_creator_authority = 3tGjXG9oGyRDS3ppv1QsCNvYgr5XtAizKe75XcyHxuAd`
+- `permission = 0` (do not skip mint validation)
+- Return the chosen index, config address and finalized creation signature.
+
+The operator signer and rent payer sign config creation. The Kydos PDA is stored
+as the future pool-creator authority; it does not sign config creation. Funding
+an ordinary wallet does not grant `CreateConfigKey`. No Kydos keypair, seed phrase,
+or Helius credential needs to be sent to the operator. The requested dynamic
+config does not itself set the 1% fee: the later Kydos pool initializer supplies
+and enforces the fixed Milestone 1 fee parameters.
+
+Pinned source: [creation handler](https://github.com/MeteoraAg/damm-v2/blob/a85c926607433f23f0ea60f4ca7b1ae92f4156cb/programs/cp-amm/src/instructions/operator/ix_create_dynamic_config.rs),
+[creation accounts](https://github.com/MeteoraAg/damm-v2/blob/a85c926607433f23f0ea60f4ca7b1ae92f4156cb/programs/cp-amm/src/instructions/operator/ix_create_static_config.rs),
+[operator permissions](https://github.com/MeteoraAg/damm-v2/blob/a85c926607433f23f0ea60f4ca7b1ae92f4156cb/programs/cp-amm/src/state/operator.rs).
+
+### Commands in Codespaces
+
+Run from the repository root after `npm ci --ignore-scripts`:
+
+```sh
+node solana/scripts/meteora-config.mjs request --cluster mainnet-beta
+read -r -s -p "Paste Helius mainnet URL: " KYDOS_RPC_URL
+printf '\n'
+export KYDOS_RPC_URL
+node solana/scripts/meteora-config.mjs discover --cluster mainnet-beta
+```
+
+Once the operator returns the address, replace `CONFIG_ADDRESS` below:
+
+```sh
+node solana/scripts/meteora-config.mjs verify --cluster mainnet-beta --config CONFIG_ADDRESS > /tmp/kydos-config-verification.json
+```
+
+`verify` checks cluster genesis, executable Kydos/Meteora programs under the
+upgradeable loader, and the existing strict private-config validator. Its
+finalized account snapshot records the slot and SHA-256 of the config bytes.
+This proves observed account properties, not deployed binary/source equivalence.
+No command loads a keypair, signs, sends a transaction, or enables migration.
+RPC errors are sanitized to avoid printing endpoint credentials.
+
+### Bind only after review
+
+1. Check that the returned creation signature, address and index match the
+   operator request and the independent `verify` report on the intended cluster.
+2. Review the report's `proposedBinding`, then commit that object under the matching
+   cluster in [meteora-routes.json](../solana/config/meteora-routes.json). Keep the
+   other cluster separate. Never use a config returned by discovery as automatic approval.
+3. Run `node solana/scripts/meteora-config.mjs check --cluster mainnet-beta`.
+   It refuses a missing binding, wrong release identity, index/PDA mismatch,
+   wrong cluster or changed config bytes. Successful checks still report
+   `migrationEnabled: false` because the executable handler is not implemented.
+4. Before deploying the later handler, enforce the reviewed config address in
+   its on-chain route policy. A JSON registry or environment variable alone
+   cannot enforce a CPI account restriction on-chain.
+
+Milestone 2 setup acceptance: reproducible request, separate cluster bindings,
+read-only discovery/verification, no automatic candidate approval, and rejection
+tests in the normal Solana suite. Full Milestone 2 completion additionally needs
+the provisioned config, reviewed evidence and committed binding. Executable
+migration, locks, claims, runtime tests and deployment remain later gates.
