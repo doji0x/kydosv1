@@ -11,7 +11,6 @@ export function nextSampleCandle(previous, mint, interval, sample, observedAt) {
   const seconds = CANDLE_SECONDS[interval], openTime = Math.floor(observedAt / 1000 / seconds) * seconds;
   if (!seconds || !Number.isFinite(sample?.price) || sample.price <= 0) return null;
   if (previous && (previous.is_closed || previous.open_time !== openTime || previous.last_sample_at >= observedAt ||
-    Math.floor(previous.last_sample_at / 60000) >= Math.floor(observedAt / 60000) ||
     sample.blockId != null && previous.last_block_id != null && sample.blockId < previous.last_block_id)) return null;
   return { mint, interval, open_time: openTime, open: previous?.open ?? sample.price,
     high: Math.max(previous?.high ?? sample.price, sample.price), low: Math.min(previous?.low ?? sample.price, sample.price), close: sample.price,

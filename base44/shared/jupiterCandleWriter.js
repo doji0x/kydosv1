@@ -5,12 +5,8 @@ import { fetchJupiterPrices } from './jupiterPrices.js';
 async function batches(items, run) {
   for (let offset = 0; offset < items.length; offset += 500) await run(items.slice(offset, offset + 500));
 }
-export async function pollJupiterCandles(entities, apiKey, now = Date.now, fetchImpl = fetch) {
-  const startedAt = now();
-  const interests = await entities.MarketChartInterest.filter({ viewed_at: { $gte: startedAt - 86400000, $lte: startedAt } }, '-viewed_at', 500);
-  const recent = [...new Set(interests.map(row => row.mint).filter(isSolanaMint))].slice(0, 100);
-  const mints = [...new Set([...MARKET_CATALOG.map(token => token.mint), ...recent])];
-  const prices = await fetchJupiterPrices(mints, { apiKey, fetchImpl }), observedAt = now();
+export async function writeJupiterCandles(entities, prices, observedAt) {
+  const mints = Object.keys(prices).filter(isSolanaMint);
   const frames = Object.entries(CANDLE_SECONDS);
   const openSets = await Promise.all(frames.map(([interval]) => entities.JupiterCandle.filter({ interval, is_closed: false }, '-open_time', 500)));
   const creates = [], updates = [], duplicateIds = [];
@@ -37,6 +33,15 @@ export async function pollJupiterCandles(entities, apiKey, now = Date.now, fetch
   await batches(updates, rows => entities.JupiterCandle.bulkUpdate(rows));
   await batches(creates, rows => entities.JupiterCandle.bulkCreate(rows));
   await batches(duplicateIds, ids => entities.JupiterCandle.deleteMany({ id: { $in: ids } }));
+  return { sampledAt: observedAt, requested: mints.length, priced: mints.filter(mint => prices[mint]).length, missing: mints.filter(mint => !prices[mint]), created: creates.length, updated: updates.length };
+}
+export async function pollJupiterCandles(entities, apiKey, now = Date.now, fetchImpl = fetch) {
+  const startedAt = now();
+  const interests = await entities.MarketChartInterest.filter({ viewed_at: { $gte: startedAt - 86400000, $lte: startedAt } }, '-viewed_at', 500);
+  const recent = [...new Set(interests.map(row => row.mint).filter(isSolanaMint))].slice(0, 100);
+  const mints = [...new Set([...MARKET_CATALOG.map(token => token.mint), ...recent])];
+  const prices = await fetchJupiterPrices(mints, { apiKey, fetchImpl });
+  const result = await writeJupiterCandles(entities, Object.fromEntries(mints.map(mint => [mint, prices[mint]])), now());
   await entities.MarketChartInterest.deleteMany({ viewed_at: { $lt: startedAt - 86400000 } });
-  return { sampledAt: observedAt, requested: mints.length, priced: Object.keys(prices).length, missing: mints.filter(mint => !prices[mint]), created: creates.length, updated: updates.length };
+  return result;
 }
