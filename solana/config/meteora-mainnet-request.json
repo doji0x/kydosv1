@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "cluster": "mainnet-beta",
+  "genesisHash": "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d",
+  "launchpadProgram": "GnWBA3sdhKYCAZt2TnBEQmFiF7mvP7ydzUyjcompioQE",
+  "dammProgram": "cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG",
+  "poolCreatorAuthority": "3tGjXG9oGyRDS3ppv1QsCNvYgr5XtAizKe75XcyHxuAd",
+  "instruction": "create_dynamic_config",
+  "index": null,
+  "config": null,
+  "configParameters": {
+    "poolCreatorAuthority": "3tGjXG9oGyRDS3ppv1QsCNvYgr5XtAizKe75XcyHxuAd",
+    "permission": "0"
+  },
+  "requiredOperatorPermission": "CreateConfigKey",
+  "operatorAction": "Choose an unused config index, provision on the specified cluster, and return the index, config address and transaction signature.",
+  "funding": "Operator signer and rent payer sign creation. Kydos creator PDA does not sign config creation.",
+  "migrationEnabled": false
+}

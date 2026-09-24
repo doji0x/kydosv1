@@ -1,42 +1,37 @@
 # Astra continuity checkpoint
 
-Architecture remains in [launchpad-build-spec.md](launchpad-build-spec.md) and
-[meteora-adapter.md](meteora-adapter.md). Launch/indexer rollout remains in
-[launch-and-chart-rollout.md](launch-and-chart-rollout.md).
+Design and operator runbook: [meteora-adapter.md](meteora-adapter.md#milestone-2-private-config-setup-and-approval-preflight).
+Broader architecture: [launchpad-build-spec.md](launchpad-build-spec.md).
 
-## Current handoff — DAMM v2 fee and migration policy
+## Current handoff — Milestone 2 private-config setup
 
-- **Scope/status:** Owner approved Milestone 1 only: fix the DAMM v2 fee,
-  collection, custody and migration policy without adding executable migration
-  or utility. PR #27 remains open on `codex/damm-v2-milestone-1`.
-  Pre-merge review fixed its browser-IDL check: only the final newline was absent.
-- **Source/base:** Main `7c28478921248489a1d9c9cb4322fdede643d3a8`.
-- **Decisions:** Curve fee remains 100 bps. DAMM uses a 100 bps fixed fee and
-  `BothToken`; Meteora's current 20% protocol share leaves an expected 80 bps
-  Kydos share. There is no extra migration fee. The complete initial position
-  must be permanently locked. Claims go only to fixed Kydos treasury token
-  accounts. Burns, splits, rewards, buybacks and all utility remain deferred.
-- **Changes:** SDK-parity initialization and regenerated fixtures now encode
-  `BothToken`; Rust/browser policy constants and tests pin the approved policy.
-  The migration contract documents atomic staging, WSOL funding, DAMM CPI,
-  post-validation, permanent lock, receipt finalization, replay protection,
-  fixed fee claims and delivery gates.
-- **IDL review:** On delivery `c2d0e27257744df721e86861ec905a748cb3b600`,
-  Anchor CI run `36002097799` passed Rust tests, SBF build and IDL generation,
-  then failed byte-for-byte browser IDL comparison. Reproduced with Anchor
-  IDL builder 0.1.2 (used by CLI 0.31.1), locked program dependencies and nightly
-  Rust 1.100.0 (2026-09-24). Generated and browser JSON were structurally equal;
-  synchronization adds exactly one trailing newline, with no interface changes.
-- **Evidence:** `npm --prefix solana test` passes 69/69; fixture generation checks
-  SDK 1.4.10, 12 seed vectors and two account/instruction cases; JavaScript syntax
-  checks and root lint pass; `git diff --check` passes.
-- **Limits:** No executable migration, private config, validator/devnet run,
-  funded transaction, pool, lock or claim. Rust parity tests were not run in this
-  original environment; the cited CI run supplies that evidence. The corrected
-  browser IDL passes local `sync-idl.mjs --check`; new exact-SHA CI is pending.
+- **Scope/status:** Owner requested Milestone 2. Setup toolkit prepared on
+  `codex/damm-v2-milestone-2`; live provisioning and approved binding remain open.
+- **Source/base:** Main `d4779592d9efe31911f53d02edd26e2073a6f644`, merge of
+  PR #27. Both CI and Solana Anchor passed on its delivered head
+  `d6ad1d81fc3ed719506bada5971e708d7a83b6fe` (runs `36005497771`, `36005497853`).
+- **Changes:** Public operator request; offline request generator; read-only
+  discovery, finalized config verification and approved-route preflight; separate
+  null mainnet/devnet registry entries; seven rejection/verification tests wired
+  into the Solana suite; Codespaces/operator runbook.
+- **Decisions:** Use the release program's creator PDA
+  `3tGjXG9oGyRDS3ppv1QsCNvYgr5XtAizKe75XcyHxuAd`, private dynamic config and
+  permission zero. Operator chooses an unused index. Discovery/candidate validity
+  never implies approval. A reviewed binding pins cluster, genesis, program IDs,
+  creator authority, index, config address and config-data SHA-256.
+- **Evidence:** `npm --prefix solana test` passes 76/76, including seven new
+  setup tests; syntax checks and `git diff --check` pass. Live mainnet discovery
+  at finalized slot `450045280` returned no matching private configs.
+- **Limits:** No config creation, wallet signing, transaction submission,
+  program deployment, executable migration, pool, lock or fee claim. The JSON
+  registry is a review/preflight input, not on-chain authorization. The later
+  handler must enforce the approved config address on-chain. Executable flags
+  do not prove binary/source parity. Corrected IDL from Milestone 1 is unchanged.
 
 ## Next owner/action
 
-Wait for corrected-head Anchor CI to pass before merging Milestone 1. Next, provision and bind the private Meteora dynamic
-config before implementing the executable atomic migration handler. Do not add
-utility behavior to this milestone.
+Review the setup PR. Share `solana/config/meteora-mainnet-request.json` with a
+Meteora operator authorized for `CreateConfigKey`. Obtain the chosen index,
+config address and finalized creation signature; run the independent verifier,
+review and commit the cluster binding, then pass the approved-route preflight.
+Only then is the private-config prerequisite complete. Keep utility deferred.
