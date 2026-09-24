@@ -9,7 +9,7 @@ use anchor_spl::token::{self, Mint, MintTo, SetAuthority, Token, TokenAccount, T
 use anchor_spl::token::spl_token::instruction::AuthorityType;
 use mpl_token_metadata::types::DataV2;
 
-declare_id!("Fg6PaFpoGXkYsidMpWxTWqkZqvFmR6UJA4R9C3bZ9S2");
+declare_id!("GnWBA3sdhKYCAZt2TnBEQmFiF7mvP7ydzUyjcompioQE");
 
 pub mod math;
 pub mod fees;

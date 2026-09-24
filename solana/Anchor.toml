@@ -7,7 +7,7 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-kydos_launchpad = "Fg6PaFpoGXkYsidMpWxTWqkZqvFmR6UJA4R9C3bZ9S2"
+kydos_launchpad = "GnWBA3sdhKYCAZt2TnBEQmFiF7mvP7ydzUyjcompioQE"
 
 [provider]
 cluster = "localnet"
