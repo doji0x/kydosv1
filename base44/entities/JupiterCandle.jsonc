@@ -1,0 +1,93 @@
+{
+  "name": "JupiterCandle",
+  "type": "object",
+  "description": "OHLC of observed Jupiter price samples, not trade-complete candles. Volume is unknown. Only the polling worker writes prices.",
+  "properties": {
+    "mint": {
+      "type": "string"
+    },
+    "interval": {
+      "type": "string",
+      "enum": [
+        "1m",
+        "5m",
+        "15m",
+        "1h",
+        "4h",
+        "1d"
+      ]
+    },
+    "open_time": {
+      "type": "number"
+    },
+    "open": {
+      "type": "number"
+    },
+    "high": {
+      "type": "number"
+    },
+    "low": {
+      "type": "number"
+    },
+    "close": {
+      "type": "number"
+    },
+    "volume": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "default": null
+    },
+    "is_closed": {
+      "type": "boolean",
+      "default": false
+    },
+    "first_sample_at": {
+      "type": "number"
+    },
+    "last_sample_at": {
+      "type": "number"
+    },
+    "sample_count": {
+      "type": "number"
+    },
+    "last_block_id": {
+      "type": [
+        "number",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "mint",
+    "interval",
+    "open_time",
+    "open",
+    "high",
+    "low",
+    "close",
+    "is_closed",
+    "first_sample_at",
+    "last_sample_at",
+    "sample_count"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

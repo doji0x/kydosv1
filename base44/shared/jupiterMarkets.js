@@ -1,4 +1,7 @@
 import { MARKET_CATALOG, MARKET_INTERVALS, MARKET_NETWORK, MARKET_SCHEMA, isSolanaMint } from './marketCatalog.js';
+import { jupiterRequest, MarketProviderError } from './jupiterHttp.js';
+import { fetchJupiterPrices } from './jupiterPrices.js';
+export { MarketProviderError } from './jupiterHttp.js';
 
 const TOKEN_PROGRAMS = new Set(['TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA', 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb']);
 export const MAX_PAYLOAD_BYTES = 750_000;
@@ -47,93 +50,32 @@ export function normalizeJupiterToken(raw) {
   };
 }
 
-export class MarketProviderError extends Error {
-  constructor(code, message, status = 503) { super(message); this.name = 'MarketProviderError'; this.code = code; this.status = status; }
-}
-async function readBoundedJson(response) {
-  if (Number(response.headers.get('content-length')) > MAX_PROVIDER_BYTES) throw new MarketProviderError('provider_shape', 'Jupiter response exceeded the size limit.');
-  const reader = response.body?.getReader();
-  if (!reader) throw new MarketProviderError('provider_shape', 'Jupiter returned an empty response.');
-  const decoder = new TextDecoder(); let size = 0, body = '';
-  try {
-    for (;;) {
-      const { done, value } = await reader.read(); if (done) break;
-      size += value.byteLength;
-      if (size > MAX_PROVIDER_BYTES) { await reader.cancel(); throw new MarketProviderError('provider_shape', 'Jupiter response exceeded the size limit.'); }
-      body += decoder.decode(value, { stream: true });
-    }
-    body += decoder.decode();
-    const parsed = JSON.parse(body);
-    if (!Array.isArray(parsed) || parsed.length > 100) throw new Error('shape');
-    return parsed;
-  } catch (error) {
-    if (error instanceof MarketProviderError) throw error;
-    throw new MarketProviderError('provider_shape', 'Jupiter returned an invalid token response.');
-  } finally { reader.releaseLock(); }
-}
-export async function fetchMarketSnapshot({ apiKey, fetchImpl = fetch, now = Date.now, pause = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
-  if (typeof apiKey !== 'string' || !apiKey.trim()) throw new MarketProviderError('missing_key', 'Configure JUP_API_KEY in the backend environment.');
-  const request = async path => {
-    const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 6500);
-    try {
-      const response = await fetchImpl(`https://api.jup.ag/tokens/v2/${path}`, { headers: { 'x-api-key': apiKey }, signal: controller.signal, redirect: 'error' });
-      if (!response.ok) {
-        await response.body?.cancel();
-        if (response.status === 429) throw new MarketProviderError('rate_limited', 'Jupiter rate limit reached; the last complete snapshot is retained.', 429);
-        if (response.status === 401 || response.status === 403) throw new MarketProviderError('provider_auth', 'Jupiter rejected the backend API credentials.');
-        throw new MarketProviderError('provider_unavailable', 'Jupiter is temporarily unavailable.');
-      }
-      return await readBoundedJson(response);
-    } catch (error) {
-      if (error instanceof MarketProviderError) throw error;
-      throw new MarketProviderError('provider_unavailable', 'Jupiter could not be reached.');
-    } finally { clearTimeout(timer); }
-  };
+export async function fetchMarketSnapshot({ apiKey, fetchImpl = fetch, now = Date.now, interval = '24h', mint = null }) {
+  if (!MARKET_INTERVALS.includes(interval) || mint != null && !isSolanaMint(mint)) throw new MarketProviderError('invalid_input', 'Invalid market selection.', 400);
+  const options = { apiKey, fetchImpl }, identities = [...MARKET_CATALOG.map(token => token.mint)];
+  if (mint && !identities.includes(mint)) identities.push(mint);
+  const [curated, ranked] = await Promise.all([
+    jupiterRequest(`tokens/v2/search?query=${identities.join(',')}`, options),
+    jupiterRequest(`tokens/v2/toptrending/${interval}?limit=50`, options),
+  ]);
+  if (![curated, ranked].every(rows => Array.isArray(rows) && rows.length <= 100)) throw new MarketProviderError('provider_shape', 'Jupiter returned an invalid token response.');
   const tokens = new Map(MARKET_CATALOG.map(identity => [identity.mint, emptyMarketToken(identity)]));
-  const curated = await request(`search?query=${MARKET_CATALOG.map(token => token.mint).join(',')}`);
-  for (const raw of curated) {
+  for (const raw of [...ranked, ...curated]) {
     const token = normalizeJupiterToken(raw);
-    if (token && tokens.has(token.mint)) tokens.set(token.mint, token);
+    if (token && (!token.suspicious || identities.includes(token.mint))) tokens.set(token.mint, token);
   }
-  const trending = {};
-  for (const interval of MARKET_INTERVALS) {
-    await pause(1050); // One small shared job, comfortably below the free 60 requests/minute limit.
-    const rows = await request(`toptrending/${interval}?limit=50`), ranks = [];
-    for (const raw of rows.slice(0, 50)) {
-      const token = normalizeJupiterToken(raw);
-      if (!token || token.suspicious || token.price === null || ranks.includes(token.mint)) continue;
-      ranks.push(token.mint);
-      // Prefer the curated lookup, otherwise use the first complete token record across intervals.
-      if (!tokens.get(token.mint)?.available) tokens.set(token.mint, token);
-    }
-    trending[interval] = ranks;
+  const prices = await fetchJupiterPrices([...tokens.keys()], options);
+  for (const token of tokens.values()) {
+    const quote = prices[token.mint];
+    // Never defeat Price V3's reliability filters with a Tokens V2 price fallback.
+    token.price = quote?.price ?? null;
+    token.priceBlockId = quote?.blockId ?? null;
+    token.decimals = quote?.decimals ?? token.decimals;
+    token.liquidity = quote?.liquidity ?? token.liquidity;
+    token.available = token.available || !!quote;
+    token.stats['24h'].priceChange = quote?.priceChange24h ?? null;
   }
-  if (![...tokens.values()].some(token => token.available)) throw new MarketProviderError('provider_shape', 'Jupiter returned no usable token metadata.');
-  return { schema: MARKET_SCHEMA, network: MARKET_NETWORK, source: 'Jupiter Tokens V2', fetchedAt: now(), tokens: [...tokens.values()], trending };
-}
-
-// Stored records are never returned verbatim. This allowlist also drops entity metadata.
-export function sanitizeSnapshot(value, now = Date.now()) {
-  if (!value || value.schema !== MARKET_SCHEMA || value.network !== MARKET_NETWORK || !Number.isFinite(value.fetchedAt) || value.fetchedAt <= 0 || value.fetchedAt > now + 10_000 || !Array.isArray(value.tokens) || value.tokens.length > 225) return null;
-  const tokens = new Map();
-  for (const token of value.tokens) {
-    if (!token || !isSolanaMint(token.mint)) continue;
-    const identity = MARKET_CATALOG.find(item => item.mint === token.mint);
-    if (token.available !== true) { if (identity) tokens.set(token.mint, emptyMarketToken(identity)); continue; }
-    const raw = { id: token.mint, name: token.name, symbol: token.symbol, icon: token.icon, tokenProgram: token.tokenProgram, decimals: token.decimals, usdPrice: token.price, liquidity: token.liquidity, mcap: token.marketCap, fdv: token.fdv, holderCount: token.holders, isVerified: token.verified, audit: { isSus: token.suspicious }, updatedAt: token.providerUpdatedAt, priceBlockId: token.priceBlockId };
-    for (const interval of MARKET_INTERVALS) {
-      const stats = token.stats?.[interval];
-      raw[`stats${interval}`] = { priceChange: stats?.priceChange, buyVolume: stats?.buyVolume, sellVolume: stats?.sellVolume, numBuys: stats?.buys, numSells: stats?.sells, numTraders: stats?.traders };
-    }
-    const cleaned = normalizeJupiterToken(raw);
-    if (cleaned) tokens.set(cleaned.mint, cleaned);
-  }
-  if (!tokens.size) return null;
-  for (const identity of MARKET_CATALOG) if (!tokens.has(identity.mint)) tokens.set(identity.mint, emptyMarketToken(identity));
-  const trending = {};
-  for (const interval of MARKET_INTERVALS) {
-    if (!Array.isArray(value.trending?.[interval])) return null;
-    trending[interval] = [...new Set(value.trending[interval])].filter(mint => tokens.get(mint)?.available && !tokens.get(mint).suspicious && tokens.get(mint).price !== null).slice(0, 50);
-  }
-  return { schema: MARKET_SCHEMA, network: MARKET_NETWORK, source: 'Jupiter Tokens V2', fetchedAt: value.fetchedAt, tokens: [...tokens.values()], trending };
+  const trending = Object.fromEntries(MARKET_INTERVALS.map(key => [key, []]));
+  trending[interval] = [...new Set(ranked.map(row => row.id))].filter(id => tokens.get(id)?.price != null && !tokens.get(id).suspicious).slice(0, 50);
+  return { schema: MARKET_SCHEMA, network: MARKET_NETWORK, source: 'Jupiter Price V3 + Tokens V2', fetchedAt: now(), tokens: [...tokens.values()], trending, status: 'fresh' };
 }

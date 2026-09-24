@@ -1,0 +1,19 @@
+{
+  "name": "MarketChartInterest",
+  "type": "object",
+  "description": "Public, non-authoritative chart-interest hints without user identifiers. The worker validates mint addresses and bounds the recent set; these records never contain prices.",
+  "properties": {
+    "mint": {
+      "type": "string",
+      "minLength": 32,
+      "maxLength": 44
+    },
+    "viewed_at": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "mint",
+    "viewed_at"
+  ]
+}

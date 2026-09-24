@@ -1,13 +1,14 @@
 import { isSolanaMint } from './markets.js';
 
-export const CANDLE_INTERVALS = ['1m', '5m', '15m', '1h', '1d'];
+export const CANDLE_INTERVALS = ['1m', '5m', '15m', '1h', '4h', '1d'];
 export const MAX_CHART_CANDLES = 6000;
-export const candleQueryKey = (mint, interval) => ['external-candles', 'gecko', 'solana-mainnet', mint, interval, 'USD', 1];
+export const candleQueryKey = (mint, interval) => ['external-candles', 'jupiter-sampled', 'solana-mainnet', mint, interval, 'USD', 2];
 export function validateCandlePage(data, input) {
   if (!data || data.network !== 'solana-mainnet' || data.mint !== input.mint || data.interval !== input.interval || data.currency !== 'USD' || data.volumeCurrency !== 'USD' || !isSolanaMint(data.pool?.address) || (input.pool && input.pool !== data.pool.address) || data.before !== (input.before ?? null) || !Number.isFinite(data.fetchedAt) || !Array.isArray(data.candles) || data.candles.length > 300) throw new Error('The chart response did not match this market.');
   let previous = 0;
   for (const bar of data.candles) {
-    if (![bar.time, bar.open, bar.high, bar.low, bar.close, bar.volume].every(Number.isFinite) || !Number.isSafeInteger(bar.time) || bar.time <= previous || bar.low <= 0 || bar.high < Math.max(bar.open, bar.close) || bar.low > Math.min(bar.open, bar.close) || bar.volume < 0 || (input.before != null && bar.time > input.before)) throw new Error('The chart response contained invalid candles.');
+    const validVolume = data.volumeAvailable === false ? bar.volume === null : Number.isFinite(bar.volume) && bar.volume >= 0;
+    if (![bar.time, bar.open, bar.high, bar.low, bar.close].every(Number.isFinite) || !validVolume || !Number.isSafeInteger(bar.time) || bar.time <= previous || bar.low <= 0 || bar.high < Math.max(bar.open, bar.close) || bar.low > Math.min(bar.open, bar.close) || (input.before != null && bar.time > input.before)) throw new Error('The chart response contained invalid candles.');
     previous = bar.time;
   }
   if (data.hasMore && (!Number.isSafeInteger(data.nextBefore) || !data.candles.length || data.nextBefore >= data.candles[0].time || data.nextBefore <= 0)) throw new Error('The chart history cursor was invalid.');

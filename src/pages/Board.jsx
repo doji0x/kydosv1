@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowUpRight, Search, SlidersHorizontal, Star, TrendingUp, X } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
-import { useMe } from '@/lib/MeContext';
+
 import useMarketDiscovery from '@/hooks/useMarketDiscovery';
 import useMarketWatchlist from '@/hooks/useMarketWatchlist';
 import { MARKET_INTERVALS, MARKET_TABS, readMarketOptions, selectMarkets } from '@/lib/markets';
@@ -11,21 +10,10 @@ import MarketTable from '@/components/markets/MarketTable';
 import KydosMarkets from '@/components/markets/KydosMarkets';
 import { MarketDataNotice, SnapshotStamp } from '@/components/markets/MarketPrimitives';
 
-function AdminRefresh({ onRefresh }) {
-  const { me } = useMe(), [busy, setBusy] = useState(false), [message, setMessage] = useState('');
-  if (me?.role !== 'admin') return null;
-  const refresh = async () => {
-    setBusy(true); setMessage('');
-    try { await base44.functions.invoke('refreshMarketDiscovery', {}); await onRefresh(); setMessage('Shared snapshot refreshed.'); }
-    catch (error) { setMessage(error?.response?.data?.error || 'Market refresh failed. Check the backend configuration.'); }
-    finally { setBusy(false); }
-  };
-  return <div className="mt-8 flex flex-wrap items-center gap-3 border-t border-border pt-4 text-xs text-muted-foreground"><span>Admin</span><button type="button" onClick={refresh} disabled={busy} className="rounded-lg border border-border px-3 py-2 hover:text-foreground disabled:opacity-50">{busy ? 'Refreshing Jupiter data…' : 'Refresh shared market data'}</button><span role="status">{message}</span></div>;
-}
 export default function Board() {
-  const market = useMarketDiscovery(), watchlist = useMarketWatchlist();
   const [params, setParams] = useSearchParams(), [showFilters, setShowFilters] = useState(false);
   const options = readMarketOptions(params), isKydos = options.tab === 'kydos';
+  const market = useMarketDiscovery({ interval: options.interval }), watchlist = useMarketWatchlist();
   const update = values => setParams(current => {
     const next = new URLSearchParams(current);
     for (const [key, value] of Object.entries(values)) {
@@ -65,6 +53,6 @@ export default function Board() {
         <p className="mt-2 text-[10px] leading-relaxed text-muted-foreground/80">Search covers this catalog and downloaded trending lists. A Jupiter verification badge is a listing signal, not a guarantee of safety.</p>
       </>}
       {isKydos && <KydosMarkets/>}
-    </section><AdminRefresh onRefresh={market.refetch}/>
+    </section>
   </div>;
 }

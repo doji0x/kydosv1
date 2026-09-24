@@ -9,12 +9,13 @@ async function requestCandles(input, signal) {
   if (signal?.aborted) abort();
   const timer = setTimeout(abort, 25_000);
   try {
-    const response = await base44.functions.fetch('/marketCandles', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input), signal: controller.signal });
-    let data; try { data = await response.json(); } catch { data = {}; }
-    if (!response.ok) {
-      const error = new Error(response.status === 401 || response.status === 403 ? 'Sign in to view charts on this app.' : data.error || 'Chart data is temporarily unavailable.');
-      error.status = response.status; error.retryAfter = Math.min(3600, Math.max(60, Number(data.retryAfter) || 60)); throw error;
+    let data;
+    try { ({ data } = await base44.functions.invoke('marketCandles', input)); }
+    catch (error) {
+      const failure = new Error(error.response?.data?.error || error.message || 'Chart data is temporarily unavailable.');
+      failure.status = error.response?.status; failure.retryAfter = Math.min(3600, Math.max(60, Number(error.response?.data?.retryAfter) || 60)); throw failure;
     }
+    if (controller.signal.aborted) throw new DOMException('Chart request cancelled.', 'AbortError');
     return validateCandlePage(data, input);
   } finally { clearTimeout(timer); signal?.removeEventListener('abort', abort); }
 }
@@ -32,8 +33,8 @@ export default function useMarketCandles(mint, interval = '1h', { enabled = true
   const result = useQuery({
     queryKey: candleQueryKey(mint, interval), enabled,
     queryFn: ({ signal }) => requestCandles({ mint, interval, pool: client.getQueryData(candleQueryKey(mint, interval))?.pool.address || null }, signal),
-    staleTime: compact ? 600_000 : 60_000, gcTime: 30 * 60_000,
-    refetchInterval: compact ? false : query => Math.max(60_000, (query.state.data?.retryAfter || query.state.error?.retryAfter || 0) * 1000),
+    staleTime: 30_000, gcTime: 30 * 60_000,
+    refetchInterval: query => Math.max(60_000, (query.state.data?.retryAfter || query.state.error?.retryAfter || 0) * 1000),
     refetchIntervalInBackground: false, refetchOnWindowFocus: false,
     retry: (count, error) => ![400, 401, 403, 404].includes(error.status) && count < 2,
     retryDelay: (_, error) => (error.retryAfter || 60) * 1000,

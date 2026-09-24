@@ -6,9 +6,9 @@ import { formatPrice as formatUsdPrice, formatCompact } from '@/lib/markets';
 import { canUpdateLastCandle } from '@/lib/solana/candles';
 const priceBar = ({ volume, ...bar }) => bar;
 const lineBar = bar => ({ time: bar.time, value: bar.close });
-const volumeBar = bar => ({ time: bar.time, value: bar.volume, color: bar.close >= bar.open ? '#22c55e66' : '#ef444466' });
+const volumeBar = bar => bar.volume == null ? { time: bar.time } : ({ time: bar.time, value: bar.volume, color: bar.close >= bar.open ? '#22c55e66' : '#ef444466' });
 
-export default function MarketCandleChart({ candles, timeframe, seriesKey = timeframe, currency = 'SOL', volumeCurrency = 'SOL', variant = 'candles', onLoadOlder, canLoadOlder = false }) {
+export default function MarketCandleChart({ candles, timeframe, seriesKey = timeframe, currency = 'SOL', volumeCurrency = 'SOL', variant = 'candles', onLoadOlder, canLoadOlder = false, livePrice = null }) {
   const container = useRef(null), api = useRef(null), previous = useRef([]), frame = useRef(null);
   const following = useRef(true), applying = useRef(false), history = useRef({}), bars = useRef(new Map());
   history.current = { onLoadOlder, canLoadOlder };
@@ -58,6 +58,12 @@ export default function MarketCandleChart({ candles, timeframe, seriesKey = time
       else if (range) chart.timeScale().setVisibleRange(range);
     } finally { applying.current = false; }
   }, [candles, timeframe, seriesKey, currency, variant, formatPrice]);
+  useEffect(() => {
+    if (!api.current || !Number.isFinite(livePrice) || livePrice <= 0) return;
+    const series = api.current.price;
+    const line = series.createPriceLine({ price: livePrice, color: '#f2b429', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: 'Jupiter' });
+    return () => { if (api.current?.price === series) series.removePriceLine(line); };
+  }, [livePrice, variant, formatPrice, seriesKey]);
   const bar = legend ? bars.current.get(legend.time) || candles.at(-1) : candles.at(-1);
   const goLive = () => { following.current = true; setFollow(true); api.current?.chart.timeScale().scrollToRealTime(); };
   return <div>
