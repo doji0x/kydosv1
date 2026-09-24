@@ -60,6 +60,7 @@ export async function fetchMarketSnapshot({ apiKey, fetchImpl = fetch, now = Dat
   ]);
   if (![curated, ranked].every(rows => Array.isArray(rows) && rows.length <= 100)) throw new MarketProviderError('provider_shape', 'Jupiter returned an invalid token response.');
   const tokens = new Map(MARKET_CATALOG.map(identity => [identity.mint, emptyMarketToken(identity)]));
+  if (mint && !tokens.has(mint)) tokens.set(mint, emptyMarketToken({ mint, name: 'Solana token', symbol: mint.slice(0, 6) }));
   for (const raw of [...ranked, ...curated]) {
     const token = normalizeJupiterToken(raw);
     if (token && (!token.suspicious || identities.includes(token.mint))) tokens.set(token.mint, token);

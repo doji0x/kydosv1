@@ -9,7 +9,7 @@ export default async function(req: Request): Promise<Response> {
   try {
     const client = createClientFromRequest(req);
     const user = await client.auth.me();
-    if (!user?.id || user.role !== 'admin' || user.disabled) return Response.json({ error: 'Administrator required.' }, { status: 403 });
+    if (!user?.id || user.role !== 'admin' || user.disabled || !await client.auth.isAuthenticated()) return Response.json({ error: 'Administrator required.' }, { status: 403 });
     const input = await readMarketRequest(req);
     // A delayed old workflow must not overlap the next five-minute collection window.
     if (input.cycleStartedAt) {

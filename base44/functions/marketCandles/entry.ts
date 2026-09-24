@@ -10,7 +10,7 @@ export default async function(request: Request): Promise<Response> {
     const input = chartInput(await readMarketRequest(request));
     // Public, user-scoped reads honor the candle entity's read-only public access.
     const entities = createClientFromRequest(request).entities;
-    if (!input.before) await noteChartInterest(entities.MarketChartInterest, input.mint);
+    if (!input.before) await noteChartInterest(entities.MarketChartInterest, input.mint).catch(() => { /* An optional interest hint must never block a public chart read. */ });
     return Response.json(await readJupiterCandles(entities.JupiterCandle, input), { headers });
   } catch (error) {
     if (error instanceof CandleError || error.status === 400) {

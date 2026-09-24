@@ -71,7 +71,7 @@ export default function MarketCandleChart({ candles, timeframe, seriesKey = time
       <span className="font-mono">{bar && `O ${formatPrice(bar.open)} · H ${formatPrice(bar.high)} · L ${formatPrice(bar.low)} · C ${formatPrice(bar.close)} ${currency} · Vol ${formatCompact(bar.volume, volumeCurrency === 'USD')}${volumeCurrency === 'USD' ? '' : ` ${volumeCurrency}`}`}</span>
       <Button size="sm" variant="ghost" onClick={goLive} disabled={follow}>Follow latest</Button>
     </div>
-    <div ref={container} className="h-[330px] w-full sm:h-[390px]" role="img" aria-label={`Interactive ${currency} price and ${volumeCurrency} volume chart. Drag to pan and scroll or pinch to zoom.`}/>
+    <div ref={container} className="h-[330px] w-full sm:h-[390px]" role="img" aria-label={`Interactive ${currency} price chart${candles.some(item => item.volume != null) ? ` and ${volumeCurrency} volume` : ', volume unavailable'}. Drag to pan and scroll or pinch to zoom.`}/>
     <a href="https://www.tradingview.com/" target="_blank" rel="noreferrer" className="block px-4 py-2 text-right text-[10px] text-muted-foreground underline">Charts by TradingView Lightweight Charts™</a>
   </div>;
 }
