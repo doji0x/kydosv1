@@ -1,4 +1,4 @@
-export const ASTRA_LIMITS = { message: 60000, toolOutput: 24000, event: 500, contextTokens: 60000, turnMs: 230000, maxOutputTokens: 16000 };
+export const ASTRA_LIMITS = { message: 60000, toolOutput: 24000, event: 500, contextTokens: 60000, turnMs: 270000, maxOutputTokens: 16000 };
 export const estimateTokens = value => Math.ceil(String(value || '').length / 3);
 export function compactForModel(content, artifactRef, limit = ASTRA_LIMITS.message, budget) {
   const value = String(content || '');

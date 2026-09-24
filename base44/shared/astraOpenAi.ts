@@ -1,11 +1,12 @@
 import { ASTRA_LIMITS, estimateTokens } from './astraLimits.ts';
+import { beforeDeadline } from './astraDeadline.ts';
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
-export function resolveModel(value, fineTuned) {
-  const candidate = String(fineTuned || '').trim();
-  return (candidate && candidate.toLowerCase() !== 'none' ? candidate : String(value || '').trim()) || 'gpt-6-astra';
+export function resolveModel(value) {
+  // Fine-tuned and alternative overrides are intentionally disabled until verified.
+  return String(value || '').trim() === 'gpt-6-astra' ? String(value).trim() : 'gpt-6-astra';
 }
 export function resolveToolsModel(value) { return String(value || '').trim() || 'xhigh'; }
-export function resolveReasoning(value) { return ['low','medium','high','xhigh'].includes(value) ? value : 'medium'; }
+export function resolveReasoning(value) { return ['low','medium','high','xhigh','max'].includes(value) ? value : 'medium'; }
 export function safeAstraError(error) {
   return String(error?.message || error || 'Astra could not complete this request.').replace(/(?:sk-|ghp_|github_pat_)[\w-]+/g, '[redacted]').replace(/Bearer\s+\S+/gi, 'Bearer [redacted]').replace(/https?:\/\/[^\s]+/g, '[service URL]').slice(0, 1500);
 }
@@ -39,12 +40,27 @@ export async function callOpenAi({ apiKey, model, messages, tools, responseForma
   for (let attempt = 0; attempt < 3; attempt++) {
     const remaining = deadline - Date.now();
     if (remaining < 3000) throw new Error('Astra reached its time budget. Saved activity is available; ask to continue.');
-    const response = await fetch('https://api.openai.com/v1/responses', { method: 'POST', headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' }, body, signal: AbortSignal.timeout(Math.min(90000, remaining)) });
-    if (response.ok) return normalizeResponse(await response.json());
-    const errorBody = await response.json().catch(() => ({}));
-    if (![429,500,502,503,504].includes(response.status) || attempt === 2) throw new Error(errorBody.error?.message || `Model service returned ${response.status}.`);
+    const timeout = Math.min(90000, remaining);
+    const timeoutMessage = `OpenAI response timed out after ${Math.ceil(timeout / 1000)} seconds. Review saved activity before retrying.`;
+    let response, data;
+    try {
+      ({ response, data } = await beforeDeadline(async () => {
+        const response = await fetch('https://api.openai.com/v1/responses', { method: 'POST', headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' }, body, signal: AbortSignal.timeout(timeout) });
+        const text = await response.text();
+        let data;
+        try { data = JSON.parse(text); }
+        catch { throw new Error(`OpenAI HTTP ${response.status}: response was not valid JSON.`); }
+        return { response, data };
+      }, Date.now() + timeout, timeoutMessage));
+    } catch (error) {
+      if (['TimeoutError','AbortError'].includes(error?.name)) throw new Error(timeoutMessage);
+      throw error;
+    }
+    if (response.ok) return normalizeResponse(data);
+    const serviceError = `OpenAI HTTP ${response.status}${data.error?.code ? ` (${data.error.code})` : ''}: ${data.error?.message || 'Model request failed.'}`;
+    if (![429,500,502,503,504].includes(response.status) || attempt === 2) throw new Error(serviceError);
     const delay = Math.max(1000 * 2 ** attempt, (Number(response.headers.get('retry-after')) || 0) * 1000);
-    if (delay + 3000 > deadline - Date.now()) throw new Error('Model service is busy; retry this request shortly.');
+    if (delay + 3000 > deadline - Date.now()) throw new Error(`${serviceError} No time remains for another attempt.`);
     await wait(delay);
   }
 }
