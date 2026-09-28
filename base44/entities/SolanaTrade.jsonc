@@ -1,7 +1,7 @@
 {
   "name": "SolanaTrade",
   "type": "object",
-  "description": "Finalized Kydos events; readers deduplicate canonical event_id before aggregation.",
+  "description": "Finalized public on-chain Kydos events; readers deduplicate canonical event_id before aggregation.",
   "properties": {
     "signature": {
       "type": "string"
@@ -107,9 +107,21 @@
     "status"
   ],
   "rls": {
-    "read": false,
-    "create": false,
-    "update": false,
-    "delete": false
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
   }
 }

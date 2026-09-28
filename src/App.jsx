@@ -34,19 +34,19 @@ export default function App() {
       <Route path="/" element={<Board/>}/>
       <Route path="/markets/solana/:mint" element={<ExternalMarket/>}/>
       <Route path="/launch" element={<SolanaLaunch/>}/>
+      <Route path="/solana/:mint" element={<SolanaMarket/>}/>
+      <Route path="/chart" element={<Navigate to="/solana/GTBxUiw6wJdmmkCGZgRHLyYxqu1vG4KtRpeox6yDpump" replace/>}/>
+      <Route path="/chart/:mint" element={<LegacyChartRedirect/>}/>
+      <Route path="/forum" element={<Forum/>}/><Route path="/post/:id" element={<Thread/>}/>
+      <Route path="/notifications" element={<Notifications/>}/><Route path="/releases" element={<Releases/>}/>
+      <Route path="/profile" element={<Profile/>}/><Route path="/profile/:userId" element={<Profile/>}/>
     </Route>
     <Route path="/login" element={<Login/>}/><Route path="/register" element={<Register/>}/>
     <Route path="/forgot-password" element={<ForgotPassword/>}/><Route path="/reset-password" element={<ResetPassword/>}/>
     <Route path="/oauth/consent" element={<OAuthConsent/>}/>
     <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
       <Route element={<Layout/>}>
-        <Route path="/solana/:mint" element={<SolanaMarket/>}/>
-        <Route path="/chart" element={<Navigate to="/solana/GTBxUiw6wJdmmkCGZgRHLyYxqu1vG4KtRpeox6yDpump" replace/>}/>
-        <Route path="/chart/:mint" element={<LegacyChartRedirect/>}/>
-        <Route path="/forum" element={<Forum/>}/><Route path="/post/:id" element={<Thread/>}/>
-        <Route path="/notifications" element={<Notifications/>}/><Route path="/releases" element={<Releases/>}/>
         <Route path="/admin/astra" element={<AdminAstra/>}/><Route path="/admin/launch" element={<AdminLaunch/>}/>
-        <Route path="/profile" element={<Profile/>}/><Route path="/profile/:userId" element={<Profile/>}/>
       </Route>
     </Route>
     <Route path="*" element={<PageNotFound/>}/>

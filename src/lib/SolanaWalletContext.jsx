@@ -11,6 +11,7 @@ export function SolanaWalletProvider({ children }) {
     if (!phantom) return;
     const changed = key => setPublicKey(key || null);
     const disconnected = () => setPublicKey(null);
+    if (phantom.isConnected && phantom.publicKey) setPublicKey(phantom.publicKey);
     phantom.on?.('accountChanged', changed);
     phantom.on?.('disconnect', disconnected);
     return () => {

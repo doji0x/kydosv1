@@ -1,6 +1,5 @@
 import { useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '@/lib/AuthContext';
 import { useSolanaWallet } from '@/lib/SolanaWalletContext';
 import { mainnetConnection } from '@/lib/solana/development';
 import useJupiterQuote from '@/hooks/useJupiterQuote';
@@ -8,12 +7,12 @@ import useJupiterActivity from '@/hooks/useJupiterActivity';
 import executeJupiterTrade from '@/lib/jupiterExecution';
 
 export default function useJupiterTrading(mint) {
-  const wallet = useSolanaWallet(), auth = useAuth(), cache = useQueryClient(), walletId = wallet.publicKey?.toBase58();
+  const wallet = useSolanaWallet(), cache = useQueryClient(), walletId = wallet.publicKey?.toBase58();
   const [connection] = useState(mainnetConnection), lock = useRef(false);
   const [side, setSide] = useState('buy'), [amount, setAmount] = useState(''), [slippage, setSlippage] = useState('1');
   const [busy, setBusy] = useState(false), [connecting, setConnecting] = useState(false), [message, setMessage] = useState('');
   const activity = useJupiterActivity(walletId);
-  const quote = useJupiterQuote({ mint, wallet: walletId, side, amount, slippage, enabled: auth.isAuthenticated, busy });
+  const quote = useJupiterQuote({ mint, wallet: walletId, side, amount, slippage, enabled: wallet.connected, busy });
   const refresh = async () => { await Promise.all([cache.invalidateQueries({ queryKey: ['jupiter-balances'] }), cache.invalidateQueries({ queryKey: ['market-discovery'] })]); };
   const connect = async () => {
     setConnecting(true); setMessage('');
@@ -30,6 +29,6 @@ export default function useJupiterTrading(mint) {
     } catch (error) { setMessage(error.code === 4001 ? 'Wallet approval rejected. Nothing was submitted.' : error.message); }
     finally { lock.current = false; setBusy(false); activity.refresh(); cache.removeQueries({ queryKey: ['jupiter-order', mint, walletId] }); }
   };
-  return { ...quote, auth, wallet, walletId, connection, activity, side, amount, slippage, busy, connecting, message, connect, submit, refresh,
+  return { ...quote, wallet, walletId, connection, activity, side, amount, slippage, busy, connecting, message, connect, submit, refresh,
     setSide: value => { setSide(value); setAmount(''); setMessage(''); }, setAmount, setSlippage };
 }

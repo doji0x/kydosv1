@@ -27,7 +27,6 @@ export default function ProfileEditDialog({ profile, open, onOpenChange }) {
     e.preventDefault();
     setSaving(true);
     await base44.entities.Profile.update(profile.id, form);
-    await base44.auth.updateMe({ handle: form.handle, bio: form.bio, avatar_url: form.avatar_url });
     await refresh();
     setSaving(false);
     toast.success("Profile updated");

@@ -21,7 +21,7 @@ export default function PostComposer({ token: fixedToken, replyTo, placeholder =
   if (me === null) {
     return (
       <button onClick={() => requireAuth("post")} className="w-full p-4 text-sm text-primary text-left border-b border-border hover:bg-card/60">
-        Sign in to join the conversation →
+        Connect Phantom to join the conversation →
       </button>
     );
   }

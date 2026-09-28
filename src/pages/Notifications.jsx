@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Bell } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import WalletConnectPrompt from '@/components/profile/WalletConnectPrompt';
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
 import { useMe } from "@/lib/MeContext";
 import { markSeen } from "@/lib/notifications";
 import { useNotificationsFeed } from "@/hooks/useNotificationsFeed";
@@ -21,15 +19,7 @@ export default function Notifications() {
 
   if (me === undefined) return <div className="p-4 space-y-3">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-16 rounded-xl" />)}</div>;
 
-  if (!me) {
-    return (
-      <div className="py-20 text-center space-y-4">
-        <Bell className="h-8 w-8 mx-auto text-muted-foreground" />
-        <p className="text-sm text-muted-foreground">Sign in to see your notifications.</p>
-        <Button onClick={() => base44.auth.redirectToLogin()}>Sign in</Button>
-      </div>
-    );
-  }
+  if (!me) return <WalletConnectPrompt title="Your notifications" description="Connect Phantom to see activity for your wallet profile." />;
 
   const list = !items ? null : items.filter((n) => (tab === "mentions" ? n.type === "mention" || n.type === "reply" : tab === "likes" ? n.type === "like" : true));
 

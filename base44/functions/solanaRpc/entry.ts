@@ -1,11 +1,10 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.48';
+import { limitPublicRequests } from '../../shared/publicRateLimit.js';
 import { secrets } from 'base44:runtime';
 import { buildSolanaRpcPayload } from '../../shared/solanaRpc.js';
 
 export default async function(req:Request):Promise<Response>{try{
  if(req.method!=='POST')return Response.json({error:'Use POST.'},{status:405});
- const base44=createClientFromRequest(req),user=await base44.auth.me();
- if(!user)return Response.json({error:'Unauthorized'},{status:401});
+ if(!limitPublicRequests(req,90))return Response.json({error:'Too many network requests. Try again shortly.'},{status:429});
  let payload;
  try{payload=buildSolanaRpcPayload(await req.json());}
  catch(error){return Response.json({error:error.message},{status:error.message==='RPC request is too large'?413:400});}
