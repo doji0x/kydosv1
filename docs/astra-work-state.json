@@ -2,134 +2,75 @@
   "schema_version": 1,
   "purpose": "Small navigation and resume record; not a repository inventory, execution engine, authorization, or passing-check claim.",
   "owner": "ChatGPT",
-  "delivery_branch": "codex/base-burn-quote-split",
-  "observed_source_sha": "6c1828e4b38899399d979d49f49dfc4be892358f",
-  "observed_upstream_sha": "fd11f095c8e69e8d88ef455983860a72fe1cc5c4",
+  "delivery_branch": "codex/permissionless-damm-adapter",
+  "observed_source_sha": "b5e03c9a64d5f3256734aee6cb88eb630de094aa",
+  "observed_upstream_sha": "ed992423cb32a9b6a3ac1289a472ba3d49e1b1d4",
   "active_task": {
-    "id": "base-burn-quote-split-foundation",
-    "request": "Reconcile the fee-settlement foundation with the owner's merged private-config revert; preserve the approved base burn and equal creator/Kydos quote policy.",
-    "status": "upstream-reconciled-offline-accounting-only-runtime-integration-not-implemented",
+    "id": "permissionless-damm-adapter",
+    "request": "Continue after merged PR #30 with config-free DAMM creation/lock preparation and explicit precreated-pool rejection.",
+    "status": "adapter-implemented-runtime-migration-not-implemented-collision-liveness-gated",
     "scope": [
-      "solana/programs/kydos_launchpad/src/fees.rs",
-      "solana/programs/kydos_launchpad/src/fees/settlement.rs",
-      "src/lib/solana/settlement.js",
-      "solana/tests/fixtures/settlement.csv",
-      "solana/tests/settlement.test.js",
+      "solana/programs/kydos_launchpad/src/meteora.rs",
+      "solana/programs/kydos_launchpad/src/meteora/permissionless.rs",
+      "solana/tests/fixtures/meteora-permissionless.json",
+      "solana/tests/meteora-permissionless.test.js",
       "solana/package.json",
-      "docs/fee-settlement.md",
+      "docs/permissionless-migration.md",
       "docs/astra-delivery-checkpoint.md",
       "docs/astra-work-state.json"
     ],
-    "reconciliation_scope": [
-      "solana/package.json",
-      "docs/fee-settlement.md",
-      "docs/astra-delivery-checkpoint.md",
-      "docs/astra-work-state.json"
-    ],
-    "acceptance": "Keep settlement helpers and fixtures unchanged; incorporate merged main without restoring removed private-config setup; remove deleted script references; preserve new settlement tests and update stale handoff records. No funds movement or new tokenomics.",
-    "design_record": "docs/fee-settlement.md",
-    "next_action": "Inspect exact-head CI and review draft PR #30. Replace remaining historical private-route scaffolding with reviewed permissionless migration/collision handling before integrating atomic claims, burns and payouts."
+    "acceptance": "Build canonical config-free initialization and full permanent-lock CPIs; share vectors with pinned SDK tests; reject occupied/substituted destinations; preserve fee/supply/custody policy and keep runtime migration disabled.",
+    "design_record": "docs/permissionless-migration.md",
+    "next_action": "Inspect exact-head CI. Resolve documented cpool precreation/liveness risk before authenticated atomic migration, full post-validation and a route-versioned receipt; fee settlement integration follows."
   },
   "read_policy": {
-    "startup": [
-      "check delivery HEAD/checks",
-      "read AGENTS.md",
-      "read rolling checkpoint",
-      "read this state only when selecting or resuming a task"
-    ],
+    "startup": ["check delivery HEAD/checks", "read AGENTS.md", "read rolling checkpoint", "read this state only when selecting or resuming a task"],
     "default_task_file_budget": 5,
     "budget_kind": "Soft limit on initial task-specific reads, excluding startup records; never skip a safety-critical dependency to satisfy it.",
-    "expand_only_for": [
-      "a named import or caller needed for the change",
-      "a relevant changed path",
-      "a failing check",
-      "an unresolved acceptance requirement"
-    ],
-    "avoid": [
-      "whole-tree listing when a task entry point is known",
-      "reading every task entry point upfront",
-      "re-reading unchanged content already available in the current turn",
-      "restarting completed library pages",
-      "repeated status polling without a concrete reason"
-    ],
+    "expand_only_for": ["a named import or caller needed for the change", "a relevant changed path", "a failing check", "an unresolved acceptance requirement"],
+    "avoid": ["whole-tree listing when a task entry point is known", "reading every task entry point upfront", "re-reading unchanged content already available in the current turn", "restarting completed library pages", "repeated status polling without a concrete reason"],
     "invalidate": "A changed path invalidates its cached conclusions and affected dependencies, not all repository knowledge. Re-read touched files before editing; stop on unexpected concurrent changes.",
     "research_rule": "For an all-documents request, finish all inventory pages and document ranges, but checkpoint each bounded batch instead of rereading completed ranges."
   },
   "task_routes": {
     "reference-research": {
-      "start": [
-        "docs/reference-index.md"
-      ],
-      "only_if_implementation_changes": [
-        "base44/shared/astraReferences.ts",
-        "base44/functions/astraReference/entry.ts",
-        "base44/functions/ingestReference/entry.ts"
-      ],
+      "start": ["docs/reference-index.md"],
+      "only_if_implementation_changes": ["base44/shared/astraReferences.ts", "base44/functions/astraReference/entry.ts", "base44/functions/ingestReference/entry.ts"],
       "focused_check": "node --test tests/astra-references.test.mjs"
     },
     "chat-tool-access": {
-      "start": [
-        "base44/functions/astraChat/githubChat.ts",
-        "base44/shared/astraTools.ts"
-      ],
-      "only_if_needed": [
-        "base44/shared/astraGithub.ts",
-        "base44/functions/astraChat/entry.ts"
-      ],
+      "start": ["base44/functions/astraChat/githubChat.ts", "base44/shared/astraTools.ts"],
+      "only_if_needed": ["base44/shared/astraGithub.ts", "base44/functions/astraChat/entry.ts"],
       "focused_check": "node --test tests/astra-delivery.test.mjs"
     },
     "solana-transactions": {
-      "start": [
-        "src/lib/solana/client.js"
-      ],
-      "only_if_needed": [
-        "src/lib/solana/lifecycle.js",
-        "src/lib/solana/budget.js",
-        "src/lib/solana/costs.js"
-      ],
+      "start": ["src/lib/solana/client.js"],
+      "only_if_needed": ["src/lib/solana/lifecycle.js", "src/lib/solana/budget.js", "src/lib/solana/costs.js"],
       "evidence_status": "Navigation hints from prior handoff; current behavior and checks must be verified only when this task resumes."
     },
     "solana-program": {
-      "start": [
-        "solana/programs/kydos_launchpad/src/lib.rs",
-        "solana/programs/kydos_launchpad/Cargo.toml"
-      ],
+      "start": ["solana/programs/kydos_launchpad/src/lib.rs", "solana/programs/kydos_launchpad/Cargo.toml"],
       "evidence_status": "Read program and direct dependencies only for a program task; do not repeat program review for documentation work."
     },
     "market-discovery": {
-      "start": [
-        "docs/market-discovery-rollout.md",
-        "src/pages/Board.jsx"
-      ],
-      "only_if_needed": [
-        "base44/shared/jupiterMarkets.js",
-        "base44/shared/marketDiscovery.js",
-        "src/lib/markets.js",
-        "src/pages/ExternalMarket.jsx"
-      ],
+      "start": ["docs/market-discovery-rollout.md", "src/pages/Board.jsx"],
+      "only_if_needed": ["base44/shared/jupiterMarkets.js", "base44/shared/marketDiscovery.js", "src/lib/markets.js", "src/pages/ExternalMarket.jsx"],
       "focused_check": "node --test tests/market-discovery.test.mjs"
     },
     "market-charts": {
-      "start": [
-        "docs/interactive-market-charts.md",
-        "src/components/markets/ExternalMarketChart.jsx"
-      ],
-      "only_if_needed": [
-        "src/hooks/useMarketCandles.js",
-        "src/components/solana/MarketCandleChart.jsx",
-        "base44/functions/marketCandles/entry.ts",
-        "base44/shared/marketCandles.js"
-      ],
+      "start": ["docs/interactive-market-charts.md", "src/components/markets/ExternalMarketChart.jsx"],
+      "only_if_needed": ["src/hooks/useMarketCandles.js", "src/components/solana/MarketCandleChart.jsx", "base44/functions/marketCandles/entry.ts", "base44/shared/marketCandles.js"],
       "focused_check": "node --test tests/market-candles.test.mjs tests/market-discovery.test.mjs"
     },
     "fee-settlement": {
-      "start": [
-        "docs/fee-settlement.md",
-        "src/lib/solana/settlement.js",
-        "solana/programs/kydos_launchpad/src/fees/settlement.rs"
-      ],
+      "start": ["docs/fee-settlement.md", "src/lib/solana/settlement.js", "solana/programs/kydos_launchpad/src/fees/settlement.rs"],
       "focused_check": "npm --prefix solana run test:settlement",
       "evidence_status": "Pure accounting only; no executable claim/burn/payout integration."
+    },
+    "permissionless-migration": {
+      "start": ["docs/permissionless-migration.md", "solana/programs/kydos_launchpad/src/meteora/permissionless.rs"],
+      "focused_check": "npm --prefix solana run test:permissionless",
+      "evidence_status": "CPI preparation and fresh-account checks only; no executable migration or collision recovery."
     }
   },
   "unfinished_work": [
@@ -143,44 +84,31 @@
         "partial_index_commit": "e683d20589587aa2601828bf519b162189a80265"
       },
       "next_action": "Prior library inventory remains incomplete and is not resumed here. docs/launchpad-build-spec.md now exists for this approved AMM milestone; do not infer full library review.",
-      "inventory": {
-        "status": "not-completely-enumerated",
-        "next_offset": 0,
-        "complete": false
-      },
+      "inventory": {"status": "not-completely-enumerated", "next_offset": 0, "complete": false},
       "documents": [],
       "document_cursor_shape": {
-        "id_or_resolved_url": "required",
-        "content_sha256": "required",
-        "reviewed_ranges": [],
-        "next_offset": 0,
-        "complete": false,
-        "finding_location": "docs/reference-index.md#section"
+        "id_or_resolved_url": "required", "content_sha256": "required", "reviewed_ranges": [],
+        "next_offset": 0, "complete": false, "finding_location": "docs/reference-index.md#section"
       },
       "cursor_rules": "Store actual tool-returned offsets and hashes only. Pass the prior hash on continuation; restart the affected document on hash mismatch. next_offset=null establishes completion only after all preceding ranges were reviewed. No historical hashes or offsets have been invented. Persist progress after each bounded batch and before handoff."
     }
   ],
   "verification": {
-    "source_sha": "6c1828e4b38899399d979d49f49dfc4be892358f",
-    "upstream_sha": "fd11f095c8e69e8d88ef455983860a72fe1cc5c4",
+    "source_sha": "b5e03c9a64d5f3256734aee6cb88eb630de094aa",
+    "upstream_sha": "ed992423cb32a9b6a3ac1289a472ba3d49e1b1d4",
     "prepared_tree_checks": [
-      "npm --prefix solana run test:settlement: 21/21 pass on Node 22.16.0 with reconciled package commands.",
-      "node --check src/lib/solana/settlement.js: pass.",
-      "node --check solana/tests/settlement.test.js: pass.",
-      "Helper, test and CSV bytes verified against original Git blob hashes.",
-      "Package validation: settlement test/check retained; no meteora-config references."
+      "Four selected fixture-sanity tests pass on Node 22.16.0; SDK parity tests were not run locally.",
+      "node --check solana/tests/meteora-permissionless.test.js: pass.",
+      "Original meteora.rs blob a8dd08cc3811f59339a8a7b0afa477d3f6fe4526 verified before the module-registration-only edit."
     ],
     "tested_blob_shas": {
-      "src/lib/solana/settlement.js": "782750acb667f568562da15884f60144702f336e",
-      "solana/tests/settlement.test.js": "1d9cdaf4f2da737a89f12aa55583914c91e80350",
-      "solana/tests/fixtures/settlement.csv": "43f8449c22b4601f22be4cb336144044acbd8c82"
+      "solana/tests/meteora-permissionless.test.js": "0e4fa44ab56b3694b7ed185792f9f682023c247f",
+      "solana/tests/fixtures/meteora-permissionless.json": "e3e7db699ba7e068f994df07320f02334d8ba665"
     },
     "limitations": [
-      "Rust/Cargo/Anchor unavailable locally; Rust tests and SBF/IDL parity not run.",
-      "No full dependency checkout or full repository regression suite in this environment.",
-      "No validator/devnet tests, transactions, deployment, executable migration, locks, claims, burns or payouts.",
-      "Helpers do not authenticate accounts, persist dust or enforce economic rights on chain.",
-      "Earlier-head CI results are not fresh CI evidence for the reconciled delivery."
+      "No local Rust/Cargo/Anchor or SDK dependency checkout; full SDK parity, Rust, SBF/IDL and regression results require exact-head CI.",
+      "No runtime/validator/devnet tests, deployment, signing, migration, lock, claim, burn or payout.",
+      "Fresh-only cpool initialization can be blocked by third-party precreation. No recovery or existing-pool adoption is enabled."
     ],
     "delivery_evidence": "Resulting SHA and exact-head CI inspection are reported in chat and the PR handoff."
   },
@@ -189,14 +117,14 @@
     "head_sha": "9a9d38e49b64e01b7b16a24961610f632d134cf9",
     "merge_sha": "221180adfb065382463119436f8ff8cddbd65854",
     "observed_status": "merged",
-    "decision": "Permissionless route selected; preserve removed operator setup and do not restore provisioning requirements. Runtime permissionless migration is not yet implemented."
+    "decision": "Permissionless direction selected; preserve removed operator setup. Runtime permissionless migration is not yet implemented."
   },
   "maintenance": "Update this record in place at a bounded work milestone, not after every read. Keep detailed source findings in the reference index, approved design in the build specification, and human handoff in the rolling checkpoint. Remove completed task detail once durable evidence is linked. Final delivery SHA belongs in chat, not a recursive self-SHA commit.",
   "previous_delivery": {
     "id": "base-burn-quote-split-foundation",
-    "commit_sha": "6c1828e4b38899399d979d49f49dfc4be892358f",
-    "source_sha": "69885cd0894a15dee350428e09c30c0d6b6f9ced",
+    "commit_sha": "e5618e713957756b6b7d0c15c91f438e6ce89c2e",
+    "merge_sha": "b5e03c9a64d5f3256734aee6cb88eb630de094aa",
     "pull_request": "https://github.com/doji0x/kydosv1/pull/30",
-    "status": "draft; accounting foundation only; now being reconciled with merged PR #29"
+    "status": "merged; accounting foundation only; runtime fee settlement remains unimplemented"
   }
 }
