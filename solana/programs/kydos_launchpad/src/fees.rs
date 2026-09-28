@@ -1,6 +1,8 @@
 //! Fee-inclusive quotes. Fees never become curve reserves.
 use crate::math::{self, MathError};
 
+pub mod settlement;
+
 pub const TRADING_FEE_BPS: u16 = 100;
 const BPS: u128 = 10_000;
 

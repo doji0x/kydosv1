@@ -1,29 +1,28 @@
 {
   "schema_version": 1,
   "purpose": "Small navigation and resume record; not a repository inventory, execution engine, authorization, or passing-check claim.",
-  "owner": "Codex",
-  "delivery_branch": "codex/damm-v2-milestone-2",
-  "observed_source_sha": "d4779592d9efe31911f53d02edd26e2073a6f644",
-  "observed_upstream_sha": "d4779592d9efe31911f53d02edd26e2073a6f644",
+  "owner": "ChatGPT",
+  "delivery_branch": "codex/base-burn-quote-split",
+  "observed_source_sha": "69885cd0894a15dee350428e09c30c0d6b6f9ced",
+  "observed_upstream_sha": "69885cd0894a15dee350428e09c30c0d6b6f9ced",
   "active_task": {
-    "id": "damm-v2-milestone-2",
-    "request": "Set up the next milestone: private Meteora config operator handoff, verification and approval preflight.",
-    "status": "setup-implemented-live-provisioning-and-binding-pending",
+    "id": "base-burn-quote-split-foundation",
+    "request": "Start the next step of the approved post-migration base-burn and equal creator/Kydos quote policy; additional taxes and holder rewards remain unapproved.",
+    "status": "offline-accounting-implemented-runtime-integration-not-implemented",
     "scope": [
-      "solana/scripts/meteora-config.mjs",
-      "solana/scripts/lib/meteora-config.mjs",
-      "solana/config/meteora-mainnet-request.json",
-      "solana/config/meteora-routes.json",
-      "solana/tests/meteora-config.test.js",
+      "solana/programs/kydos_launchpad/src/fees.rs",
+      "solana/programs/kydos_launchpad/src/fees/settlement.rs",
+      "src/lib/solana/settlement.js",
+      "solana/tests/fixtures/settlement.csv",
+      "solana/tests/settlement.test.js",
       "solana/package.json",
-      "solana/README.md",
-      "docs/meteora-adapter.md",
+      "docs/fee-settlement.md",
       "docs/astra-delivery-checkpoint.md",
       "docs/astra-work-state.json"
     ],
-    "acceptance": "Generate a reproducible operator request; validate cluster, executable programs and strict private config; require explicit reviewed cluster binding and fresh account hash; keep migration disabled. Full prerequisite completion needs operator provisioning and approved binding.",
-    "design_record": "docs/meteora-adapter.md",
-    "next_action": "Publish setup PR. Owner supplies operator-returned config address, index and signature; verify independently and review the binding before the executable migration milestone."
+    "acceptance": "Plan a burn of only newly claimed base fees; split only net claimed quote plus funded persisted dust equally; preserve unrelated balances and one-unit dust; test conservation, fragmentation and u64 boundaries without enabling fund movement.",
+    "design_record": "docs/fee-settlement.md",
+    "next_action": "Inspect exact-head CI; reconcile open revert PR #29 before merge. Replace private-config scaffolding with reviewed permissionless migration/collision handling before integrating atomic claims, burns and payouts."
   },
   "read_policy": {
     "startup": [
@@ -47,7 +46,7 @@
       "restarting completed library pages",
       "repeated status polling without a concrete reason"
     ],
-    "invalidate": "A changed path invalidates its cached conclusions and affected dependencies, not the entire repository. Re-read touched files before editing; stop on unexpected concurrent changes.",
+    "invalidate": "A changed path invalidates its cached conclusions and affected dependencies, not all repository knowledge. Re-read touched files before editing; stop on unexpected concurrent changes.",
     "research_rule": "For an all-documents request, finish all inventory pages and document ranges, but checkpoint each bounded batch instead of rereading completed ranges."
   },
   "task_routes": {
@@ -116,6 +115,15 @@
         "base44/shared/marketCandles.js"
       ],
       "focused_check": "node --test tests/market-candles.test.mjs tests/market-discovery.test.mjs"
+    },
+    "fee-settlement": {
+      "start": [
+        "docs/fee-settlement.md",
+        "src/lib/solana/settlement.js",
+        "solana/programs/kydos_launchpad/src/fees/settlement.rs"
+      ],
+      "focused_check": "npm --prefix solana run test:settlement",
+      "evidence_status": "Pure accounting only; no executable claim/burn/payout integration."
     }
   },
   "unfinished_work": [
@@ -147,26 +155,26 @@
     }
   ],
   "verification": {
-    "source_sha": "d4779592d9efe31911f53d02edd26e2073a6f644",
+    "source_sha": "69885cd0894a15dee350428e09c30c0d6b6f9ced",
     "prepared_tree_checks": [
-      "npm --prefix solana test: 76/76 pass.",
-      "npm --prefix solana run check: pass.",
-      "git diff --check: pass."
+      "npm --prefix solana run test:settlement: 21/21 pass on Node 22.16.0.",
+      "node --check src/lib/solana/settlement.js: pass.",
+      "node --check solana/tests/settlement.test.js: pass.",
+      "Original fees.rs blob hash verified; only module registration changes existing fee code."
     ],
-    "live_read": {
-      "cluster": "mainnet-beta",
-      "commitment": "finalized",
-      "slot": 450045280,
-      "creator_authority": "3tGjXG9oGyRDS3ppv1QsCNvYgr5XtAizKe75XcyHxuAd",
-      "matching_configs": 0
-    },
     "limitations": [
-      "No live private config or approved binding.",
-      "Registry is off-chain review/preflight only; future handler must enforce approved address on-chain.",
-      "No transaction submission, deployment, executable migration, locks or claims.",
-      "No claim of deployed binary/source equivalence."
+      "Rust/Cargo/Anchor unavailable locally; Rust tests and SBF/IDL parity not run.",
+      "No full dependency checkout or full repository regression suite in this environment.",
+      "No validator/devnet tests, transactions, deployment, executable migration, locks, claims, burns or payouts.",
+      "Helpers do not authenticate accounts, persist dust or enforce economic rights on chain."
     ],
-    "delivery_evidence": "Resulting SHA and initial exact-head CI state are reported in chat."
+    "delivery_evidence": "Resulting SHA and exact-head CI inspection are reported in chat."
+  },
+  "pending_revert": {
+    "pull_request": "https://github.com/doji0x/kydosv1/pull/29",
+    "head_sha": "9a9d38e49b64e01b7b16a24961610f632d134cf9",
+    "observed_status": "open, not merged",
+    "decision": "Permissionless route selected; no operator provisioning or private-config approval in this task."
   },
   "maintenance": "Update this record in place at a bounded work milestone, not after every read. Keep detailed source findings in the reference index, approved design in the build specification, and human handoff in the rolling checkpoint. Remove completed task detail once durable evidence is linked. Final delivery SHA belongs in chat, not a recursive self-SHA commit.",
   "previous_delivery": {
