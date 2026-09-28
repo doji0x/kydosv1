@@ -11,7 +11,7 @@ export function isVideo(url = "") {
   return /\.(mp4|webm|mov|m4v|ogv)(\?|$)/i.test(url);
 }
 
-export default function MediaUploadField({ value, onChange, allowVideo = false, className = "" }) {
+export default function MediaUploadField({ value, onChange, allowVideo = false, className = "", previewClassName = "w-full aspect-video", onBusyChange }) {
   const inputRef = useRef(null);
   const [busy, setBusy] = useState(false);
   const [showUrl, setShowUrl] = useState(false);
@@ -26,6 +26,7 @@ export default function MediaUploadField({ value, onChange, allowVideo = false, 
       return toast.error(`${kind === "video" ? "Videos" : "Images"} must be under ${MAX_MB[kind]}MB`);
     }
     setBusy(true);
+    onBusyChange?.(true);
     try {
       const { file_url } = await base44.integrations.Core.UploadPublicFile({ file });
       onChange(file_url);
@@ -34,6 +35,7 @@ export default function MediaUploadField({ value, onChange, allowVideo = false, 
       setShowUrl(true);
     }
     setBusy(false);
+    onBusyChange?.(false);
   };
 
   return (
@@ -43,7 +45,7 @@ export default function MediaUploadField({ value, onChange, allowVideo = false, 
           {isVideo(value) ? (
             <video src={value} controls className="w-full aspect-video bg-black" />
           ) : (
-            <Image src={value} alt="" className="w-full aspect-video" />
+            <Image src={value} alt="" className={previewClassName} />
           )}
           <button type="button" onClick={() => onChange("")} aria-label="Remove media"
             className="absolute top-2 right-2 h-8 w-8 rounded-full bg-black/60 backdrop-blur flex items-center justify-center text-white hover:bg-black/80">

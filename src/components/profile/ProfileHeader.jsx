@@ -1,6 +1,7 @@
 import React from "react";
 import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Image } from "@/components/ui/image";
 import Avatar from "@/components/social/Avatar";
 import FollowButton from "@/components/profile/FollowButton";
 import FollowStats from "@/components/profile/FollowStats";
@@ -8,7 +9,7 @@ import FollowStats from "@/components/profile/FollowStats";
 export default function ProfileHeader({ profile, userId, isMe, onEdit }) {
   return (
     <div>
-      <div className="h-28 grid-lines bg-gradient-to-br from-primary/20 via-card to-background" />
+      {profile?.banner_url ? <Image src={profile.banner_url} alt={`${profile.handle || 'User'} profile banner`} className="h-28 w-full" fittingType="fill" /> : <div className="h-28 grid-lines bg-gradient-to-br from-primary/20 via-card to-background" />}
       <div className="px-4">
         <div className="flex items-end justify-between -mt-10">
           <Avatar src={profile?.avatar_url} handle={profile?.handle} className="h-20 w-20 text-2xl ring-4 ring-background" />

@@ -14,6 +14,9 @@
     "avatar_url": {
       "type": "string"
     },
+    "banner_url": {
+      "type": "string"
+    },
     "hood_balance": {
       "type": "number",
       "description": "In-app HOOD cash balance",

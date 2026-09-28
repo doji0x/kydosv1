@@ -16,8 +16,10 @@ export default function ProfileEditDialog({ profile, open, onOpenChange }) {
     handle: profile.handle || "",
     bio: profile.bio || "",
     avatar_url: profile.avatar_url || "",
+    banner_url: profile.banner_url || "",
   });
   const [saving, setSaving] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
   const set = (k) => (e) =>
     setForm({ ...form, [k]: k === "handle" ? e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 20) : e.target.value });
 
@@ -25,7 +27,7 @@ export default function ProfileEditDialog({ profile, open, onOpenChange }) {
     e.preventDefault();
     setSaving(true);
     await base44.entities.Profile.update(profile.id, form);
-    await base44.auth.updateMe(form);
+    await base44.auth.updateMe({ handle: form.handle, bio: form.bio, avatar_url: form.avatar_url });
     await refresh();
     setSaving(false);
     toast.success("Profile updated");
@@ -34,7 +36,7 @@ export default function ProfileEditDialog({ profile, open, onOpenChange }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-card sm:max-w-md">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto bg-card sm:max-w-md">
         <DialogHeader><DialogTitle className="font-display">Edit profile</DialogTitle></DialogHeader>
         <form onSubmit={save} className="space-y-4">
           <div className="space-y-1.5"><Label className="text-xs uppercase tracking-wider text-muted-foreground">Handle</Label>
@@ -43,7 +45,9 @@ export default function ProfileEditDialog({ profile, open, onOpenChange }) {
             <Textarea value={form.bio} onChange={set("bio")} rows={3} maxLength={160} className="bg-background resize-none" /></div>
           <div className="space-y-1.5"><Label className="text-xs uppercase tracking-wider text-muted-foreground">Avatar</Label>
             <MediaUploadField value={form.avatar_url} onChange={(url) => setForm((f) => ({ ...f, avatar_url: url }))} /></div>
-          <Button type="submit" disabled={saving} className="w-full h-11 rounded-full font-semibold">
+          <div className="space-y-1.5"><Label className="text-xs uppercase tracking-wider text-muted-foreground">Profile banner</Label>
+            <MediaUploadField value={form.banner_url} onBusyChange={setUploadingBanner} previewClassName="w-full h-28" onChange={(url) => setForm((f) => ({ ...f, banner_url: url }))} /></div>
+          <Button type="submit" disabled={saving || uploadingBanner} className="w-full h-11 rounded-full font-semibold">
             {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Save
           </Button>
         </form>
