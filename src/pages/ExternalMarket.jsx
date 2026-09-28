@@ -6,6 +6,7 @@ import useMarketWatchlist from '@/hooks/useMarketWatchlist';
 import { emptyToken, formatCompact, formatPrice, identityFor, isSolanaMint, MARKET_INTERVALS, shortMint } from '@/lib/markets';
 import { MarketAvatar, MarketDataNotice, MintCopy, PriceChange, SnapshotStamp, WatchButton } from '@/components/markets/MarketPrimitives';
 import ExternalMarketChart from '@/components/markets/ExternalMarketChart';
+import ExternalTradePanel from '@/components/markets/ExternalTradePanel';
 
 export default function ExternalMarket() {
   const { mint } = useParams(), market = useMarketDiscovery({ mint: isSolanaMint(mint) ? mint : null }), watchlist = useMarketWatchlist();
@@ -24,6 +25,7 @@ export default function ExternalMarket() {
     <header className="mb-7 flex flex-wrap items-center justify-between gap-5"><div className="flex min-w-0 items-center gap-4"><MarketAvatar token={token} large/><div className="min-w-0"><div className="flex items-center gap-2"><h1 className="truncate font-display text-2xl font-semibold sm:text-3xl">{token.symbol}</h1>{token.verified && <BadgeCheck className="h-5 w-5 shrink-0 text-sky-400" aria-label="Listed as verified by Jupiter"/>}<WatchButton token={token} watchlist={watchlist}/></div><p className="text-sm text-muted-foreground">{token.name} · Solana mainnet</p><MintCopy mint={mint}/></div></div><a href={`https://jup.ag/tokens/${mint}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-3 text-xs font-medium text-muted-foreground hover:text-primary">View on Jupiter<ArrowUpRight className="h-4 w-4"/></a></header>
     {watchlist.error && <p role="status" className="mb-4 text-xs text-amber-200">{watchlist.error}</p>}
     <ExternalMarketChart key={mint} mint={mint} symbol={token.symbol} livePrice={token.price}/>
+    <ExternalTradePanel key={`trade:${mint}`} mint={mint} symbol={token.symbol}/>
     {!token.available && <p role="status" className="mb-5 rounded-xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground">Jupiter summary statistics are unavailable for this coin. Its price history loads separately above.</p>}
     <div className="grid items-start gap-5 lg:grid-cols-[1.4fr_1fr]">
       <section aria-label="Price overview" className="rounded-2xl border border-border bg-card/70 p-5 sm:p-7"><div className="mb-5 flex flex-wrap items-center justify-between gap-3"><h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Price · USD</h2><SnapshotStamp market={market}/></div><p className="break-all font-mono text-3xl font-medium tracking-tight sm:text-4xl">{formatPrice(token.price)}</p><p className="mt-3 text-sm"><PriceChange value={stats?.priceChange}/><span className="ml-2 text-xs text-muted-foreground">past 24 hours</span></p>

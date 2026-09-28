@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { createPhantomSigner } from './solana/phantom.js';
+import phantomVersioned from '@/lib/solana/phantomVersioned';
 const Context = createContext(null);
 
 export function SolanaWalletProvider({ children }) {
@@ -31,6 +32,7 @@ export function SolanaWalletProvider({ children }) {
     return {
       installed: !!phantom, connected: !!publicKey, publicKey, connect, disconnect,
       ...createPhantomSigner(phantom, publicKey),
+      signVersionedTransaction: phantomVersioned(phantom, publicKey),
     };
   }, [phantom, publicKey, connect, disconnect]);
   return <Context.Provider value={value}>{children}</Context.Provider>;
