@@ -9,6 +9,8 @@ use anchor_lang::solana_program::{
 };
 use anchor_lang::system_program;
 
+pub mod permissionless;
+
 pub const PROGRAM_ID: Pubkey = pubkey!("cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG");
 pub const WSOL_MINT: Pubkey = pubkey!("So11111111111111111111111111111111111111112");
 pub const CONFIG_LEN: usize = 328;
