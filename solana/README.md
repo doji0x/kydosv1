@@ -210,17 +210,3 @@ CI runs both locked build commands above and requires nonempty outputs; a host
 build alone is not proof of SBF build or deployment readiness. Historical handoffs
 such as `creation-checkpoint.md` and `implementation-resume.md` describe earlier
 snapshots; their scaffold status and old economics are superseded here.
-
-## Private Meteora config setup (Milestone 2)
-
-From the repository root, generate the public operator request with:
-
-```sh
-node solana/scripts/meteora-config.mjs request --cluster mainnet-beta
-```
-
-The [setup runbook](../docs/meteora-adapter.md#milestone-2-private-config-setup-and-approval-preflight)
-explains operator provisioning, read-only discovery, config verification and
-release approval. `solana/config/meteora-routes.json` starts with null entries;
-no private config is approved and migration remains disabled. The tool does not
-load wallets or submit transactions. `KYDOS_RPC_URL` is required only for RPC reads.

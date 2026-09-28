@@ -3,36 +3,39 @@
 Current design: [fee-settlement.md](fee-settlement.md).
 Historical adapter: [meteora-adapter.md](meteora-adapter.md).
 
-## Current handoff - base-burn / quote-split foundation
+## Current handoff - base-burn / quote-split foundation reconciled with main
 
-- **Scope/status:** Offline fee-settlement accounting implemented for review on
-  `codex/base-burn-quote-split`. No executable claim, payout or burn is enabled.
-- **Source/base:** `main` at `69885cd0894a15dee350428e09c30c0d6b6f9ced`.
-  Main still contains PR #28. Owner's revert PR #29 remains open at
-  `9a9d38e49b64e01b7b16a24961610f632d134cf9`; it has not merged. This branch
-  does not merge or modify that revert. Reconcile overlapping package/checkpoint
-  changes before merge; do not resurrect the rejected operator setup.
+- **Scope/status:** Offline settlement accounting on `codex/base-burn-quote-split`,
+  draft PR #30. Reconciled after the owner merged private-config revert PR #29.
+  No executable claim, payout, burn or permissionless migration is enabled.
+- **Source/base:** Foundation `6c1828e4b38899399d979d49f49dfc4be892358f`;
+  merged upstream `fd11f095c8e69e8d88ef455983860a72fe1cc5c4`, which includes
+  PR #29 at `221180adfb065382463119436f8ff8cddbd65854`.
+  Reconciliation preserves both histories without force-pushing or changing main.
+  Upstream public-launch, Jupiter trading and chart changes stay intact.
 - **Policy:** Burn all launch-controlled post-migration base fee receipts.
   Net quote receipts split equally between the recorded creator and Kydos.
   One raw quote unit may remain as protected rounding dust until the next claim.
   No extra tax, staking, buybacks or holder rewards. Curve economics unchanged.
-- **Changes:** Pure Rust module registered under `fees`; matching JavaScript
-  helper; shared CSV fixtures; 21 JavaScript tests; Solana test/check wiring;
-  integration specification and updated work-state record.
-- **Verification:** The 21 focused JavaScript tests and JS syntax checks pass
-  locally on Node 22.16.0. Original `fees.rs` blob matched
-  `cc954d98c37caed36464db916a28c44e1058c52b`; its only existing-code edit is
-  module registration. Actual delivery SHA and exact-head CI state belong in
-  the chat handoff, not a recursive self-SHA commit.
+- **Changes:** Keep existing Rust/JavaScript helpers, shared fixtures and tests
+  byte-for-byte unchanged. Remove package references to reverted operator scripts
+  and tests; refresh settlement design and continuity records. Deleted config
+  files are not restored. Historical private-route scaffolding remains unenabled
+  and must be replaced in a separate permissionless-migration milestone.
+- **Verification:** Re-ran 21/21 focused JavaScript tests and new-file syntax
+  checks on Node 22.16.0. Verified helper/test/CSV source blob hashes and package
+  removal of `meteora-config` references. New exact-head CI must be inspected
+  separately before merge; prior-head success is not equivalent evidence.
 - **Limits:** No Rust/Cargo/Anchor available locally; no full dependency checkout,
   full regression suite, SBF/IDL check, validator/devnet run, deployed program
   inspection, transaction submission or mainnet action in this milestone.
+  Resulting delivery SHA and fresh CI state are reported in the chat/PR handoff.
 
 ## Next owner/action
 
-Review the foundation and exact-head CI, reconcile open revert PR #29, then
-replace the rejected private-config route with tested permissionless migration.
-Resolve precreated-pool/collision handling, permanent-lock custody and receipt
-validation before wiring atomic claim -> base burn -> equal quote payouts.
-The detailed required account checks and runtime tests are in the current design.
-Additional taxes and holder distributions remain separate economic decisions.
+Review the reconciled draft and exact-head CI. PR #29 is already merged; do not
+repeat operator provisioning or restore its deleted setup. Next implement and
+test permissionless migration, including precreated-pool/collision handling,
+permanent-lock custody and receipt validation, before wiring atomic claim ->
+base burn -> equal quote payouts. Additional taxes and holder distributions
+remain separate economic decisions.

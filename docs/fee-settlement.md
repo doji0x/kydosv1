@@ -2,22 +2,30 @@
 
 ## Status and scope
 
-This milestone adds tested, dependency-free accounting helpers in Rust and
-JavaScript. It does not implement or enable a migration, fee-claim instruction,
-burn instruction, payout, scheduled keeper, or UI claim button. The current
-launchpad instruction/account ABI and browser IDL remain unchanged.
+This milestone adds dependency-free accounting helpers and matching test fixtures
+in Rust and JavaScript. It does not implement or enable a migration, fee-claim
+instruction, burn instruction, payout, scheduled keeper, or UI claim button.
+The current launchpad instruction/account ABI and browser IDL remain unchanged.
 
-Source reviewed: `main` at `69885cd0894a15dee350428e09c30c0d6b6f9ced`.
-Delivery branch: `codex/base-burn-quote-split`.
+Original source: `main` at `69885cd0894a15dee350428e09c30c0d6b6f9ced`.
+Foundation delivery: `6c1828e4b38899399d979d49f49dfc4be892358f`.
+Reconciled upstream: `main` at `fd11f095c8e69e8d88ef455983860a72fe1cc5c4`.
+Delivery branch: `codex/base-burn-quote-split`; draft PR #30.
 
 This policy supersedes the treasury-only post-migration fee custody and
 no-burn/no-split design in `meteora-adapter.md` and `launchpad-build-spec.md`.
 Those files still describe historical private-config scaffolding, not an approved
 live route. Permissionless migration is the selected direction, but its safe
 pool-initialization and existing-pool/collision policy are not implemented here.
-PR #29 is open to revert the private-config setup from PR #28. It has not merged
-into the inspected main. Do not merge this branch without reconciling that PR's
-package/checkpoint changes. This work does not provision or approve any config.
+
+PR #29 merged the private-config setup revert at
+`221180adfb065382463119436f8ff8cddbd65854`. This branch incorporates that merge
+and subsequent main changes through the reconciled upstream above. Public launch
+restrictions, Jupiter trading additions and chart changes remain intact. The
+reverted operator scripts, config JSON files and config tests stay removed.
+Solana package commands retain the settlement checks without referencing those
+deleted files. Reconciliation does not change settlement helpers or fixtures,
+provision a config, implement a permissionless initializer, or enable fund movement.
 
 ## Fixed post-migration policy
 
@@ -106,15 +114,21 @@ boundaries, absent claims, donation isolation, funded dust, invalid inputs,
 The standard Solana test and syntax-check scripts include the new JavaScript.
 The registered Rust module has three unit tests using the same fixture.
 
-The current environment ran the 21 JavaScript tests and syntax checks. It has
-no Rust/Cargo/Anchor toolchain and cannot resolve GitHub for a full checkout or
-dependency installation. Rust tests, the full repository suite, SBF/IDL parity
-and validator/devnet tests are NOT claimed as passing. Check exact delivery-SHA
-CI before merge. Later integration must additionally test real BothToken accrual,
-authentication failures, permanent locks, mint supply reduction, payout rollback,
-replay, account substitution, and preserved creator/treasury entitlements.
+Reconciliation re-ran all 21 JavaScript tests and both new-file syntax checks on
+Node 22.16.0 using the updated package command. The helper, tests and CSV bytes
+were verified against their original Git blob hashes. Package validation also
+confirmed that no command refers to the reverted `meteora-config` files.
+This environment has no Rust/Cargo/Anchor toolchain and cannot resolve GitHub
+for a full checkout/dependency installation. Full repository regression tests,
+Rust tests, SBF/IDL parity and validator/devnet tests were not run locally.
 
-## Primary references (reviewed for this design)
+Inspect exact delivery-SHA CI before merge; an earlier head's results do not
+establish checks on the reconciled delivery. Later integration must additionally
+test real BothToken accrual, authentication failures, permanent locks, mint supply
+reduction, payout rollback, replay, account substitution, and preserved
+creator/treasury entitlements.
+
+## Primary references (reviewed for the original design)
 
 - Meteora fees and claimable LP share:
   https://docs.meteora.ag/core-products/damm-v2/fees/overview
