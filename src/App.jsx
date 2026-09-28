@@ -33,13 +33,13 @@ export default function App() {
     <Route element={<Layout/>}>
       <Route path="/" element={<Board/>}/>
       <Route path="/markets/solana/:mint" element={<ExternalMarket/>}/>
+      <Route path="/launch" element={<SolanaLaunch/>}/>
     </Route>
     <Route path="/login" element={<Login/>}/><Route path="/register" element={<Register/>}/>
     <Route path="/forgot-password" element={<ForgotPassword/>}/><Route path="/reset-password" element={<ResetPassword/>}/>
     <Route path="/oauth/consent" element={<OAuthConsent/>}/>
     <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
       <Route element={<Layout/>}>
-        <Route path="/launch" element={<SolanaLaunch/>}/>
         <Route path="/solana/:mint" element={<SolanaMarket/>}/>
         <Route path="/chart" element={<Navigate to="/solana/GTBxUiw6wJdmmkCGZgRHLyYxqu1vG4KtRpeox6yDpump" replace/>}/>
         <Route path="/chart/:mint" element={<LegacyChartRedirect/>}/>
