@@ -1,42 +1,41 @@
 # Astra continuity checkpoint
 
-Architecture remains in [launchpad-build-spec.md](launchpad-build-spec.md) and
-[meteora-adapter.md](meteora-adapter.md). Launch/indexer rollout remains in
-[launch-and-chart-rollout.md](launch-and-chart-rollout.md).
+Current design: [fee-settlement.md](fee-settlement.md).
+Historical adapter: [meteora-adapter.md](meteora-adapter.md).
 
-## Current handoff — DAMM v2 fee and migration policy
+## Current handoff - base-burn / quote-split foundation reconciled with main
 
-- **Scope/status:** Owner approved Milestone 1 only: fix the DAMM v2 fee,
-  collection, custody and migration policy without adding executable migration
-  or utility. PR #27 remains open on `codex/damm-v2-milestone-1`.
-  Pre-merge review fixed its browser-IDL check: only the final newline was absent.
-- **Source/base:** Main `7c28478921248489a1d9c9cb4322fdede643d3a8`.
-- **Decisions:** Curve fee remains 100 bps. DAMM uses a 100 bps fixed fee and
-  `BothToken`; Meteora's current 20% protocol share leaves an expected 80 bps
-  Kydos share. There is no extra migration fee. The complete initial position
-  must be permanently locked. Claims go only to fixed Kydos treasury token
-  accounts. Burns, splits, rewards, buybacks and all utility remain deferred.
-- **Changes:** SDK-parity initialization and regenerated fixtures now encode
-  `BothToken`; Rust/browser policy constants and tests pin the approved policy.
-  The migration contract documents atomic staging, WSOL funding, DAMM CPI,
-  post-validation, permanent lock, receipt finalization, replay protection,
-  fixed fee claims and delivery gates.
-- **IDL review:** On delivery `c2d0e27257744df721e86861ec905a748cb3b600`,
-  Anchor CI run `36002097799` passed Rust tests, SBF build and IDL generation,
-  then failed byte-for-byte browser IDL comparison. Reproduced with Anchor
-  IDL builder 0.1.2 (used by CLI 0.31.1), locked program dependencies and nightly
-  Rust 1.100.0 (2026-09-24). Generated and browser JSON were structurally equal;
-  synchronization adds exactly one trailing newline, with no interface changes.
-- **Evidence:** `npm --prefix solana test` passes 69/69; fixture generation checks
-  SDK 1.4.10, 12 seed vectors and two account/instruction cases; JavaScript syntax
-  checks and root lint pass; `git diff --check` passes.
-- **Limits:** No executable migration, private config, validator/devnet run,
-  funded transaction, pool, lock or claim. Rust parity tests were not run in this
-  original environment; the cited CI run supplies that evidence. The corrected
-  browser IDL passes local `sync-idl.mjs --check`; new exact-SHA CI is pending.
+- **Scope/status:** Offline settlement accounting on `codex/base-burn-quote-split`,
+  draft PR #30. Reconciled after the owner merged private-config revert PR #29.
+  No executable claim, payout, burn or permissionless migration is enabled.
+- **Source/base:** Foundation `6c1828e4b38899399d979d49f49dfc4be892358f`;
+  merged upstream `fd11f095c8e69e8d88ef455983860a72fe1cc5c4`, which includes
+  PR #29 at `221180adfb065382463119436f8ff8cddbd65854`.
+  Reconciliation preserves both histories without force-pushing or changing main.
+  Upstream public-launch, Jupiter trading and chart changes stay intact.
+- **Policy:** Burn all launch-controlled post-migration base fee receipts.
+  Net quote receipts split equally between the recorded creator and Kydos.
+  One raw quote unit may remain as protected rounding dust until the next claim.
+  No extra tax, staking, buybacks or holder rewards. Curve economics unchanged.
+- **Changes:** Keep existing Rust/JavaScript helpers, shared fixtures and tests
+  byte-for-byte unchanged. Remove package references to reverted operator scripts
+  and tests; refresh settlement design and continuity records. Deleted config
+  files are not restored. Historical private-route scaffolding remains unenabled
+  and must be replaced in a separate permissionless-migration milestone.
+- **Verification:** Re-ran 21/21 focused JavaScript tests and new-file syntax
+  checks on Node 22.16.0. Verified helper/test/CSV source blob hashes and package
+  removal of `meteora-config` references. New exact-head CI must be inspected
+  separately before merge; prior-head success is not equivalent evidence.
+- **Limits:** No Rust/Cargo/Anchor available locally; no full dependency checkout,
+  full regression suite, SBF/IDL check, validator/devnet run, deployed program
+  inspection, transaction submission or mainnet action in this milestone.
+  Resulting delivery SHA and fresh CI state are reported in the chat/PR handoff.
 
 ## Next owner/action
 
-Wait for corrected-head Anchor CI to pass before merging Milestone 1. Next, provision and bind the private Meteora dynamic
-config before implementing the executable atomic migration handler. Do not add
-utility behavior to this milestone.
+Review the reconciled draft and exact-head CI. PR #29 is already merged; do not
+repeat operator provisioning or restore its deleted setup. Next implement and
+test permissionless migration, including precreated-pool/collision handling,
+permanent-lock custody and receipt validation, before wiring atomic claim ->
+base burn -> equal quote payouts. Additional taxes and holder distributions
+remain separate economic decisions.
