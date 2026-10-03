@@ -8,8 +8,31 @@ on:
     paths: ['solana/**','src/lib/solana/**','src/lib/SolanaWalletContext.jsx','src/pages/SolanaLaunch.jsx','src/hooks/useLaunchFlow.js','src/hooks/useSolanaChartFeed.js','src/hooks/useMarketTrading.js','src/pages/AdminLaunch.jsx','src/pages/SolanaMarket.jsx','src/pages/Board.jsx','src/components/board/**','src/components/solana/**','base44/functions/launchMetadata/**','base44/shared/launchMetadata.js','base44/functions/indexSolanaTransactions/**','base44/functions/solanaRpc/**','base44/shared/solanaRpc.js','base44/shared/solana*.js','base44/shared/adminLaunch.js','base44/shared/heliusSolanaTrades*','base44/functions/adminLaunchToken/**','base44/functions/solanaTokenChart/**','base44/functions/solanaBoard/**','base44/entities/SolanaIndexState.jsonc','base44/entities/AdminLaunchReceipt.jsonc','base44/entities/SolanaTrade.jsonc','package.json','package-lock.json','.github/workflows/solana-scaffold.yml']
 permissions: {contents: read}
 jobs:
+  harness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: 20}
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node --test solana/tests/runtime/confirmed.test.mjs
+      - run: node --check solana/tests/runtime/graduation.mjs
+      - name: Package tracked-source and dependency inputs for isolated reproduction
+        run: |
+          mkdir -p /tmp/kydos-runtime-inputs
+          git archive --format=tar.gz --output=/tmp/kydos-runtime-inputs/source.tar.gz HEAD
+          tar -czf /tmp/kydos-runtime-inputs/node-dependencies.tar.gz node_modules
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kydos-runtime-inputs
+          path: /tmp/kydos-runtime-inputs
+          retention-days: 1
+          if-no-files-found: error
   anchor:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -36,31 +59,23 @@ jobs:
         run: cargo test -p kydos_launchpad --test account_validation --test meteora_adapter --locked
       - name: Build SBF with locked dependencies
         working-directory: solana
-        # Anchor -> cargo build-sbf -> cargo build each consumes a separator.
-        # Generate the IDL separately because it invokes cargo test directly.
         run: anchor build --program-name kydos_launchpad --no-idl -- -- --locked
       - name: Generate IDL with locked dependencies
         id: idl
         working-directory: solana
         run: anchor idl build --program-name kydos_launchpad --out target/idl/kydos_launchpad.json --out-ts target/types/kydos_launchpad.ts -- --locked
-      - name: Report generated interface additions without changing checked-in IDL
+      - name: Preserve compiler-generated browser interface without changing the source checkout
         run: |
           node --input-type=module <<'JS'
-          import { readFileSync } from 'node:fs';
+          import { readFileSync, writeFileSync } from 'node:fs';
           import { createHash } from 'node:crypto';
           import { Program } from '@coral-xyz/anchor';
           import { Connection } from '@solana/web3.js';
-          const old = JSON.parse(readFileSync('src/lib/solana/idl/kydos_launchpad.json'));
           const raw = JSON.parse(readFileSync('solana/target/idl/kydos_launchpad.json'));
           const generated = new Program(raw, {connection:new Connection('http://127.0.0.1:8899')}).idl;
-          const delta = { address:generated.address, metadata:generated.metadata, sections:{} };
-          for (const group of ['instructions','accounts','events','types','errors']) {
-            const previous = new Map((old[group] ?? []).map(i=>[i.name,i]));
-            delta.sections[group] = { order:(generated[group] ?? []).map(i=>i.name),
-              changed:(generated[group] ?? []).filter(i=>JSON.stringify(previous.get(i.name))!==JSON.stringify(i)) };
-          }
-          delta.generatedSha256 = createHash('sha256').update(JSON.stringify(generated,null,2)+'\n').digest('hex');
-          console.log('GENERATED_IDL_DELTA '+JSON.stringify(delta));
+          const bytes = JSON.stringify(generated,null,2)+'\n';
+          writeFileSync('solana/target/idl/kydos_launchpad.browser.json',bytes);
+          console.log('GENERATED_IDL_SHA256 '+createHash('sha256').update(bytes).digest('hex'));
           JS
       - name: Fetch and verify pinned public DAMM runtime fixture
         timeout-minutes: 2
@@ -71,6 +86,9 @@ jobs:
       - name: Execute route installation against a loopback-only validator
         timeout-minutes: 6
         run: node solana/tests/runtime/route-installation.mjs
+      - name: Execute atomic graduation against real Kydos and pinned DAMM bytecode
+        timeout-minutes: 8
+        run: node solana/tests/runtime/graduation.mjs
       - name: Verify browser IDL matches the built program
         if: ${{ !cancelled() && steps.idl.outcome == 'success' }}
         working-directory: solana
@@ -90,4 +108,5 @@ jobs:
           path: |
             solana/target/deploy/kydos_launchpad.so
             solana/target/idl/kydos_launchpad.json
+            solana/target/idl/kydos_launchpad.browser.json
             solana/target/types/kydos_launchpad.ts
