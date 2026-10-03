@@ -1,36 +1,43 @@
 {
   "schema_version": 1,
-  "purpose": "Small navigation and resume record; not a repository inventory, execution engine, authorization, or passing-check claim.",
+  "purpose": "Small navigation and resume record; not an execution engine, deployment authorization, or passing-check claim.",
   "owner": "ChatGPT",
-  "delivery_branch": "codex/permissionless-damm-adapter",
-  "observed_source_sha": "b5e03c9a64d5f3256734aee6cb88eb630de094aa",
-  "observed_upstream_sha": "ed992423cb32a9b6a3ac1289a472ba3d49e1b1d4",
+  "delivery_branch": "codex/kydos-protected-migration-phases-1-3",
+  "observed_source_sha": "6e788dce0e9d0488a3002d9f67f1f499cc8eca07",
+  "observed_upstream_sha": "3cce2ed02ac94d3951db33b3a67725182d8d7597",
   "active_task": {
-    "id": "permissionless-damm-adapter",
-    "request": "Continue after merged PR #30 with config-free DAMM creation/lock preparation and explicit precreated-pool rejection.",
-    "status": "adapter-implemented-runtime-migration-not-implemented-collision-liveness-gated",
+    "id": "protected-migration-phases-1-3",
+    "request": "Implement the approved phases 1-3 without replacing the Kydos program or bonding curve: compatibility/deployment verification, protected DAMM route and complete atomic migration.",
+    "status": "partial-phase-1-gates-delivered-phase-2-and-3-runtime-not-implemented",
+    "pull_request": "https://github.com/doji0x/kydosv1/pull/32",
     "scope": [
-      "solana/programs/kydos_launchpad/src/meteora.rs",
-      "solana/programs/kydos_launchpad/src/meteora/permissionless.rs",
-      "solana/tests/fixtures/meteora-permissionless.json",
-      "solana/tests/meteora-permissionless.test.js",
+      "solana/scripts/protected-migration/evidence.mjs",
+      "solana/scripts/protected-migration/inspect.mjs",
+      "solana/scripts/protected-migration/compatibility.mjs",
+      "solana/tests/protected-migration/evidence.test.mjs",
       "solana/package.json",
-      "docs/permissionless-migration.md",
+      ".github/workflows/kydos-protected-migration.yml",
+      "docs/protected-migration.md",
       "docs/astra-delivery-checkpoint.md",
       "docs/astra-work-state.json"
     ],
-    "acceptance": "Build canonical config-free initialization and full permanent-lock CPIs; share vectors with pinned SDK tests; reject occupied/substituted destinations; preserve fee/supply/custody policy and keep runtime migration disabled.",
-    "design_record": "docs/permissionless-migration.md",
-    "next_action": "Inspect exact-head CI. Resolve documented cpool precreation/liveness risk before authenticated atomic migration, full post-validation and a route-versioned receipt; fee settlement integration follows."
+    "acceptance": "Preserve existing creation/trading/accounts and 793.1M/206.9M; verify real deployment/config/authority; only then install a protected route and deliver atomic, runtime-tested migration. No DBC, replacement ID, paid deployment or new tokenomics.",
+    "design_record": "docs/protected-migration.md",
+    "next_action": "Inspect latest exact-head CI and chain evidence summaries. Resolve the funded program ID/network and authority, verify/provision a protected DAMM config, then finish route installation and full atomic migration with SVM tests. Do not repeat the completed evidence helpers.",
+    "phase_status": {
+      "1": "Compatibility tooling and tests implemented; actual Kydos deployment/source/authority evidence unresolved.",
+      "2": "Read-only config validation/discovery implemented; no provisioned config or on-chain route installation.",
+      "3": "Not implemented; no executable migration or runtime test claim."
+    }
   },
   "read_policy": {
-    "startup": ["check delivery HEAD/checks", "read AGENTS.md", "read rolling checkpoint", "read this state only when selecting or resuming a task"],
+    "startup": ["check delivery HEAD/checks", "read AGENTS.md", "read rolling checkpoint", "read this state when resuming"],
     "default_task_file_budget": 5,
-    "budget_kind": "Soft limit on initial task-specific reads, excluding startup records; never skip a safety-critical dependency to satisfy it.",
-    "expand_only_for": ["a named import or caller needed for the change", "a relevant changed path", "a failing check", "an unresolved acceptance requirement"],
-    "avoid": ["whole-tree listing when a task entry point is known", "reading every task entry point upfront", "re-reading unchanged content already available in the current turn", "restarting completed library pages", "repeated status polling without a concrete reason"],
-    "invalidate": "A changed path invalidates its cached conclusions and affected dependencies, not all repository knowledge. Re-read touched files before editing; stop on unexpected concurrent changes.",
-    "research_rule": "For an all-documents request, finish all inventory pages and document ranges, but checkpoint each bounded batch instead of rereading completed ranges."
+    "budget_kind": "Soft initial task read budget, never a reason to skip safety-critical dependencies.",
+    "expand_only_for": ["named imports/callers", "relevant changed paths", "failing checks", "unresolved acceptance requirement"],
+    "avoid": ["whole-tree listings with known entry points", "rereading unchanged files", "restarting completed tasks", "polling pending checks without a reason"],
+    "invalidate": "Reinspect touched files on upstream/concurrent change; never overwrite unrelated work.",
+    "research_rule": "Complete required file ranges/inventory pages; persist exact returned cursors/hashes without inventing them."
   },
   "task_routes": {
     "reference-research": {
@@ -46,11 +53,11 @@
     "solana-transactions": {
       "start": ["src/lib/solana/client.js"],
       "only_if_needed": ["src/lib/solana/lifecycle.js", "src/lib/solana/budget.js", "src/lib/solana/costs.js"],
-      "evidence_status": "Navigation hints from prior handoff; current behavior and checks must be verified only when this task resumes."
+      "evidence_status": "Navigation only; behavior requires current verification."
     },
     "solana-program": {
       "start": ["solana/programs/kydos_launchpad/src/lib.rs", "solana/programs/kydos_launchpad/Cargo.toml"],
-      "evidence_status": "Read program and direct dependencies only for a program task; do not repeat program review for documentation work."
+      "evidence_status": "Read direct dependencies for program tasks, not unrelated docs work."
     },
     "market-discovery": {
       "start": ["docs/market-discovery-rollout.md", "src/pages/Board.jsx"],
@@ -65,12 +72,17 @@
     "fee-settlement": {
       "start": ["docs/fee-settlement.md", "src/lib/solana/settlement.js", "solana/programs/kydos_launchpad/src/fees/settlement.rs"],
       "focused_check": "npm --prefix solana run test:settlement",
-      "evidence_status": "Pure accounting only; no executable claim/burn/payout integration."
+      "evidence_status": "Pure accounting, not executable fund movement."
     },
     "permissionless-migration": {
       "start": ["docs/permissionless-migration.md", "solana/programs/kydos_launchpad/src/meteora/permissionless.rs"],
       "focused_check": "npm --prefix solana run test:permissionless",
-      "evidence_status": "CPI preparation and fresh-account checks only; no executable migration or collision recovery."
+      "evidence_status": "Historical pair-only preparation; do not enable as the protected destination."
+    },
+    "protected-migration": {
+      "start": ["docs/protected-migration.md", "solana/scripts/protected-migration/inspect.mjs", "solana/scripts/protected-migration/evidence.mjs"],
+      "focused_check": "npm --prefix solana run test:protected && npm --prefix solana run check:compatibility",
+      "evidence_status": "Current partial delivery is read-only and compatibility checks, not installed routes or executable migration."
     }
   },
   "unfinished_work": [
@@ -83,48 +95,60 @@
         "ci_wiring_commit": "cea16c134d763fea12ca9c2be5d2501d25a21d07",
         "partial_index_commit": "e683d20589587aa2601828bf519b162189a80265"
       },
-      "next_action": "Prior library inventory remains incomplete and is not resumed here. docs/launchpad-build-spec.md now exists for this approved AMM milestone; do not infer full library review.",
+      "next_action": "Prior library inventory remains incomplete and is not resumed here; do not infer full library review.",
       "inventory": {"status": "not-completely-enumerated", "next_offset": 0, "complete": false},
       "documents": [],
       "document_cursor_shape": {
         "id_or_resolved_url": "required", "content_sha256": "required", "reviewed_ranges": [],
         "next_offset": 0, "complete": false, "finding_location": "docs/reference-index.md#section"
       },
-      "cursor_rules": "Store actual tool-returned offsets and hashes only. Pass the prior hash on continuation; restart the affected document on hash mismatch. next_offset=null establishes completion only after all preceding ranges were reviewed. No historical hashes or offsets have been invented. Persist progress after each bounded batch and before handoff."
+      "cursor_rules": "Store actual returned offsets/hashes only; restart the affected document on hash mismatch."
     }
   ],
   "verification": {
-    "source_sha": "b5e03c9a64d5f3256734aee6cb88eb630de094aa",
-    "upstream_sha": "ed992423cb32a9b6a3ac1289a472ba3d49e1b1d4",
-    "prepared_tree_checks": [
-      "Four selected fixture-sanity tests pass on Node 22.16.0; SDK parity tests were not run locally.",
-      "node --check solana/tests/meteora-permissionless.test.js: pass.",
-      "Original meteora.rs blob a8dd08cc3811f59339a8a7b0afa477d3f6fe4526 verified before the module-registration-only edit."
-    ],
-    "tested_blob_shas": {
-      "solana/tests/meteora-permissionless.test.js": "0e4fa44ab56b3694b7ed185792f9f682023c247f",
-      "solana/tests/fixtures/meteora-permissionless.json": "e3e7db699ba7e068f994df07320f02334d8ba665"
+    "tested_commit": "6e788dce0e9d0488a3002d9f67f1f499cc8eca07",
+    "baseline": "3cce2ed02ac94d3951db33b3a67725182d8d7597",
+    "prepared_tree_checks": ["39/39 focused tests passed on Node 22.16.0", "New JavaScript syntax checks passed"],
+    "ci": {
+      "compatibility_and_observation_run": 37156192684,
+      "compatibility_and_observation_status": "success; observations are NOT release approval",
+      "application_run": 37156192659,
+      "application_status": "success",
+      "anchor_run": 37156192645,
+      "anchor_status_at_recording": "in_progress"
     },
+    "devnet_observation": {
+      "job_id": 111299944390,
+      "observed_genesis": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+      "slot": 507138253,
+      "kydos_program_status": "not-found at repository-declared ID",
+      "damm_program_status": "observed",
+      "derived_pool_creator_authority": "3tGjXG9oGyRDS3ppv1QsCNvYgr5XtAizKe75XcyHxuAd",
+      "valid_config_candidates": 0,
+      "genesis_independently_pinned": false
+    },
+    "mainnet_observation": {"job_id": 111299944380, "status": "report produced; logs not yet available for review"},
     "limitations": [
-      "No local Rust/Cargo/Anchor or SDK dependency checkout; full SDK parity, Rust, SBF/IDL and regression results require exact-head CI.",
-      "No runtime/validator/devnet tests, deployment, signing, migration, lock, claim, burn or payout.",
-      "Fresh-only cpool initialization can be blocked by third-party precreation. No recovery or existing-pool adoption is enabled."
+      "No Kydos live deployment, source/binary match or upgrade-authority signer control verified.",
+      "No local Rust/Cargo/Anchor or network repository checkout.",
+      "No on-chain route installation, complete migration handler, SVM execution, deployment, lock, receipt, claim, burn or payout.",
+      "Later delivery CI must be checked separately; an earlier pass does not establish later-head checks."
     ],
-    "delivery_evidence": "Resulting SHA and exact-head CI inspection are reported in chat and the PR handoff."
+    "delivery_evidence": "Final resulting SHA, latest CI and observation outcomes belong in chat/PR handoff."
   },
   "merged_revert": {
     "pull_request": "https://github.com/doji0x/kydosv1/pull/29",
     "head_sha": "9a9d38e49b64e01b7b16a24961610f632d134cf9",
     "merge_sha": "221180adfb065382463119436f8ff8cddbd65854",
     "observed_status": "merged",
-    "decision": "Permissionless direction selected; preserve removed operator setup. Runtime permissionless migration is not yet implemented."
+    "decision": "Reverted operator scripts remain absent. Owner subsequently approved a newly reviewed protected-config plan, not a blind restoration."
   },
-  "maintenance": "Update this record in place at a bounded work milestone, not after every read. Keep detailed source findings in the reference index, approved design in the build specification, and human handoff in the rolling checkpoint. Remove completed task detail once durable evidence is linked. Final delivery SHA belongs in chat, not a recursive self-SHA commit.",
   "previous_delivery": {
-    "id": "base-burn-quote-split-foundation",
-    "commit_sha": "e5618e713957756b6b7d0c15c91f438e6ce89c2e",
-    "merge_sha": "b5e03c9a64d5f3256734aee6cb88eb630de094aa",
-    "pull_request": "https://github.com/doji0x/kydosv1/pull/30",
-    "status": "merged; accounting foundation only; runtime fee settlement remains unimplemented"
-  }
+    "id": "permissionless-damm-adapter",
+    "commit_sha": "283502dab800878cc8f5ac746c4c44644fbb07bc",
+    "merge_sha": "74f55e8a60935a1ca7b2d2d79dd4a316033586ee",
+    "pull_request": "https://github.com/doji0x/kydosv1/pull/31",
+    "status": "merged; preparation only; custom pair-only route superseded by protected-config direction"
+  },
+  "maintenance": "Update in place at a bounded milestone. Preserve unrelated work, do not restart completed tests, and never represent unresolved deployment evidence as passing."
 }
