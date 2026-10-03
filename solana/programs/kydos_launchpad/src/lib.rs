@@ -39,6 +39,10 @@ pub mod kydos_launchpad {
         protected_migration::install(ctx)
     }
 
+    pub fn migrate(ctx: Context<Migrate>, max_setup_lamports: u64) -> Result<()> {
+        protected_migration::migrate(ctx, max_setup_lamports)
+    }
+
     pub fn initialize(
         ctx: Context<Initialize>,
         name: String,
