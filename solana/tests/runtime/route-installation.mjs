@@ -47,13 +47,17 @@ for (const [name,index,change] of [
   ['valid',910001,()=>{}],
   ['wrong-authority',910002,v=>{v.pool_creator_authority=outsider.publicKey;}],
   ['public',910003,v=>{v.pool_creator_authority=PublicKey.default;}],
-  ['permissions',910004,v=>{v.permission=new BN(1);}],
+  ['permissions',910004,()=>{}],
   ['static',910005,v=>{v.config_type=0;}],
 ]) {
   const value = { ...zero({defined:{name:'Config'}}), pool_creator_authority:creator, config_type:1, index:new BN(index) };
   change(value);
   const data = await coder.encode('Config', value);
   assert.equal(data.length,328);
+  // The pinned IDL represents permission storage inside its reserved bytes.
+  // An unknown object property is ignored by the coder; mutate the actual u128.
+  if (name === 'permissions') data[248] = 1;
+  assert.equal(data.subarray(248,264).equals(Buffer.alloc(16)), name !== 'permissions');
   const key = sdk.deriveConfigAddress(new BN(index));
   fixtures.push({name,key,data,path:fixtureFile(name,key,data,DAMM)});
 }
@@ -85,7 +89,12 @@ async function execute(instructions,signer) {
   tx.sign(signer);
   const signature = await connection.sendRawTransaction(tx.serialize(),{skipPreflight:true,maxRetries:2});
   const result = await connection.confirmTransaction({...latest,signature},'confirmed');
-  const recorded = await connection.getTransaction(signature,{commitment:'confirmed',maxSupportedTransactionVersion:0});
+  let recorded;
+  for (let attempt=0; attempt<5; attempt++) {
+    recorded = await connection.getTransaction(signature,{commitment:'confirmed',maxSupportedTransactionVersion:0});
+    if (recorded?.meta) break;
+    await delay(200);
+  }
   assert.ok(recorded?.meta, 'Missing confirmed transaction metadata');
   assert.deepEqual(recorded.meta.err,result.value.err);
   assert.ok(recorded.meta.logMessages?.some(l=>l.includes(`Program ${KYDOS.toBase58()} invoke`)), 'Kydos did not execute');
@@ -168,6 +177,7 @@ try {
   assert.equal(decoded.dammDeploymentSlot.toString(),pd.data.readBigUInt64LE(4).toString());
   pass(`authorized install on prefunded PDA; policy matches; compute units ${success.computeUnitsConsumed}`);
   await rejectAndPreserve('route cannot be reinstalled',ix(authority.publicKey,valid.key),authority);
+  assert.equal(successes,14,'Every planned runtime case must execute');
   console.log(`Route runtime checks passed: ${successes}. Synthetic configs; no mainnet authorization, migration or DAMM CPI tested.`);
 } catch (error) {
   console.error(readFileSync(logPath,'utf8').slice(-12000));

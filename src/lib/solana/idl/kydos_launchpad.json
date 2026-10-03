@@ -361,6 +361,74 @@
       ]
     },
     {
+      "name": "installMigrationRoute",
+      "discriminator": [
+        118,
+        183,
+        199,
+        139,
+        52,
+        78,
+        89,
+        227
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "kydosProgram"
+        },
+        {
+          "name": "kydosProgramData"
+        },
+        {
+          "name": "dammProgram"
+        },
+        {
+          "name": "dammProgramData"
+        },
+        {
+          "name": "config"
+        },
+        {
+          "name": "route",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  105,
+                  103,
+                  114,
+                  97,
+                  116,
+                  105,
+                  111,
+                  110,
+                  95,
+                  114,
+                  111,
+                  117,
+                  116,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "sell",
       "discriminator": [
         51,
@@ -516,6 +584,19 @@
         82,
         45
       ]
+    },
+    {
+      "name": "migrationRoute",
+      "discriminator": [
+        125,
+        231,
+        50,
+        85,
+        155,
+        232,
+        129,
+        5
+      ]
     }
   ],
   "events": [
@@ -543,6 +624,19 @@
         34,
         89,
         20
+      ]
+    },
+    {
+      "name": "migrationRouteInstalled",
+      "discriminator": [
+        12,
+        11,
+        80,
+        250,
+        231,
+        19,
+        28,
+        233
       ]
     },
     {
@@ -763,6 +857,128 @@
           },
           {
             "name": "totalSupply",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "migrationRoute",
+      "docs": [
+        "Fixed, single-install route. There is deliberately no update, close, or sweep",
+        "instruction. Future migration must call validate_route before moving funds."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "version",
+            "type": "u8"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "config",
+            "type": "pubkey"
+          },
+          {
+            "name": "configHash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "creatorAuthority",
+            "type": "pubkey"
+          },
+          {
+            "name": "dammProgram",
+            "type": "pubkey"
+          },
+          {
+            "name": "dammProgramData",
+            "type": "pubkey"
+          },
+          {
+            "name": "dammDeploymentSlot",
+            "type": "u64"
+          },
+          {
+            "name": "quoteMint",
+            "type": "pubkey"
+          },
+          {
+            "name": "treasury",
+            "type": "pubkey"
+          },
+          {
+            "name": "installedBy",
+            "type": "pubkey"
+          },
+          {
+            "name": "installedSlot",
+            "type": "u64"
+          },
+          {
+            "name": "baseFeeBps",
+            "type": "u16"
+          },
+          {
+            "name": "collectFeeMode",
+            "type": "u8"
+          },
+          {
+            "name": "permanentLockPolicy",
+            "type": "u8"
+          },
+          {
+            "name": "settlementPolicyVersion",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "migrationRouteInstalled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "route",
+            "type": "pubkey"
+          },
+          {
+            "name": "config",
+            "type": "pubkey"
+          },
+          {
+            "name": "configHash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "creatorAuthority",
+            "type": "pubkey"
+          },
+          {
+            "name": "installedBy",
+            "type": "pubkey"
+          },
+          {
+            "name": "installedSlot",
+            "type": "u64"
+          },
+          {
+            "name": "dammDeploymentSlot",
             "type": "u64"
           }
         ]
