@@ -15,6 +15,8 @@ pub mod math;
 pub mod fees;
 pub mod meteora;
 pub mod migration;
+pub mod protected_migration;
+use protected_migration::*;
 
 pub const FEE_POLICY_VERSION: u8 = 1;
 pub const TREASURY: Pubkey = pubkey!("5ZuV8eqkvzYFVEKbLvGBdexL2tFv7E5BCd2HZpjqbdg");
@@ -32,6 +34,10 @@ pub const GRADUATION_TARGET: u64 = 85_005_359_057;
 #[program]
 pub mod kydos_launchpad {
     use super::*;
+
+    pub fn install_migration_route(ctx: Context<InstallMigrationRoute>) -> Result<()> {
+        protected_migration::install(ctx)
+    }
 
     pub fn initialize(
         ctx: Context<Initialize>,

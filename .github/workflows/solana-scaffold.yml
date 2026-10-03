@@ -40,9 +40,39 @@ jobs:
         # Generate the IDL separately because it invokes cargo test directly.
         run: anchor build --program-name kydos_launchpad --no-idl -- -- --locked
       - name: Generate IDL with locked dependencies
+        id: idl
         working-directory: solana
         run: anchor idl build --program-name kydos_launchpad --out target/idl/kydos_launchpad.json --out-ts target/types/kydos_launchpad.ts -- --locked
+      - name: Report generated interface additions without changing checked-in IDL
+        run: |
+          node --input-type=module <<'JS'
+          import { readFileSync } from 'node:fs';
+          import { createHash } from 'node:crypto';
+          import { Program } from '@coral-xyz/anchor';
+          import { Connection } from '@solana/web3.js';
+          const old = JSON.parse(readFileSync('src/lib/solana/idl/kydos_launchpad.json'));
+          const raw = JSON.parse(readFileSync('solana/target/idl/kydos_launchpad.json'));
+          const generated = new Program(raw, {connection:new Connection('http://127.0.0.1:8899')}).idl;
+          const delta = { address:generated.address, metadata:generated.metadata, sections:{} };
+          for (const group of ['instructions','accounts','events','types','errors']) {
+            const previous = new Map((old[group] ?? []).map(i=>[i.name,i]));
+            delta.sections[group] = { order:(generated[group] ?? []).map(i=>i.name),
+              changed:(generated[group] ?? []).filter(i=>JSON.stringify(previous.get(i.name))!==JSON.stringify(i)) };
+          }
+          delta.generatedSha256 = createHash('sha256').update(JSON.stringify(generated,null,2)+'\n').digest('hex');
+          console.log('GENERATED_IDL_DELTA '+JSON.stringify(delta));
+          JS
+      - name: Fetch and verify pinned public DAMM runtime fixture
+        timeout-minutes: 2
+        run: |
+          mkdir -p solana/target/runtime-fixtures
+          curl --fail --silent --show-error --location --max-time 60 --output solana/target/runtime-fixtures/cp_amm.so https://raw.githubusercontent.com/MeteoraAg/damm-v2-sdk/37cd9e690d7b5fb6182638a21b86e0e1bf636a7e/tests/fixtures/cp_amm.so
+          test "$(git hash-object solana/target/runtime-fixtures/cp_amm.so)" = 946562cfc35b978dbaf1100363b7505b018fd6f6
+      - name: Execute route installation against a loopback-only validator
+        timeout-minutes: 6
+        run: node solana/tests/runtime/route-installation.mjs
       - name: Verify browser IDL matches the built program
+        if: ${{ !cancelled() && steps.idl.outcome == 'success' }}
         working-directory: solana
         run: node scripts/sync-idl.mjs --check
       - name: Verify build outputs and unchanged lockfile
@@ -53,6 +83,7 @@ jobs:
           test -s target/types/kydos_launchpad.ts
           git diff --exit-code -- Cargo.lock
       - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() && steps.idl.outcome == 'success' }}
         with:
           name: kydos-anchor-artifacts
           if-no-files-found: error
