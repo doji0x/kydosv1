@@ -18,6 +18,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22.16.0'
@@ -33,11 +34,14 @@ jobs:
         cluster: [mainnet-beta, devnet]
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22.16.0'
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Observe only - never a release approval
+        id: inspect
         env:
           CLUSTER: ${{ matrix.cluster }}
         run: |
@@ -48,7 +52,26 @@ jobs:
           set -e
           test "$result" -eq 2
           test -s "migration-evidence/$CLUSTER.json"
+          node --input-type=module <<'NODE'
+          import { readFileSync, appendFileSync } from 'node:fs';
+          const r = JSON.parse(readFileSync(`migration-evidence/${process.env.CLUSTER}.json`, 'utf8'));
+          const p = r.programs.kydos;
+          const clean = value => String(value ?? 'unknown').replace(/[\r\n]/g, ' ').slice(0, 220);
+          const outputs = {
+            kydos: `${p?.status ?? 'unverified'}; authority=${p?.upgradeAuthority ?? 'unverified'}; ${p?.reason ?? ''}`,
+            config: `scan=${r.configScan ?? 'unverified'}; candidates=${r.configs.filter(c => c.status === 'candidate-verified-not-installed').length}; authority=${r.poolCreatorAuthority ?? 'unverified'}`,
+            network: `genesis=${r.observedGenesisHash ?? 'unverified'}; pinned=${r.genesisPinned ?? false}`,
+          };
+          for (const [k, v] of Object.entries(outputs)) appendFileSync(process.env.GITHUB_OUTPUT, `${k}=${clean(v)}\n`);
+          appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## ${process.env.CLUSTER}: observation only\n\n\`releaseReady=false\`\n\n${r.blockers.map(b => `- ${clean(b)}`).join('\n')}\n`);
+          NODE
           echo 'Observation completed. This step does NOT verify signer control or authorize deployment.'
+      - name: 'Kydos evidence: ${{ steps.inspect.outputs.kydos }}'
+        run: ':'
+      - name: 'Config evidence: ${{ steps.inspect.outputs.config }}'
+        run: ':'
+      - name: 'Network evidence: ${{ steps.inspect.outputs.network }}'
+        run: ':'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
