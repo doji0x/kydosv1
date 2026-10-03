@@ -1,0 +1,30 @@
+# Temporary isolated reproduction input. Remove after acceptance debugging.
+name: Isolated runtime reproduction
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/runtime-reproduction.yml']
+permissions: {contents: read}
+jobs:
+  runtime:
+    if: github.head_ref == 'codex/atomic-protected-graduation'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Prepare pinned public binaries without wallets or RPC access
+        run: |
+          set -eu
+          sh -c "$(curl -sSfL https://release.anza.xyz/v2.1.21/install)"
+          mkdir -p /tmp/runtime-inputs
+          cp "$HOME/.local/share/solana/install/active_release/bin/solana-test-validator" /tmp/runtime-inputs/
+          curl --fail --silent --show-error --location --max-time 60 --output /tmp/runtime-inputs/cp_amm.so https://raw.githubusercontent.com/MeteoraAg/damm-v2-sdk/37cd9e690d7b5fb6182638a21b86e0e1bf636a7e/tests/fixtures/cp_amm.so
+          test "$(git hash-object /tmp/runtime-inputs/cp_amm.so)" = 946562cfc35b978dbaf1100363b7505b018fd6f6
+          cd /tmp/runtime-inputs
+          ./solana-test-validator --version > VERSIONS.txt
+          sha256sum solana-test-validator cp_amm.so > SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: isolated-runtime-binaries
+          path: /tmp/runtime-inputs
+          retention-days: 1
+          if-no-files-found: error
