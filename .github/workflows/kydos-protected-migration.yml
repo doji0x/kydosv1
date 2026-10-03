@@ -1,0 +1,57 @@
+name: Protected migration evidence
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'solana/**'
+      - 'src/lib/solana/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/kydos-protected-migration.yml'
+permissions:
+  contents: read
+jobs:
+  compatibility:
+    name: Existing launch compatibility and evidence tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+      - run: node --test solana/tests/protected-migration/*.test.mjs
+      - run: node solana/scripts/protected-migration/compatibility.mjs
+  observe:
+    name: Read-only public-chain observation (${{ matrix.cluster }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        cluster: [mainnet-beta, devnet]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Observe only - never a release approval
+        env:
+          CLUSTER: ${{ matrix.cluster }}
+        run: |
+          mkdir -p migration-evidence
+          set +e
+          node solana/scripts/protected-migration/inspect.mjs --cluster "$CLUSTER" --out "migration-evidence/$CLUSTER.json"
+          result=$?
+          set -e
+          test "$result" -eq 2
+          test -s "migration-evidence/$CLUSTER.json"
+          echo 'Observation completed. This step does NOT verify signer control or authorize deployment.'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: protected-migration-observation-${{ matrix.cluster }}
+          path: migration-evidence/*.json
+          if-no-files-found: warn

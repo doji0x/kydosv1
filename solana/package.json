@@ -3,10 +3,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "node --check ../src/lib/solana/client.js && node --check ../src/lib/solana/config.js && node --check ../src/lib/solana/meteora.js && node --check ../src/lib/solana/settlement.js && node --check tests/meteora-permissionless.test.js",
-    "test": "node scripts/meteora-fixtures.mjs --check && node --test tests/config.test.js tests/costs.test.js tests/math.test.js tests/fees.test.js tests/settlement.test.js tests/meteora.test.js tests/meteora-permissionless.test.js tests/rpc.test.js tests/launch.test.js tests/metadata.test.js tests/admin-launch.test.js tests/chart.test.js",
+    "check": "node --check ../src/lib/solana/client.js && node --check ../src/lib/solana/config.js && node --check ../src/lib/solana/meteora.js && node --check ../src/lib/solana/settlement.js && node --check tests/meteora-permissionless.test.js && node --check scripts/protected-migration/evidence.mjs && node --check scripts/protected-migration/inspect.mjs && node --check scripts/protected-migration/compatibility.mjs",
+    "test": "node scripts/meteora-fixtures.mjs --check && node --test tests/config.test.js tests/costs.test.js tests/math.test.js tests/fees.test.js tests/settlement.test.js tests/meteora.test.js tests/meteora-permissionless.test.js tests/rpc.test.js tests/launch.test.js tests/metadata.test.js tests/admin-launch.test.js tests/chart.test.js tests/protected-migration/*.test.mjs",
     "test:settlement": "node --test tests/settlement.test.js",
     "test:permissionless": "node --test tests/meteora-permissionless.test.js",
+    "test:protected": "node --test tests/protected-migration/*.test.mjs",
+    "check:compatibility": "cd .. && node solana/scripts/protected-migration/compatibility.mjs",
+    "inspect:migration": "node scripts/protected-migration/inspect.mjs",
     "test:integration": "anchor test --skip-build"
   }
 }
