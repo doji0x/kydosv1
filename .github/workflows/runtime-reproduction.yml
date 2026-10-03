@@ -1,4 +1,4 @@
-# Temporary isolated reproduction input. Remove after acceptance debugging.
+# Temporary diagnostic workflow. Remove before accepting the graduation PR.
 name: Isolated runtime reproduction
 on:
   pull_request:
@@ -9,22 +9,74 @@ jobs:
   runtime:
     if: github.head_ref == 'codex/atomic-protected-graduation'
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
     steps:
-      - name: Prepare pinned public binaries without wallets or RPC access
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: dtolnay/rust-toolchain@1.90.0
+      - name: Install pinned public build tools
         run: |
-          set -eu
           sh -c "$(curl -sSfL https://release.anza.xyz/v2.1.21/install)"
-          mkdir -p /tmp/runtime-inputs
-          cp "$HOME/.local/share/solana/install/active_release/bin/solana-test-validator" /tmp/runtime-inputs/
-          curl --fail --silent --show-error --location --max-time 60 --output /tmp/runtime-inputs/cp_amm.so https://raw.githubusercontent.com/MeteoraAg/damm-v2-sdk/37cd9e690d7b5fb6182638a21b86e0e1bf636a7e/tests/fixtures/cp_amm.so
-          test "$(git hash-object /tmp/runtime-inputs/cp_amm.so)" = 946562cfc35b978dbaf1100363b7505b018fd6f6
-          cd /tmp/runtime-inputs
-          ./solana-test-validator --version > VERSIONS.txt
-          sha256sum solana-test-validator cp_amm.so > SHA256SUMS
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
+      - name: Instrument local-only diagnostic copy, without committing altered sources
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('solana/programs/kydos_launchpad/src/protected_migration/atomic.rs')
+          s=p.read_text()
+          points={
+            '    ensure(ctx.remaining_accounts.is_empty(),': 'entry',
+            '    canonical(c, &a)?;': 'addresses-derived',
+            '    validate_route(&c.route.key(),': 'before-route-guard',
+            '    let before_curve = c.curve.to_account_info().lamports();': 'before-source-snapshot',
+            '    let q = migration::seed_completed_curve': 'before-seed-math',
+            '    let budget_b = c.curve.real_sol_reserves;': 'after-seed-math',
+            '    let infos = c.to_account_infos();': 'before-account-metas',
+            '    let payer_bump = ': 'before-signer-seeds',
+            '    call(system_instruction::transfer(&c.sponsor.key(),': 'before-sponsor-transfer',
+          }
+          for needle,label in points.items():
+            assert s.count(needle)==1,(needle,s.count(needle))
+            s=s.replace(needle,'    msg!("DIAGNOSTIC '+label+'");\n'+needle)
+          p.write_text(s)
+          PY
+      - name: Build instrumented SBF
+        run: cargo build-sbf --manifest-path solana/programs/kydos_launchpad/Cargo.toml --sbf-out-dir solana/target/deploy -- --locked
+      - name: Package compiler-generated diagnostic artifact
+        run: |
+          mkdir -p /tmp/diagnostic
+          cp solana/target/deploy/kydos_launchpad.so /tmp/diagnostic/
+          cp solana/programs/kydos_launchpad/src/protected_migration/atomic.rs /tmp/diagnostic/instrumented-source.rs
+          sha256sum /tmp/diagnostic/* > /tmp/diagnostic/SHA256SUMS
       - uses: actions/upload-artifact@v4
         with:
-          name: isolated-runtime-binaries
-          path: /tmp/runtime-inputs
+          name: diagnostic-graduation-sbf
+          path: /tmp/diagnostic
           retention-days: 1
-          if-no-files-found: error
+      - name: Package public offline SBF compiler and locked dependencies
+        run: |
+          mkdir -p /tmp/compiler-inputs
+          cargo vendor --manifest-path solana/Cargo.toml --locked /tmp/compiler-inputs/vendor > /tmp/compiler-inputs/vendor-config.toml
+          tar -czf /tmp/sbf-compiler.tar.gz -C "$HOME" .cache/solana .local/share/solana/install/active_release/bin/sdk
+          cp "$HOME/.local/share/solana/install/active_release/bin/cargo-build-sbf" /tmp/compiler-inputs/
+          cp "$HOME/.cargo/bin/rustup" /tmp/compiler-inputs/
+          tar -czf /tmp/host-rust.tar.gz -C "$(rustc --print sysroot)" bin lib
+          tar -czf /tmp/locked-dependencies.tar.gz -C /tmp/compiler-inputs .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: offline-sbf-compiler
+          path: /tmp/sbf-compiler.tar.gz
+          retention-days: 1
+          compression-level: 0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: offline-host-rust
+          path: /tmp/host-rust.tar.gz
+          retention-days: 1
+          compression-level: 0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: offline-locked-dependencies
+          path: /tmp/locked-dependencies.tar.gz
+          retention-days: 1
+          compression-level: 0
