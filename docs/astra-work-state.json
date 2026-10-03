@@ -2,32 +2,31 @@
   "schema_version": 1,
   "purpose": "Small navigation and resume record; not an execution engine, deployment authorization, or passing-check claim.",
   "owner": "ChatGPT",
-  "delivery_branch": "codex/kydos-protected-migration-phases-1-3",
-  "observed_source_sha": "6e788dce0e9d0488a3002d9f67f1f499cc8eca07",
-  "observed_upstream_sha": "3cce2ed02ac94d3951db33b3a67725182d8d7597",
+  "delivery_branch": "codex/protected-route-installation",
+  "observed_source_sha": "4d40883a06fdb4ccf35d993de1ca43bd43235b16",
+  "observed_upstream_sha": "63b2f51a6e2fb173326e9aa9c384ac2abf375e5a",
   "active_task": {
     "id": "protected-migration-phases-1-3",
-    "request": "Implement the approved phases 1-3 without replacing the Kydos program or bonding curve: compatibility/deployment verification, protected DAMM route and complete atomic migration.",
-    "status": "partial-phase-1-gates-delivered-phase-2-and-3-runtime-not-implemented",
-    "pull_request": "https://github.com/doji0x/kydosv1/pull/32",
+    "request": "Continue approved direct Kydos-to-DAMM migration without replacing creation or the curve. Current bounded delivery is protected route installation.",
+    "status": "phase-2-installer-implemented-corrected-runtime-and-idl-checks-pending-phase-3-unimplemented",
+    "pull_request": "https://github.com/doji0x/kydosv1/pull/33",
     "scope": [
-      "solana/scripts/protected-migration/evidence.mjs",
-      "solana/scripts/protected-migration/inspect.mjs",
-      "solana/scripts/protected-migration/compatibility.mjs",
-      "solana/tests/protected-migration/evidence.test.mjs",
-      "solana/package.json",
-      ".github/workflows/kydos-protected-migration.yml",
+      "solana/programs/kydos_launchpad/src/lib.rs",
+      "solana/programs/kydos_launchpad/src/protected_migration.rs",
+      "solana/tests/runtime/route-installation.mjs",
+      "src/lib/solana/idl/kydos_launchpad.json",
+      ".github/workflows/solana-scaffold.yml",
       "docs/protected-migration.md",
       "docs/astra-delivery-checkpoint.md",
       "docs/astra-work-state.json"
     ],
-    "acceptance": "Preserve existing creation/trading/accounts and 793.1M/206.9M; verify real deployment/config/authority; only then install a protected route and deliver atomic, runtime-tested migration. No DBC, replacement ID, paid deployment or new tokenomics.",
+    "acceptance": "Preserve existing creation/trading and 793.1M/206.9M; install only a one-time route authorized by live loader state; bind config, deployment and fixed policy; pass host/runtime/IDL checks. No DBC, replacement ID, public install or complete migration claim.",
     "design_record": "docs/protected-migration.md",
-    "next_action": "Inspect latest exact-head CI and chain evidence summaries. Resolve the funded program ID/network and authority, verify/provision a protected DAMM config, then finish route installation and full atomic migration with SVM tests. Do not repeat the completed evidence helpers.",
+    "next_action": "Inspect final delivery CI for the corrected fixture and compiler IDL. Review bounded PR #33. Verify genuine protected config and authority/source evidence before live install; then implement full atomic migration and its runtime tests.",
     "phase_status": {
-      "1": "Compatibility tooling and tests implemented; actual Kydos deployment/source/authority evidence unresolved.",
-      "2": "Read-only config validation/discovery implemented; no provisioned config or on-chain route installation.",
-      "3": "Not implemented; no executable migration or runtime test claim."
+      "1": "Compatibility tooling delivered. Mainnet Kydos observed executable/upgradeable; signer control, genesis and source parity unresolved.",
+      "2": "Read-only config checks plus actual one-time installer and runtime harness implemented. No genuine config provisioning or public installation.",
+      "3": "No executable migration, pool creation/lock or receipt handler implemented."
     }
   },
   "read_policy": {
@@ -40,115 +39,39 @@
     "research_rule": "Complete required file ranges/inventory pages; persist exact returned cursors/hashes without inventing them."
   },
   "task_routes": {
-    "reference-research": {
-      "start": ["docs/reference-index.md"],
-      "only_if_implementation_changes": ["base44/shared/astraReferences.ts", "base44/functions/astraReference/entry.ts", "base44/functions/ingestReference/entry.ts"],
-      "focused_check": "node --test tests/astra-references.test.mjs"
-    },
-    "chat-tool-access": {
-      "start": ["base44/functions/astraChat/githubChat.ts", "base44/shared/astraTools.ts"],
-      "only_if_needed": ["base44/shared/astraGithub.ts", "base44/functions/astraChat/entry.ts"],
-      "focused_check": "node --test tests/astra-delivery.test.mjs"
-    },
-    "solana-transactions": {
-      "start": ["src/lib/solana/client.js"],
-      "only_if_needed": ["src/lib/solana/lifecycle.js", "src/lib/solana/budget.js", "src/lib/solana/costs.js"],
-      "evidence_status": "Navigation only; behavior requires current verification."
-    },
-    "solana-program": {
-      "start": ["solana/programs/kydos_launchpad/src/lib.rs", "solana/programs/kydos_launchpad/Cargo.toml"],
-      "evidence_status": "Read direct dependencies for program tasks, not unrelated docs work."
-    },
-    "market-discovery": {
-      "start": ["docs/market-discovery-rollout.md", "src/pages/Board.jsx"],
-      "only_if_needed": ["base44/shared/jupiterMarkets.js", "base44/shared/marketDiscovery.js", "src/lib/markets.js", "src/pages/ExternalMarket.jsx"],
-      "focused_check": "node --test tests/market-discovery.test.mjs"
-    },
-    "market-charts": {
-      "start": ["docs/interactive-market-charts.md", "src/components/markets/ExternalMarketChart.jsx"],
-      "only_if_needed": ["src/hooks/useMarketCandles.js", "src/components/solana/MarketCandleChart.jsx", "base44/functions/marketCandles/entry.ts", "base44/shared/marketCandles.js"],
-      "focused_check": "node --test tests/market-candles.test.mjs tests/market-discovery.test.mjs"
-    },
-    "fee-settlement": {
-      "start": ["docs/fee-settlement.md", "src/lib/solana/settlement.js", "solana/programs/kydos_launchpad/src/fees/settlement.rs"],
-      "focused_check": "npm --prefix solana run test:settlement",
-      "evidence_status": "Pure accounting, not executable fund movement."
-    },
-    "permissionless-migration": {
-      "start": ["docs/permissionless-migration.md", "solana/programs/kydos_launchpad/src/meteora/permissionless.rs"],
-      "focused_check": "npm --prefix solana run test:permissionless",
-      "evidence_status": "Historical pair-only preparation; do not enable as the protected destination."
-    },
-    "protected-migration": {
-      "start": ["docs/protected-migration.md", "solana/scripts/protected-migration/inspect.mjs", "solana/scripts/protected-migration/evidence.mjs"],
-      "focused_check": "npm --prefix solana run test:protected && npm --prefix solana run check:compatibility",
-      "evidence_status": "Current partial delivery is read-only and compatibility checks, not installed routes or executable migration."
-    }
+    "reference-research": {"start": ["docs/reference-index.md"], "only_if_implementation_changes": ["base44/shared/astraReferences.ts", "base44/functions/astraReference/entry.ts", "base44/functions/ingestReference/entry.ts"], "focused_check": "node --test tests/astra-references.test.mjs"},
+    "chat-tool-access": {"start": ["base44/functions/astraChat/githubChat.ts", "base44/shared/astraTools.ts"], "only_if_needed": ["base44/shared/astraGithub.ts", "base44/functions/astraChat/entry.ts"], "focused_check": "node --test tests/astra-delivery.test.mjs"},
+    "solana-transactions": {"start": ["src/lib/solana/client.js"], "only_if_needed": ["src/lib/solana/lifecycle.js", "src/lib/solana/budget.js", "src/lib/solana/costs.js"], "evidence_status": "Navigation only; behavior requires current verification."},
+    "solana-program": {"start": ["solana/programs/kydos_launchpad/src/lib.rs", "solana/programs/kydos_launchpad/Cargo.toml"], "evidence_status": "Read direct dependencies for program tasks, not unrelated docs work."},
+    "market-discovery": {"start": ["docs/market-discovery-rollout.md", "src/pages/Board.jsx"], "only_if_needed": ["base44/shared/jupiterMarkets.js", "base44/shared/marketDiscovery.js", "src/lib/markets.js", "src/pages/ExternalMarket.jsx"], "focused_check": "node --test tests/market-discovery.test.mjs"},
+    "market-charts": {"start": ["docs/interactive-market-charts.md", "src/components/markets/ExternalMarketChart.jsx"], "only_if_needed": ["src/hooks/useMarketCandles.js", "src/components/solana/MarketCandleChart.jsx", "base44/functions/marketCandles/entry.ts", "base44/shared/marketCandles.js"], "focused_check": "node --test tests/market-candles.test.mjs tests/market-discovery.test.mjs"},
+    "fee-settlement": {"start": ["docs/fee-settlement.md", "src/lib/solana/settlement.js", "solana/programs/kydos_launchpad/src/fees/settlement.rs"], "focused_check": "npm --prefix solana run test:settlement", "evidence_status": "Pure accounting, not executable fund movement."},
+    "permissionless-migration": {"start": ["docs/permissionless-migration.md", "solana/programs/kydos_launchpad/src/meteora/permissionless.rs"], "focused_check": "npm --prefix solana run test:permissionless", "evidence_status": "Historical pair-only preparation; do not enable as the protected destination."},
+    "protected-migration": {"start": ["docs/protected-migration.md", "solana/programs/kydos_launchpad/src/protected_migration.rs", "solana/tests/runtime/route-installation.mjs"], "only_if_needed": ["solana/scripts/protected-migration/inspect.mjs", "solana/scripts/protected-migration/evidence.mjs"], "focused_check": "npm --prefix solana run test:protected && npm --prefix solana run check:compatibility; built runtime: node solana/tests/runtime/route-installation.mjs", "evidence_status": "Installer implemented, not complete migration. Inspect exact-head CI; local synthetic configs do not establish operator provisioning."}
   },
   "unfinished_work": [
     {
       "id": "library-and-build-spec",
       "status": "partial-not-active-in-this-milestone",
-      "completed_evidence": {
-        "retrieval_implementation_delivery_sha": "f900d6d296a94e67b40894b381bfaaf80dc45f1e",
-        "reference_tests_commit": "0a94da3e33b815f405988f490e89728666de8240",
-        "ci_wiring_commit": "cea16c134d763fea12ca9c2be5d2501d25a21d07",
-        "partial_index_commit": "e683d20589587aa2601828bf519b162189a80265"
-      },
+      "completed_evidence": {"retrieval_implementation_delivery_sha": "f900d6d296a94e67b40894b381bfaaf80dc45f1e", "reference_tests_commit": "0a94da3e33b815f405988f490e89728666de8240", "ci_wiring_commit": "cea16c134d763fea12ca9c2be5d2501d25a21d07", "partial_index_commit": "e683d20589587aa2601828bf519b162189a80265"},
       "next_action": "Prior library inventory remains incomplete and is not resumed here; do not infer full library review.",
       "inventory": {"status": "not-completely-enumerated", "next_offset": 0, "complete": false},
       "documents": [],
-      "document_cursor_shape": {
-        "id_or_resolved_url": "required", "content_sha256": "required", "reviewed_ranges": [],
-        "next_offset": 0, "complete": false, "finding_location": "docs/reference-index.md#section"
-      },
+      "document_cursor_shape": {"id_or_resolved_url": "required", "content_sha256": "required", "reviewed_ranges": [], "next_offset": 0, "complete": false, "finding_location": "docs/reference-index.md#section"},
       "cursor_rules": "Store actual returned offsets/hashes only; restart the affected document on hash mismatch."
     }
   ],
   "verification": {
-    "tested_commit": "6e788dce0e9d0488a3002d9f67f1f499cc8eca07",
-    "baseline": "3cce2ed02ac94d3951db33b3a67725182d8d7597",
-    "prepared_tree_checks": ["39/39 focused tests passed on Node 22.16.0", "New JavaScript syntax checks passed"],
-    "ci": {
-      "compatibility_and_observation_run": 37156192684,
-      "compatibility_and_observation_status": "success; observations are NOT release approval",
-      "application_run": 37156192659,
-      "application_status": "success",
-      "anchor_run": 37156192645,
-      "anchor_status_at_recording": "in_progress"
-    },
-    "devnet_observation": {
-      "job_id": 111299944390,
-      "observed_genesis": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
-      "slot": 507138253,
-      "kydos_program_status": "not-found at repository-declared ID",
-      "damm_program_status": "observed",
-      "derived_pool_creator_authority": "3tGjXG9oGyRDS3ppv1QsCNvYgr5XtAizKe75XcyHxuAd",
-      "valid_config_candidates": 0,
-      "genesis_independently_pinned": false
-    },
-    "mainnet_observation": {"job_id": 111299944380, "status": "report produced; logs not yet available for review"},
-    "limitations": [
-      "No Kydos live deployment, source/binary match or upgrade-authority signer control verified.",
-      "No local Rust/Cargo/Anchor or network repository checkout.",
-      "No on-chain route installation, complete migration handler, SVM execution, deployment, lock, receipt, claim, burn or payout.",
-      "Later delivery CI must be checked separately; an earlier pass does not establish later-head checks."
-    ],
-    "delivery_evidence": "Final resulting SHA, latest CI and observation outcomes belong in chat/PR handoff."
+    "installer_source_commit": "cc5e4c996a02a25a917de8b8d13924fb830d8c2f",
+    "corrected_code_commit": "4d40883a06fdb4ccf35d993de1ca43bd43235b16",
+    "baseline": "63b2f51a6e2fb173326e9aa9c384ac2abf375e5a",
+    "initial_ci": {"anchor_run": 37157451897, "host_and_build": "Rust host tests including four new tests, SBF and IDL generation passed", "runtime": "Failed negative permission fixture; actual config bytes were not modified by unknown IDL property", "correction": "Set encoded permission byte 248; retain strict validation; require 14 real executed checks", "corrected_head_status": "Pending; inspect fresh CI before merge"},
+    "compiler_artifact": {"run_id": 37157451897, "artifact_id": 11286800097, "idl_blob": "df514227a2853d4810e5588291161509492d92e5", "idl_sha256": "4550206550e25eb408f11af711eb0bd6841a46cd2d5b9b0506703c7d38363776", "old_definitions": "Compared and unchanged"},
+    "mainnet_observation": {"run_id": 37156192684, "job_id": 111299944380, "observed_slot": 453058242, "program_status": "executable and upgradeable observed", "program_data": "HkAvMhKsTaB99iniJ9vqpZJ86Nm2Csu5Mm63tU2VwVQk", "deployment_slot": 450014937, "recorded_authority": "6AK3h1s6byYRaDjNue8rMV1nqu8Q94AawPVVwNk7Phqc", "derived_creator_authority": "3tGjXG9oGyRDS3ppv1QsCNvYgr5XtAizKe75XcyHxuAd", "valid_config_candidates": 0, "genesis_independently_pinned": false, "authority_control_verified": false, "source_binary_verified": false},
+    "limitations": ["Local Rust/Anchor/validator unavailable; executed evidence comes from identified CI", "No actual protected config provisioning or public route installation", "No migration, executed DAMM CPI, pool/lock, receipt, claim, burn, payout or mainnet deployment", "Fresh corrected-head results cannot be inferred from the prior host/build pass"],
+    "delivery_evidence": "Final SHA and exact-head CI belong in chat/PR, not a recursive commit."
   },
-  "merged_revert": {
-    "pull_request": "https://github.com/doji0x/kydosv1/pull/29",
-    "head_sha": "9a9d38e49b64e01b7b16a24961610f632d134cf9",
-    "merge_sha": "221180adfb065382463119436f8ff8cddbd65854",
-    "observed_status": "merged",
-    "decision": "Reverted operator scripts remain absent. Owner subsequently approved a newly reviewed protected-config plan, not a blind restoration."
-  },
-  "previous_delivery": {
-    "id": "permissionless-damm-adapter",
-    "commit_sha": "283502dab800878cc8f5ac746c4c44644fbb07bc",
-    "merge_sha": "74f55e8a60935a1ca7b2d2d79dd4a316033586ee",
-    "pull_request": "https://github.com/doji0x/kydosv1/pull/31",
-    "status": "merged; preparation only; custom pair-only route superseded by protected-config direction"
-  },
-  "maintenance": "Update in place at a bounded milestone. Preserve unrelated work, do not restart completed tests, and never represent unresolved deployment evidence as passing."
+  "merged_revert": {"pull_request": "https://github.com/doji0x/kydosv1/pull/29", "head_sha": "9a9d38e49b64e01b7b16a24961610f632d134cf9", "merge_sha": "221180adfb065382463119436f8ff8cddbd65854", "observed_status": "merged", "decision": "Reverted operator scripts remain absent; reviewed protected-route implementation is not blind restoration."},
+  "previous_delivery": {"id": "protected-migration-evidence", "commit_sha": "c4b0b2fbb14622da65d4c846c1ce0434e02a0838", "merge_sha": "63b2f51a6e2fb173326e9aa9c384ac2abf375e5a", "pull_request": "https://github.com/doji0x/kydosv1/pull/32", "status": "merged; read-only compatibility and observation tools, not migration"},
+  "maintenance": "Update at a bounded milestone. Preserve unrelated work, do not restart completed tests, and do not present unresolved checks as passed."
 }

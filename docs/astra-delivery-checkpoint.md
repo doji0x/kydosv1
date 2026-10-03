@@ -1,46 +1,54 @@
 # Astra continuity checkpoint
 
-Current scope: protected-route installation, a partial delivery of the approved
-phases 1-3. Existing design: [protected-migration.md](protected-migration.md).
+Current design: [protected-migration.md](protected-migration.md).
 
-## Current handoff
+## Current delivery - protected-route installation
 
-- PR #32 is merged at `63b2f51a6e2fb173326e9aa9c384ac2abf375e5a`.
-  Work continues on separate `codex/protected-route-installation` from that base.
-- Added one-time `install_migration_route` authorized by the runtime Kydos
-  loader-v3 upgrade authority, authenticated config/PDA/fingerprint binding,
-  DAMM ProgramData/deployment-slot binding, fixed fee/lock/settlement policy,
-  and a reusable future-route validator. No update, close, sweep or migrate.
-- Existing initialize/buy/sell, account layouts, supply allocation, curve math,
-  authorities and settlement arithmetic stay unchanged. lib.rs adds only the
-  allowed module/import and thin installation dispatcher.
-- Added four Rust host tests and a loopback-only built-program installation test.
-  The runtime harness covers unauthorized installs, substituted accounts,
-  prefunded PDA, transaction rollback and reinstallation. Synthetic test configs
-  are NOT evidence of Meteora operator provisioning or live route installation.
-- No Rust/Anchor toolchain locally. Runtime and build tests must be run by CI.
-  Generated browser IDL must be committed and the existing strict match check
-  must pass. The workflow reports generated additions without changing that gate.
+- PR #32 merged at `63b2f51a6e2fb173326e9aa9c384ac2abf375e5a`.
+  Continue only PR #33 on `codex/protected-route-installation` from that base.
+- Installer source: `cc5e4c996a02a25a917de8b8d13924fb830d8c2f`.
+  Compiler-IDL / runtime-fixture correction: `4d40883a06fdb4ccf35d993de1ca43bd43235b16`.
+- Added actual `install_migration_route`, restricted to the current authenticated
+  Kydos loader-v3 upgrade authority. One-time route binds config fingerprint,
+  canonical program/ProgramData, DAMM deployment slot and fixed fee/lock policy.
+  Added a reusable guard for future migration; no update, close or sweep.
+- Existing program ID, initialize/buy/sell, Curve/FeePolicy layouts, original
+  instruction definitions/errors, curve math, 793.1M/206.9M allocation and
+  settlement arithmetic are preserved. New IDL entries are additive.
+- Four new Rust host tests compiled/passed and the SBF build/IDL generation
+  succeeded in Anchor run 37157451897. Original full runtime attempt found an
+  invalid negative-test fixture: its unknown `permission` property was ignored
+  by the pinned coder. Corrected actual encoded permission bytes at offset 248.
+  Program validation was not weakened. Fourteen executed cases are now required.
+- Downloaded compiler artifact 11286800097 from that run, normalized the generated
+  type helper and compared every old IDL entry. Checked-in IDL blob:
+  `df514227a2853d4810e5588291161509492d92e5`; SHA256:
+  `4550206550e25eb408f11af711eb0bd6841a46cd2d5b9b0506703c7d38363776`.
+  The strict fresh-build IDL comparison is still enabled.
+- Corrected-head runtime/build/IDL checks require fresh CI. Inspect final delivery
+  checks rather than treating the original build or synthetic fixtures as a full
+  runtime pass. Local environment has Node but no Rust/Anchor/validator toolchain.
 
-## Newly retrieved chain evidence
+## Mainnet observation now resolved
 
-Mainnet observation run 37156192684, job 111299944380, dated 2026-10-03T21:45Z:
-Kydos at the declared program ID WAS observed, executable and upgradeable.
-ProgramData: `HkAvMhKsTaB99iniJ9vqpZJ86Nm2Csu5Mm63tU2VwVQk`.
-Upgrade authority: `6AK3h1s6byYRaDjNue8rMV1nqu8Q94AawPVVwNk7Phqc`.
-Deployment slot: 450014937; observation slot: 453058242.
-Pool-creator PDA: `3tGjXG9oGyRDS3ppv1QsCNvYgr5XtAizKe75XcyHxuAd`.
-No valid private config candidate was found in the scanned pinned layout.
-This resolves the previous inaccessible-mainnet-log uncertainty, NOT signer
-control, source/binary parity, independent genesis pinning or release readiness.
-Do not hardcode the observed authority as a substitute for current loader state.
+Read-only run 37156192684, job 111299944380, 2026-10-03T21:45Z, observed declared
+Kydos program executable and upgradeable at slot 453058242. Deployment slot:
+450014937. ProgramData: `HkAvMhKsTaB99iniJ9vqpZJ86Nm2Csu5Mm63tU2VwVQk`.
+Recorded upgrade authority: `6AK3h1s6byYRaDjNue8rMV1nqu8Q94AawPVVwNk7Phqc`.
+Creator PDA: `3tGjXG9oGyRDS3ppv1QsCNvYgr5XtAizKe75XcyHxuAd`.
+No protected config candidate was found by that pinned-layout scan.
+This is observation, NOT proof of signer control, source/binary parity,
+independent genesis pinning, or release readiness. Never hardcode the observed
+wallet as a substitute for the installer's current loader-state validation.
 
-## Remaining work / next action
+## Next action / limits
 
-Inspect this branch's exact-head CI, fix build/runtime/IDL failures, and review
-route installation. A DAMM upgrade or changed config intentionally blocks fresh
-migration until a separately reviewed version; no arbitrary reset is exposed.
-Then complete the approved atomic migration and runtime acceptance tests.
-No actual config provision, live route install, reserve migration, pool/lock,
-receipt, fee claim, burn, payout, mainnet transaction or deployment is delivered.
-The resulting SHA and passing/pending checks belong in the chat/PR handoff.
+Review corrected-head runtime tests and IDL matching in draft PR #33. Obtain and
+independently verify an authorized Meteora configuration before any live install.
+Then implement complete atomic migration, full post-CPI validation, 100% initial
+liquidity lock and successful receipt/replay. Real migration remains unfinished.
+No mainnet route install, operator request submission, migration, pool, lock,
+receipt, claim, burn, payout, paid transaction or deployment was performed.
+A changed DAMM deployment/config must fail the future fresh-migration guard;
+route-version recovery requires separate review, not a generic reset function.
+Resulting delivery SHA and fresh CI belong in chat/PR, not a recursive self-SHA.
