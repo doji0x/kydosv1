@@ -61,7 +61,7 @@ pub fn validate_install_authority(authority: &AccountInfo, observed: &Deployment
 }
 
 /// Fixed, single-install route. There is deliberately no update, close, or sweep
-/// instruction. Fresh migration must call validate_route before moving funds.
+/// instruction. Future migration must call validate_route before moving funds.
 #[account]
 #[derive(Debug, PartialEq, Eq)]
 pub struct MigrationRoute {

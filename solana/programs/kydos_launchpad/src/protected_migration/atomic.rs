@@ -118,6 +118,7 @@ fn add(a: u64, b: u64) -> Result<u64> { a.checked_add(b).ok_or_else(|| ProgramEr
 fn sub(a: u64, b: u64) -> Result<u64> { a.checked_sub(b).ok_or_else(|| ProgramError::InsufficientFunds.into()) }
 fn local(seeds: &[&[u8]]) -> (Pubkey, u8) { Pubkey::find_program_address(seeds, &crate::ID) }
 
+#[inline(never)]
 fn canonical(c: &Migrate, a: &meteora::MigrationAddresses) -> Result<()> {
     for (actual, expected) in [
         (c.curve.key(), a.curve), (c.receipt.key(), a.receipt), (c.config.key(), a.config),
@@ -139,6 +140,7 @@ fn fresh(a: &AccountInfo, key: &Pubkey) -> Result<()> {
 
 /// No arbitrary instructions or metas supplied by the caller. Every instruction
 /// is constructed in this module or the pinned narrow Meteora adapter.
+#[inline(never)]
 fn call<'info>(ix: Instruction, infos: &[AccountInfo<'info>], seeds: &[&[&[u8]]]) -> Result<()> {
     let mut ordered = Vec::with_capacity(ix.accounts.len() + 1);
     for meta in &ix.accounts {
@@ -152,6 +154,7 @@ fn call<'info>(ix: Instruction, infos: &[AccountInfo<'info>], seeds: &[&[&[u8]]]
 
 /// Allocate/assign supports unsolicited lamports, unlike create_account alone.
 /// Returns ONLY the rent top-up paid by this invocation's dedicated payer.
+#[inline(never)]
 fn allocate<'info>(account: &AccountInfo<'info>, payer: &AccountInfo<'info>, owner: &Pubkey,
     size: usize, infos: &[AccountInfo<'info>], seeds: &[&[&[u8]]]) -> Result<u64>
 {
@@ -163,6 +166,7 @@ fn allocate<'info>(account: &AccountInfo<'info>, payer: &AccountInfo<'info>, own
     Ok(topup)
 }
 
+#[inline(never)]
 fn token_account(info: &AccountInfo, mint: &Pubkey, owner: &Pubkey, native: bool)
     -> Result<spl_token::state::Account>
 {
@@ -179,6 +183,7 @@ fn token_account(info: &AccountInfo, mint: &Pubkey, owner: &Pubkey, native: bool
     Ok(account)
 }
 
+#[inline(never)]
 fn nft(c: &Migrate, a: &meteora::MigrationAddresses) -> Result<()> {
     ensure(c.position_nft_mint.owner == &spl_token_2022::ID && !c.position_nft_mint.executable
         && c.position_nft_account.owner == &spl_token_2022::ID && !c.position_nft_account.executable,
@@ -213,6 +218,7 @@ fn key_at(data: &[u8], offset: usize) -> Result<Pubkey> { Ok(Pubkey::new_from_ar
 
 /// Offsets are pinned to the SDK's Pool/Position layouts and verified by SDK
 /// mutation vectors in runtime tests. Never cast external bytes to Rust structs.
+#[inline(never)]
 fn pool_and_position(c: &Migrate, a: &meteora::MigrationAddresses,
     quote: Option<&migration::SeedLiquidity>, locked: u128) -> Result<()>
 {
@@ -250,6 +256,7 @@ fn pool_and_position(c: &Migrate, a: &meteora::MigrationAddresses,
     Ok(())
 }
 
+#[inline(never)]
 fn validate_receipt(c: &Migrate, a: &meteora::MigrationAddresses) -> Result<()> {
     let r = &c.receipt;
     ensure(r.version == 1 && r.route_version == ROUTE_VERSION && r.curve == c.curve.key()
@@ -272,14 +279,15 @@ fn validate_receipt(c: &Migrate, a: &meteora::MigrationAddresses) -> Result<()> 
 /// Anyone may sponsor graduation. The budget caps account/setup lamports, NOT
 /// transaction fees. A conservative full receipt rent is reserved in the cap;
 /// unsolicited receipt prefunding can only reduce the actual sponsor debit.
+#[inline(never)]
 pub fn migrate(ctx: Context<Migrate>, max_setup_lamports: u64) -> Result<()> {
     ensure(ctx.remaining_accounts.is_empty(), "unexpected remaining accounts")?;
     let c = ctx.accounts;
     validate_curve_configuration(&c.curve)?;
     ensure(c.curve.graduated && c.curve.real_token_reserves == 0, "curve is not complete")?;
     let config = if c.receipt.version == 0 { c.route.config } else { c.receipt.config };
-    let a = meteora::derive_addresses(&crate::ID, &c.mint.key(), &config)
-        .map_err(|_| ProgramError::InvalidAccountData)?;
+    let a = Box::new(meteora::derive_addresses(&crate::ID, &c.mint.key(), &config)
+        .map_err(|_| ProgramError::InvalidAccountData)?);
     canonical(c, &a)?;
     ensure(c.receipt.bump == 0 || c.receipt.bump == ctx.bumps.receipt, "receipt bump mismatch")?;
     // Replay is intentionally BEFORE deployment freshness, rent budgets, temporary
@@ -313,6 +321,26 @@ pub fn migrate(ctx: Context<Migrate>, max_setup_lamports: u64) -> Result<()> {
     let prefund_b = c.token_b_staging.lamports();
     let pool_b_donation = c.token_b_vault.lamports().saturating_sub(rent.minimum_balance(spl_token::state::Account::LEN));
     let allowance = sub(max_setup_lamports, rent.minimum_balance(MigrationReceipt::SPACE))?;
+    execute_migration(c, &a, &q, ctx.bumps.receipt, &MigrationSnapshot {
+        before_curve, before_vault, budget_b, before_payer, prefund_a, prefund_b,
+        pool_b_donation, allowance,
+    })
+}
+
+// Keep validation, seed construction and execution in separate SBF frames.
+// The pinned compiler reports stack overwrites without returning a failure;
+// CI additionally checks its diagnostics before accepting the compiled program.
+struct MigrationSnapshot {
+    before_curve: u64, before_vault: u64, budget_b: u64, before_payer: u64,
+    prefund_a: u64, prefund_b: u64, pool_b_donation: u64, allowance: u64,
+}
+
+#[inline(never)]
+fn execute_migration(c: &mut Migrate, a: &meteora::MigrationAddresses,
+    q: &migration::SeedLiquidity, receipt_bump: u8, snapshot: &MigrationSnapshot) -> Result<()>
+{
+    let MigrationSnapshot { before_curve, before_vault, budget_b, before_payer,
+        prefund_a, prefund_b, pool_b_donation, allowance } = *snapshot;
     let infos = c.to_account_infos();
     let payer_bump = [local(&[meteora::PAYER_SEED, a.curve.as_ref()]).1];
     let payer_seeds: &[&[u8]] = &[meteora::PAYER_SEED, a.curve.as_ref(), &payer_bump];
@@ -339,7 +367,12 @@ pub fn migrate(ctx: Context<Migrate>, max_setup_lamports: u64) -> Result<()> {
     call(spl_token::instruction::transfer(&spl_token::ID, &c.vault.key(), &a.token_a_staging,
         &a.curve, &[], q.token_a_amount)?, &infos, &[curve_seeds])?;
     transfer_curve_sol(&c.curve.to_account_info(), &c.token_b_staging, q.token_b_amount)?;
-    call(spl_token::instruction::sync_native(&spl_token::ID, &a.token_b_staging)?, &infos, &[])?;
+    // Both sides of this direct lamport move must enter the next CPI's account
+    // synchronization. SyncNative ignores the additional Curve account, but the
+    // runtime must see its matching debit before validating the staging credit.
+    let mut sync = spl_token::instruction::sync_native(&spl_token::ID, &a.token_b_staging)?;
+    sync.accounts.push(AccountMeta::new(a.curve, false));
+    call(sync, &infos, &[])?;
     let stage_a = token_account(&c.token_a_staging, &a.mint, &a.payer, false)?;
     let stage_b = token_account(&c.token_b_staging, &meteora::WSOL_MINT, &a.payer, true)?;
     ensure(stage_a.amount == q.token_a_amount && stage_b.amount >= q.token_b_amount,
@@ -378,11 +411,16 @@ pub fn migrate(ctx: Context<Migrate>, max_setup_lamports: u64) -> Result<()> {
     // the entire migration even if a pre-funded payer temporarily covered a CPI.
     let refund = sub(c.payer.lamports(), before_payer)?;
     ensure(refund <= allowance, "unexpected sponsor refund")?;
-    if refund > 0 { call(system_instruction::transfer(&a.payer, &c.sponsor.key(), refund), &infos, &[payer_seeds])?; }
+    if refund > 0 {
+        // Synchronize the preceding Curve debit and payer credit together.
+        let mut refund_ix = system_instruction::transfer(&a.payer, &c.sponsor.key(), refund);
+        refund_ix.accounts.push(AccountMeta::new(a.curve, false));
+        call(refund_ix, &infos, &[payer_seeds])?;
+    }
     ensure(c.payer.lamports() == before_payer, "payer donation conservation failed")?;
     c.curve.real_sol_reserves = q.token_b_dust;
     c.receipt.set_inner(MigrationReceipt {
-        version: 1, bump: ctx.bumps.receipt, route_version: c.route.version,
+        version: 1, bump: receipt_bump, route_version: c.route.version,
         lock_policy: migration::LOCK_POLICY_PERMANENT,
         settlement_policy_version: fees::settlement::SETTLEMENT_POLICY_VERSION,
         curve: a.curve, mint: a.mint, creator: c.curve.creator, route: c.route.key(),

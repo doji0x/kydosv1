@@ -1,187 +1,160 @@
 # Protected Kydos migration: approved phases 1-3
 
-## Authority and scope
+## Scope and current branch
 
-The owner approved development preserving Kydos creation and its custom curve,
-verifying a protected DAMM v2 route, and implementing complete atomic migration.
-No mainnet deployment, replacement program, DBC, tokenomics change, secret
-handling or paid transaction is authorized merely by this development approval.
-
-PR #32 delivered read-only evidence and compatibility tooling and merged at
-`63b2f51a6e2fb173326e9aa9c384ac2abf375e5a`. PR #33 continues on
-`codex/protected-route-installation`. It implements route installation, NOT
-complete graduation. The original compatibility baseline remains
+The owner approved preserving Kydos creation and its custom curve, establishing
+an authorized DAMM destination and implementing atomic migration. Continue
+PR #34 on `codex/atomic-protected-graduation`; do not create another branch.
+Repair source: `8755fb2214bd818267852a4597729dfbe2bd16e4`. Base: merged PR #33 at
+`c0038ce424bd4cc54af046d7b7f691b8d8b4aba4`. Original compatibility baseline:
 `3cce2ed02ac94d3951db33b3a67725182d8d7597`.
 
-Keep 1B original supply, six decimals, 793.1M curve / 206.9M migration allocation,
-existing program ID, Curve/FeePolicy layouts, buy/sell math, treasury and existing
-instruction/error definitions. The allocation supersedes older 800M/200M notes.
-Do not restore mint/freeze authority or replace existing launches.
+Preserve 1B original supply, six decimals, 793.1M curve / 206.9M migration,
+existing program ID, Curve/FeePolicy layouts, buy/sell math, treasury and original
+instruction/error definitions. No DBC, replacement program, extra tax or restored
+authority. Holders may burn their tokens; current supply need not remain 1B.
+Development approval is not approval to merge or spend mainnet funds.
 
-## Phase 1: evidence already delivered
+## Phase 1: compatibility and deployment evidence
 
-`solana/scripts/protected-migration/evidence.mjs` validates loader-v3 observations,
-config layout/authority/permission/PDA and public hashes. `inspect.mjs` permits
-only read-only RPC methods, uses finalized observations and produces explicit
-blockers. `compatibility.mjs` rejects changes to existing source/interfaces while
-allowing identified additive module/dispatcher additions. The 39 original tests
-cover malformed inputs, immutable programs, bytecode padding, key encoding,
-cluster mismatch and write-method rejection. Do not repeat that implementation.
+The existing read-only evidence tools remain under
+`solana/scripts/protected-migration`. They inspect loader-v3 programs and configs
+without sending transactions. The compatibility checker is not weakened: old
+creation/trading source and old IDL definitions remain intact.
 
-Mainnet observation job 111299944380 in run 37156192684 found the declared Kydos
-program executable and upgradeable, observed slot 453058242 on 2026-10-03T21:45Z:
+Historical mainnet observation (run 37156192684, job 111299944380, October 3 2026)
+found Kydos executable and upgradeable. Program:
+`GnWBA3sdhKYCAZt2TnBEQmFiF7mvP7ydzUyjcompioQE`; ProgramData:
+`HkAvMhKsTaB99iniJ9vqpZJ86Nm2Csu5Mm63tU2VwVQk`; deployment slot 450014937.
+Recorded authority: `6AK3h1s6byYRaDjNue8rMV1nqu8Q94AawPVVwNk7Phqc`.
+No matching protected configuration was found in that pinned-layout scan.
+This is historical observation, not proof of signer control, independent genesis
+pinning, deployed-source parity or current configuration absence.
 
-- Program: `GnWBA3sdhKYCAZt2TnBEQmFiF7mvP7ydzUyjcompioQE`
-- ProgramData: `HkAvMhKsTaB99iniJ9vqpZJ86Nm2Csu5Mm63tU2VwVQk`
-- Deployment slot: 450014937
-- Recorded authority: `6AK3h1s6byYRaDjNue8rMV1nqu8Q94AawPVVwNk7Phqc`
-- Derived creator authority: `3tGjXG9oGyRDS3ppv1QsCNvYgr5XtAizKe75XcyHxuAd`
-- Protected config candidates in the scanned pinned layout: none.
-
-This resolves the earlier unavailable-mainnet-log issue. It does not prove
-signer control, independent genesis pinning or repository/deployed bytecode
-parity. An inaccessible RPC is not evidence of absence. Source declare_id alone
-was not used as proof of deployment. Authority control and bytecode parity must
-be established before a paid release.
-
-Read-only usage from repository root:
+Read-only commands from repository root:
 
 ```
-npm ci --ignore-scripts --no-audit --no-fund
 npm --prefix solana run test:protected
 npm --prefix solana run check:compatibility
 node solana/scripts/protected-migration/inspect.mjs --cluster mainnet-beta --out mainnet-observation.json
 ```
 
-Exit 2 intentionally means observations cannot authorize release. Supply an
-independently established `--expected-genesis` to pin RPC network identity.
-`--config` verifies an explicit candidate. Reports omit RPC URLs; do not put
-credentials in shell history. Output uses exclusive creation, not overwrite.
+Exit 2 means observations cannot authorize release. Use an independently obtained
+`--expected-genesis` and `--config` for an explicit candidate. Never commit secrets.
+RPC failure is not evidence of absence. No fresh public scan occurred in this repair.
 
-## Phase 2: actual route installer
+## Phase 2: one-time protected route
 
-`protected_migration.rs` adds `install_migration_route` and a new 287-byte
-`MigrationRoute` account at `["migration_route"]`. Installation requires a signer
-matching the current upgrade authority in the authenticated Kydos loader-v3
-ProgramData. Its key is not assumed to be the treasury or hardcoded from a past
-observation. The signer also sponsors route account rent.
+`install_migration_route` creates the 287-byte MigrationRoute PDA once, requiring
+the actual current Kydos upgrade-authority signer authenticated through loader
+state. It verifies program identities, ProgramData pointers/tags, executable
+flags, ELF header, private Dynamic config, authority, index/PDA and zero permissions.
+The route binds the config hash and DAMM deployment slot, quote/treasury and policy.
+No update, close, arbitrary CPI, raw fee-claim or withdrawal bypass is exposed.
 
-The installer verifies Kydos and DAMM program IDs, executable flags, loader
-owners, ProgramData PDA/pointers, loader tags, bounded layouts and ELF headers.
-It rejects a missing/immutable Kydos upgrade authority and unexpected remaining
-accounts. It derives `["meteora_pool_creator"]` under the existing Kydos ID and
-uses the existing private-dynamic config validator to check authority, config
-PDA/index, discriminator/length, no AlphaVault and zero permissions.
+Fresh migration checks this route and enforces 100 bps BothToken, full range,
+no dynamic fee, changing fee schedule, compounding or AlphaVault. The config
+controls who can create pools; the migration program controls these fee parameters.
+Changed config bytes or deployment slot reject fresh migration. Slot pinning is
+not binary verification and cannot detect a same-slot upgrade. Route recovery
+would need separate review; it must not reset completed migration receipts.
 
-The route records the full config hash, canonical DAMM ProgramData and deployment
-slot, fixed quote mint/treasury, installing authority, installation slot and
-policy versions. Fixed policy is 100 bps BothToken, permanent lock, and the
-approved later settlement identity. These fields do not create a pool or enforce
-burns/payouts by themselves. Future pool creation must also enforce no changing
-fee schedule, dynamic fee, compounding or AlphaVault.
+### Operator request: draft, not submitted
 
-There is no update, close, sweep, migrate or raw fee-claim instruction in this
-module. `validate_route` is a reusable guard for FUTURE fresh migration and is
-not yet called by a fund-moving handler. It checks route identity/policy, config
-fingerprint and DAMM deployment-slot continuity. Changed config bytes or a DAMM
-upgrade fail closed. Slot binding is a change detector, not source/binary proof;
-an upgrade in the same slot is a limitation. A later route-version recovery
-requires explicit review and must not reset successful migration receipts.
-
-Do not apply fresh-route/version checks to successful-receipt replay in a way
-that makes completed migrations inaccessible after routine pool trading or
-upstream upgrades. Historical receipts must be authenticated independently.
-
-### Protected configuration request - draft, not submitted
-
-Request an authorized Meteora operator with CreateConfigKey to provision a
-Dynamic configuration for mainnet-beta:
+An authorized Meteora operator with CreateConfigKey must provision a suitable
+Dynamic config unless an existing matching account is independently verified:
 
 ```
-Kydos program: GnWBA3sdhKYCAZt2TnBEQmFiF7mvP7ydzUyjcompioQE
-DAMM v2 program: cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG
+Cluster: mainnet-beta
+Kydos: GnWBA3sdhKYCAZt2TnBEQmFiF7mvP7ydzUyjcompioQE
+DAMM v2: cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG
 pool_creator_authority: 3tGjXG9oGyRDS3ppv1QsCNvYgr5XtAizKe75XcyHxuAd
 permission: 0
-index: unused u64 selected by authorized operator
+index: unused u64 selected by the authorized operator
 ```
 
-Ask for finalized creation signature, config address/index and operator identity.
-Re-derive every address and verify actual account bytes/cluster before signing
-installation. No private key or seed phrase is needed in that public request.
-No request was submitted, config provisioned or mainnet route installed here.
-The installer must be in an approved program upgrade before it can be used live.
-A Dynamic config governs creator authority; Kydos supplies/enforces fee parameters
-when initializing a pool. It does not mean volatility-based fees are enabled.
+Obtain finalized creation signature, config address/index and operator identity.
+Verify actual bytes and cluster before installation. No Kydos private key is
+needed in the request. No request or mainnet configuration was submitted/created.
 
-### Tests and interface evidence
+## Phase 3: implemented atomic graduation
 
-Four new Rust host tests cover signer/loader authority, malformed account
-layouts, route serialization and changed route/config/deployment rejection.
-The local-validator harness executes the built Kydos installer on fixed loopback
-ports with ephemeral keys. It asserts all 14 checks execute: IDL parity,
-unauthorized signer, wrong/private-public config authority, permissions/type,
-substituted config owner/address or ProgramData, unexpected accounts, rollback
-AFTER successful route execution, valid prefunded-route installation, and
-repeat-install rejection. Unique transaction messages prevent signature replay
-from being confused with a second successful execution. Confirmed transaction
-metadata, not a preflight exception, proves each transaction ran.
+`protected_migration/atomic.rs` executes the complete core. Anyone may sponsor
+`migrate(max_setup_lamports)`, but cannot choose recipients, reserves, arbitrary
+instructions or a noncanonical pool. It authenticates completed Curve/FeePolicy,
+mint, custody and approved route. Only tracked real SOL and protected base reserve
+fund liquidity. Rent, virtual balances and donations do not inflate principal.
 
-The DAMM test binary is fetched from SDK revision
+A dedicated payer receives separate setup funding. Canonical staging supports
+harmless prefunding; WSOL is synchronized before use. Both sides of caller-side
+lamport moves enter the next CPI synchronization. The DAMM initializer is followed
+by actual layout, deposit, fee, price, position and NFT-custody verification.
+All initial liquidity is permanently locked and rechecked. Only then is the
+493-byte receipt finalized with bindings, deposits, dust, liquidity and policy.
+Cleanup/refunds distinguish this sponsor's funding from pre-existing donations.
+
+Every operation shares one atomic transaction. Any failed step rolls back source
+movement, pool creation, locks and receipt. Existing receipts permit zero-budget
+replay after cleanup and pool trading without seeding twice or requiring original
+pool reserves/price. Occupied unreceipted destinations are not adopted. The final
+curve buy remains separate. The old graduated flag means curve complete; public
+AMM status must instead use a real successful migration receipt.
+
+## Corrected failures and test evidence
+
+The initial test loader used CLI `none`; Agave 2.1.21 encoded Some(default key),
+which production validation correctly rejected. Tests now use a distinct explicit
+ephemeral DAMM authority and verify actual bytes. No authority check was removed.
+
+The original monolithic migration exceeded its SBF frame. The compiler emitted
+stack-overwrite diagnostics but exited zero. Non-inlined phases and boxed derived
+addresses fix this. `check-sbf-build.mjs` plus four tests now make unsafe compiler
+stack diagnostics fail CI. The two direct lamport moves include both affected
+accounts in the next CPI, fixing the actual UnbalancedInstruction failure.
+
+The exact-source mismatch was one extra terminal newline; it was corrected
+without loosening the checker. Browser IDL is normalized from actual current-source
+Anchor IdlBuilder compilation, not invented definitions. Existing interface entries
+remain unchanged, including the original route documentation.
+
+Local tools: Node 22.16.0, Agave 2.1.21, platform-tools v1.43, Rust 1.90.0 and locked
+dependencies. DAMM binary is the public SDK fixture from revision
 `37cd9e690d7b5fb6182638a21b86e0e1bf636a7e`, Git blob
-`946562cfc35b978dbaf1100363b7505b018fd6f6`. It is loaded for executable/loader
-validation only; the installer does not CPI into DAMM. Configs are synthetic
-local genesis accounts, NOT operator-provisioned mainnet accounts.
+`946562cfc35b978dbaf1100363b7505b018fd6f6`. Graduation actually invokes it. Source
+and config accounts are synthetic genesis fixtures, not production provisioning.
 
-Initial Anchor run 37157451897 passed host tests, SBF and IDL generation. Runtime
-caught an invalid negative fixture: an unknown `permission` field was ignored
-by the pinned coder. The corrected fixture sets actual encoded bytes at 248;
-program validation was not relaxed. The checked-in IDL is normalized from the
-actual compiler artifact 11286800097 and preserves every old definition.
-IDL blob `df514227a2853d4810e5588291161509492d92e5`; SHA256
-`4550206550e25eb408f11af711eb0bd6841a46cd2d5b9b0506703c7d38363776`.
-The strict fresh-build comparison remains required. Corrected-head CI must be
-inspected separately; no complete runtime pass is claimed by the initial run.
-Local environment lacks Rust/Anchor/validator tools; executed results come from
-identified CI runs, not a claimed local full suite.
+Passing local suites: route runtime 14; graduation runtime 29; Solana JS 142
+(includes four build-diagnostic tests); confirmation harness 6; host Rust 35;
+app lint/build and market tests 5. Coverage includes malformed accounts,
+underfunded/incomplete curves, restored mint authority, occupied destinations,
+setup exhaustion after funding, compute exhaustion after DAMM creation, a later
+transaction failure after successful migration, exact deposits/full lock,
+cleanup, prefunding/donations, third-party concurrency, and post-swap replay.
+This is meaningful executed coverage, not an exhaustive audit of every state.
 
-## Phase 3: still unfinished
+Clean-fixture measurements: 365748 CU, 26928240 setup lamports excluding network
+fees, 256 KiB requested heap; largest signed packet 1141/1232 bytes. Not a mainnet
+cost quote. Normal CI retains compiler/runtime logs. Temporary diagnostic workflow
+and large offline-tool packaging are removed. Check the resulting delivery SHA;
+previous CI success is not evidence for new code.
 
-Complete atomic migration must authenticate the completed Curve/FeePolicy,
-isolate tracked principal from donations/rent, sponsor execution separately,
-prepare canonical staging and SyncNative, create the protected pool with PDA
-signatures, verify all post-CPI state and deposits, permanently lock all initial
-liquidity, and only then write a route-versioned successful receipt.
+## Separate live-release and future-work gates
 
-Replay must work after trading, extra LP deposits and temporary-account cleanup
-without retransferring principal or requiring the initial price. Reject occupied
-unreceipted destinations. Holders may burn their own tokens: do not require
-current supply to stay exactly 1B. Never migrate virtual SOL or donations.
+Genuine verified configuration, authority control, cluster identity and deployed
+binary/source compatibility remain prerequisites before a paid upgrade or route
+installation. Upstream Meteora controls remain external dependencies. Local tests
+are not mainnet binary verification or an independent security review.
 
-Runtime tests must execute Kydos -> DAMM -> token instructions and cover every
-CPI failure boundary, precreation attacks, account substitution, donations,
-concurrent/repeated requests, integer dust and complete locking. Measure compute,
-heap, stack and transaction size. Installer tests are not migration tests.
-
-## Deferred settlement and release
-
-Later atomic fee claiming burns newly claimed base and splits net quote equally
-between recorded creator and Kydos. Keepers, public UI activation and mainnet
-release are separate work. No additional tax, raw-claim bypass or LP withdrawal.
-
-PR #33 is a bounded route-installation delivery, not completion of all phases.
-Review exact-head checks and code before merge. A paid upgrade/live route install
-requires separately verified config, authority control, bytecode compatibility
-and owner release approval. No public-network transaction was performed.
+No public-network transaction occurred. Fee claims, base burns and protected
+50/50 quote payouts remain separate implementation work, as do keepers/UI rollout.
+The initial position stays program-controlled for that later settlement policy.
 
 ## References
 
 - https://solana.com/docs/core/programs/program-deployment
-- https://solana.com/docs/core/pda
 - https://solana.com/docs/core/cpi
 - https://solana.com/docs/tokens/basics/sync-native
+- https://www.anchor-lang.com/docs/updates/release-notes/0-31-0
 - https://docs.meteora.ag/developer-guides/damm-v2/rust-integration/cpi
-- `docs/meteora-adapter.md`: historical adapter; old treasury-only fee custody is superseded.
-- `docs/fee-settlement.md`: approved burn / equal quote accounting.
-
-Source/IDL compatibility, observations and local fixtures are not a security
-audit or proof that deployed programs match the repository.
+- https://github.com/anza-xyz/agave/blob/v2.1.21/test-validator/src/lib.rs
+- `docs/fee-settlement.md`: approved burn / equal-quote accounting.

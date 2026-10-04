@@ -17,6 +17,7 @@ const KYDOS = new PublicKey('GnWBA3sdhKYCAZt2TnBEQmFiF7mvP7ydzUyjcompioQE');
 const LOADER = new PublicKey('BPFLoaderUpgradeab1e11111111111111111111111');
 const DAMM = sdk.CP_AMM_PROGRAM_ID;
 const authority = Keypair.generate(), outsider = Keypair.generate();
+const dammAuthority = Keypair.generate().publicKey;
 const derived = seed => PublicKey.findProgramAddressSync([Buffer.from(seed)], KYDOS)[0];
 const route = derived('migration_route'), creator = derived('meteora_pool_creator');
 const programData = id => PublicKey.findProgramAddressSync([id.toBuffer()], LOADER)[0];
@@ -109,7 +110,7 @@ try {
     '--reset','--quiet','--ledger',join(dir,'ledger'),'--rpc-port','18899','--faucet-port','18901',
     '--gossip-port','18902','--dynamic-port-range','18910-18940','--bind-address','127.0.0.1',
     '--upgradeable-program',KYDOS.toBase58(),resolve('solana/target/deploy/kydos_launchpad.so'),authority.publicKey.toBase58(),
-    '--upgradeable-program',DAMM.toBase58(),fixtureBinary,'none',
+    '--upgradeable-program',DAMM.toBase58(),fixtureBinary,dammAuthority.toBase58(),
     '--account',route.toBase58(),prefund,
     ...fixtures.flatMap(f=>['--account',f.key.toBase58(),f.path]),
   ],{stdio:['ignore',logFd,logFd]});
@@ -123,6 +124,11 @@ try {
   }
   const loaderState=await connection.getAccountInfo(programData(KYDOS));
   assert.ok(loaderState?.data.subarray(13,45).equals(authority.publicKey.toBuffer()),'Unexpected local validator');
+  // Agave 2.1.21's CLI `none` writes Some(default), not a real None.
+  // Use a distinct explicit local authority; never relax the on-chain guard.
+  const dammLoader = await connection.getAccountInfo(programData(DAMM));
+  assert.equal(dammLoader.data[12],1);
+  assert.ok(dammLoader.data.subarray(13,45).equals(dammAuthority.toBuffer()),'Invalid local DAMM loader fixture');
   for (const signer of [authority,outsider]) {
     const signature=await connection.requestAirdrop(signer.publicKey,2_000_000_000);
     assert.equal((await confirmed(connection,signature)).meta.err,null,'Local airdrop failed');
@@ -145,7 +151,7 @@ try {
   const failed=await execute([ix(authority.publicKey,valid.key),SystemProgram.transfer({
     fromPubkey:authority.publicKey,toPubkey:outsider.publicKey,lamports:9_000_000_000,
   })],authority);
-  assert.equal(failed.err?.InstructionError?.[0],2,'Expected second business instruction to fail');
+  assert.equal(failed.err?.InstructionError?.[0],2,`Expected second business instruction to fail: ${JSON.stringify(failed.err)}\n${failed.logMessages?.join('\n')}`);
   assert.ok(failed.logMessages.some(l=>l===`Program ${KYDOS.toBase58()} success`),'Route installation did not succeed before forced failure');
   const rolledBack=await connection.getAccountInfo(route);
   assert.equal(rolledBack.owner.toBase58(),SystemProgram.programId.toBase58());

@@ -21,6 +21,7 @@ const D = sdk.CP_AMM_PROGRAM_ID;
 const LOADER = new PublicKey('BPFLoaderUpgradeab1e11111111111111111111111');
 const TREASURY = new PublicKey('5ZuV8eqkvzYFVEKbLvGBdexL2tFv7E5BCd2HZpjqbdg');
 const authority = Keypair.generate(), sponsor = Keypair.generate(), stranger = Keypair.generate();
+const dammAuthority = Keypair.generate().publicKey;
 const connection = new Connection('http://127.0.0.1:18899', 'confirmed');
 assert.equal(new URL(connection.rpcEndpoint).hostname, '127.0.0.1');
 const idl = JSON.parse(readFileSync('solana/target/idl/kydos_launchpad.json'));
@@ -111,7 +112,8 @@ async function source(label,byte,options={}) {
   const vault=pda(['vault',mint])[0];
   const solDonation=options.donations?7_000_000:0;
   const tokenDonation=options.donations?111_111n:0n;
-  const value={creator:sponsor.publicKey,mint,bump:curveBump,decimals:6,name:'Runtime',symbol:'TEST',metadataUri:'',
+  const recordedCreator=options.thirdParty?stranger.publicKey:sponsor.publicKey;
+  const value={creator:recordedCreator,mint,bump:curveBump,decimals:6,name:'Runtime',symbol:'TEST',metadataUri:'',
     totalSupply:bn(TOTAL),curveTokenAllocation:bn(793_100_000_000_000n),liquidityTokenAllocation:bn(A),
     virtualTokenReserves:bn(1_073_000_000_000_000n),virtualSolReserves:bn(30_000_000_000n),
     realTokenReserves:bn(options.incomplete?1n:0n),realSolReserves:bn(B),graduationTarget:bn(B),graduated:!options.incomplete};
@@ -134,7 +136,7 @@ async function source(label,byte,options={}) {
   if(options.occupied) fixture(a.pool,Buffer.from([1]),SystemProgram.programId,1_000_000);
   const userToken=getAssociatedTokenAddressSync(mint,sponsor.publicKey);
   fixture(userToken,tokenBytes(mint,sponsor.publicKey,1_000_000_000_000n),TOKEN_PROGRAM_ID);
-  const s={label,a,mint,curve,vault,feePolicy,userToken,sourceSol,sourceTokens,prefunds,quote:quoteSeedLiquidity(A,B)};
+  const s={label,a,mint,curve,vault,feePolicy,recordedCreator,userToken,sourceSol,sourceTokens,prefunds,quote:quoteSeedLiquidity(A,B)};
   sources.push(s);return s;
 }
 function accounts(s,edits={}) {
@@ -181,7 +183,7 @@ async function validateSuccess(s) {
   assert.equal(data.data.length,RECEIPT_SIZE);assert.ok(data.owner.equals(K));
   const r=program.coder.accounts.decode('migrationReceipt',data.data);
   for(const [field,value] of Object.entries({version:1,routeVersion:1,lockPolicy:1,settlementPolicyVersion:1})) assert.equal(r[field],value);
-  for(const [field,value] of Object.entries({curve:s.curve,mint:s.mint,creator:sponsor.publicKey,route,config,
+  for(const [field,value] of Object.entries({curve:s.curve,mint:s.mint,creator:s.recordedCreator,route,config,
     pool:s.a.pool,position:s.a.position,positionNftMint:s.a.positionNftMint,positionOwner:s.a.positionOwner,
     treasury:TREASURY,quoteMint:NATIVE_MINT})) assert.ok(r[field].equals(value),field);
   for(const [field,value] of Object.entries({tokenABudget:A,tokenBBudget:B,
@@ -219,7 +221,7 @@ try {
   assert.equal(configBytes.length,328);assert.equal(configBytes[202],1);assert.ok(configBytes.subarray(40,72).equals(creator.toBuffer()));
   fixture(config,configBytes,D);
   const clean=await source('clean lower mint',1);
-  const donated=await source('prefunded higher mint',254,{donations:true});
+  const donated=await source('prefunded higher mint',254,{donations:true,thirdParty:true});
   const bad=[await source('incomplete curve',2,{incomplete:true}),
     await source('missing tracked SOL',3,{underfunded:true}),await source('restored mint authority',4,{authority:true}),
     await source('missing migration tokens',5,{shortTokens:true}),await source('unreceipted occupied pool',6,{occupied:true}),
@@ -229,7 +231,7 @@ try {
   child=spawn('solana-test-validator',['--reset','--quiet','--ledger',join(dir,'ledger'),
     '--rpc-port','18899','--faucet-port','18901','--gossip-port','18902','--dynamic-port-range','18910-18940','--bind-address','127.0.0.1',
     '--upgradeable-program',K.toBase58(),resolve('solana/target/deploy/kydos_launchpad.so'),authority.publicKey.toBase58(),
-    '--upgradeable-program',D.toBase58(),binary,'none',...fixtures.flatMap(f=>['--account',f.key.toBase58(),f.path])],{stdio:['ignore',fd,fd]});
+    '--upgradeable-program',D.toBase58(),binary,dammAuthority.toBase58(),...fixtures.flatMap(f=>['--account',f.key.toBase58(),f.path])],{stdio:['ignore',fd,fd]});
   let spawnError;child.on('error',e=>{spawnError=e;});const deadline=Date.now()+120000;
   for(;;) {
     if(spawnError) throw spawnError;if(child.exitCode!==null) throw new Error('Validator exited');
@@ -237,6 +239,9 @@ try {
     try {await connection.getLatestBlockhash();break;}catch {await delay(500);}
   }
   assert.ok((await connection.getAccountInfo(pd(K))).data.subarray(13,45).equals(authority.publicKey.toBuffer()),'Wrong local validator');
+  const dammLoader=await connection.getAccountInfo(pd(D));
+  assert.equal(dammLoader.data[12],1);
+  assert.ok(dammLoader.data.subarray(13,45).equals(dammAuthority.toBuffer()),'Invalid DAMM loader fixture');
   for(const size of [82,165,CURVE_SIZE,RECEIPT_SIZE]) assert.equal(await connection.getMinimumBalanceForRentExemption(size),rent(size));
   const install=await program.methods.installMigrationRoute().accountsStrict({authority:authority.publicKey,kydosProgram:K,
     kydosProgramData:pd(K),dammProgram:D,dammProgramData:pd(D),config,route,systemProgram:SystemProgram.programId}).instruction();
@@ -250,9 +255,13 @@ try {
   const extra=await migrate(clean);extra.keys.push({pubkey:stranger.publicKey,isSigner:false,isWritable:false});
   await rejected('extra unapproved account',clean,extra);
   for(const units of [30_000,60_000]) await rejected(`compute exhaustion at ${units}`,clean,await migrate(clean),{units});
+  const fundingFailure=await rejected('setup budget exhausted after sponsor transfer',clean,await migrate(clean,5_000_000));
+  assert.ok(fundingFailure.meta.logMessages.filter(l=>l==='Program 11111111111111111111111111111111 success').length>=2);
+  const late=await rejected('compute exhaustion after DAMM pool creation',clean,await migrate(clean),{units:350_000});
+  assert.ok(late.meta.logMessages.includes(`Program ${D.toBase58()} success`),'DAMM creation must complete before this forced failure');
   const before=await snapshot(clean);
   const rollback=await execute([await migrate(clean),SystemProgram.transfer({fromPubkey:sponsor.publicKey,toPubkey:stranger.publicKey,lamports:50_000_000_000})]);
-  assert.ok(rollback.meta.logMessages.includes(`Program ${K.toBase58()} success`),'migration must succeed before injected transaction failure');
+  assert.ok(rollback.meta.logMessages.includes(`Program ${K.toBase58()} success`),`migration must succeed before injected transaction failure: ${JSON.stringify(rollback.meta.err)}\n${rollback.meta.logMessages?.join('\n')}`);
   assert.equal(rollback.meta.err?.InstructionError?.[0],3);
   assert.deepEqual(await snapshot(clean),before);
   pass('complete pool creation and permanent lock roll back with a later transaction failure');
@@ -273,7 +282,7 @@ try {
   for(const r of concurrent) assertSuccess(r,'concurrent graduation');
   assert.equal(concurrent.filter(r=>r.meta.logMessages.some(l=>l===`Program ${D.toBase58()} invoke [2]`)).length,1);
   await validateSuccess(donated);
-  pass('concurrent attempts seed only once; prefunding and source donations cannot enter principal or sponsor refunds');
+  pass('third-party concurrent attempts seed only once; prefunding and donations stay outside principal/refunds');
   const swap=await cp.methods.swap({amountIn:new BN(10_000_000),minimumAmountOut:new BN(1)}).accountsPartial({
     poolAuthority:clean.a.poolAuthority,pool:clean.a.pool,payer:sponsor.publicKey,inputTokenAccount:userQuote,
     outputTokenAccount:clean.userToken,tokenAVault:clean.a.tokenAVault,tokenBVault:clean.a.tokenBVault,
@@ -285,7 +294,7 @@ try {
   assertSuccess(await execute([await migrate(clean,0)]),'post-trade replay');
   assert.deepEqual(await snapshot(clean),traded);
   pass('replay succeeds after a real swap changes price and fee growth');
-  assert.ok(passes>=29,'Missing planned runtime cases');
+  assert.equal(passes,29,'Every planned runtime case must execute');
   console.log(`Graduation runtime checks passed: ${passes}; maximum signed packet ${maxPacket}/1232 bytes. Synthetic genesis, pinned executable only; no live provisioning or mainnet release approval.`);
 } catch(error) {
   console.error(readFileSync(logPath,'utf8').slice(-16000));throw error;
