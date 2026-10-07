@@ -11,11 +11,13 @@ import { Connection, PublicKey, Keypair, SystemProgram, ComputeBudgetProgram, Tr
 import { BorshAccountsCoder, Program } from '@coral-xyz/anchor';
 import BN from 'bn.js';
 import * as sdk from '@meteora-ag/cp-amm-sdk';
+import { confirmed } from './confirmed.mjs';
 
 const KYDOS = new PublicKey('GnWBA3sdhKYCAZt2TnBEQmFiF7mvP7ydzUyjcompioQE');
 const LOADER = new PublicKey('BPFLoaderUpgradeab1e11111111111111111111111');
 const DAMM = sdk.CP_AMM_PROGRAM_ID;
 const authority = Keypair.generate(), outsider = Keypair.generate();
+const dammAuthority = Keypair.generate().publicKey;
 const derived = seed => PublicKey.findProgramAddressSync([Buffer.from(seed)], KYDOS)[0];
 const route = derived('migration_route'), creator = derived('meteora_pool_creator');
 const programData = id => PublicKey.findProgramAddressSync([id.toBuffer()], LOADER)[0];
@@ -54,8 +56,6 @@ for (const [name,index,change] of [
   change(value);
   const data = await coder.encode('Config', value);
   assert.equal(data.length,328);
-  // The pinned IDL represents permission storage inside its reserved bytes.
-  // An unknown object property is ignored by the coder; mutate the actual u128.
   if (name === 'permissions') data[248] = 1;
   assert.equal(data.subarray(248,264).equals(Buffer.alloc(16)), name !== 'permissions');
   const key = sdk.deriveConfigAddress(new BN(index));
@@ -82,23 +82,15 @@ function ix(signer, config, edits={}) {
 }
 async function execute(instructions,signer) {
   const latest = await connection.getLatestBlockhash();
-  // Unique message even in the same block: a repeated install cannot be mistaken
-  // for a previously successful transaction with an identical signature.
   const tx = new Transaction({...latest,feePayer:signer.publicKey})
     .add(ComputeBudgetProgram.setComputeUnitLimit({units:400000+(++nonce)}),...instructions);
   tx.sign(signer);
   const signature = await connection.sendRawTransaction(tx.serialize(),{skipPreflight:true,maxRetries:2});
-  const result = await connection.confirmTransaction({...latest,signature},'confirmed');
-  let recorded;
-  for (let attempt=0; attempt<5; attempt++) {
-    recorded = await connection.getTransaction(signature,{commitment:'confirmed',maxSupportedTransactionVersion:0});
-    if (recorded?.meta) break;
-    await delay(200);
-  }
-  assert.ok(recorded?.meta, 'Missing confirmed transaction metadata');
-  assert.deepEqual(recorded.meta.err,result.value.err);
-  assert.ok(recorded.meta.logMessages?.some(l=>l.includes(`Program ${KYDOS.toBase58()} invoke`)), 'Kydos did not execute');
-  return recorded.meta;
+  // Some web3 websocket paths throw the expected InstructionError. HTTP status
+  // plus recorded metadata proves execution without swallowing that exception.
+  return (await confirmed(connection, signature, {
+    requiredProgram:KYDOS.toBase58(), lastValidBlockHeight:latest.lastValidBlockHeight,
+  })).meta;
 }
 const pass = text => {successes++; console.log(`PASS ${text}`);};
 async function rejectAndPreserve(name,instruction,signer) {
@@ -118,7 +110,7 @@ try {
     '--reset','--quiet','--ledger',join(dir,'ledger'),'--rpc-port','18899','--faucet-port','18901',
     '--gossip-port','18902','--dynamic-port-range','18910-18940','--bind-address','127.0.0.1',
     '--upgradeable-program',KYDOS.toBase58(),resolve('solana/target/deploy/kydos_launchpad.so'),authority.publicKey.toBase58(),
-    '--upgradeable-program',DAMM.toBase58(),fixtureBinary,'none',
+    '--upgradeable-program',DAMM.toBase58(),fixtureBinary,dammAuthority.toBase58(),
     '--account',route.toBase58(),prefund,
     ...fixtures.flatMap(f=>['--account',f.key.toBase58(),f.path]),
   ],{stdio:['ignore',logFd,logFd]});
@@ -130,10 +122,16 @@ try {
     if (Date.now()>deadline) throw new Error('Validator startup timeout');
     try {await connection.getLatestBlockhash();break;} catch {await delay(500);}
   }
+  const loaderState=await connection.getAccountInfo(programData(KYDOS));
+  assert.ok(loaderState?.data.subarray(13,45).equals(authority.publicKey.toBuffer()),'Unexpected local validator');
+  // Agave 2.1.21's CLI `none` writes Some(default), not a real None.
+  // Use a distinct explicit local authority; never relax the on-chain guard.
+  const dammLoader = await connection.getAccountInfo(programData(DAMM));
+  assert.equal(dammLoader.data[12],1);
+  assert.ok(dammLoader.data.subarray(13,45).equals(dammAuthority.toBuffer()),'Invalid local DAMM loader fixture');
   for (const signer of [authority,outsider]) {
     const signature=await connection.requestAirdrop(signer.publicKey,2_000_000_000);
-    const result=await connection.confirmTransaction({...await connection.getLatestBlockhash(),signature},'confirmed');
-    assert.equal(result.value.err,null,'Local airdrop failed');
+    assert.equal((await confirmed(connection,signature)).meta.err,null,'Local airdrop failed');
   }
   const program=new Program(idl,{connection});
   const generated=await program.methods.installMigrationRoute().accountsStrict({
@@ -153,7 +151,7 @@ try {
   const failed=await execute([ix(authority.publicKey,valid.key),SystemProgram.transfer({
     fromPubkey:authority.publicKey,toPubkey:outsider.publicKey,lamports:9_000_000_000,
   })],authority);
-  assert.equal(failed.err?.InstructionError?.[0],2,'Expected second business instruction to fail');
+  assert.equal(failed.err?.InstructionError?.[0],2,`Expected second business instruction to fail: ${JSON.stringify(failed.err)}\n${failed.logMessages?.join('\n')}`);
   assert.ok(failed.logMessages.some(l=>l===`Program ${KYDOS.toBase58()} success`),'Route installation did not succeed before forced failure');
   const rolledBack=await connection.getAccountInfo(route);
   assert.equal(rolledBack.owner.toBase58(),SystemProgram.programId.toBase58());
@@ -168,6 +166,7 @@ try {
   assert.equal(Buffer.from(decoded.configHash).toString('hex'),sha256(valid.data));
   assert.equal(decoded.creatorAuthority.toBase58(),creator.toBase58());
   assert.equal(decoded.installedBy.toBase58(),authority.publicKey.toBase58());
+  assert.equal(decoded.quoteMint.toBase58(),'So11111111111111111111111111111111111111112');
   assert.equal(decoded.treasury.toBase58(),'5ZuV8eqkvzYFVEKbLvGBdexL2tFv7E5BCd2HZpjqbdg');
   assert.equal(decoded.baseFeeBps,100); assert.equal(decoded.collectFeeMode,0);
   assert.equal(decoded.permanentLockPolicy,1); assert.equal(decoded.settlementPolicyVersion,1);
