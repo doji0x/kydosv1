@@ -1,98 +1,155 @@
-# Kydos DBC transition: SDK candidate milestone
+# Kydos DBC integration: executed lifecycle milestone
 
-## Selected direction and branch
+## Direction and preserved scope
 
-The owner selected Meteora DBC for NEW launches and requested a new branch.
-`codex/meteora-dbc-integration` starts at the owner's revert commit
-`111a75acc8c172b66bf8cedbc4af7eebe1f6a0b7`. Main was still at PR #34's merge
-`38ff3b3619ea1e11bd6d6576ba03a35eea0c1f8b` when the branch was created.
-Neither main nor the revert branch was modified. Do not restore PR #34, request
-a Kydos-specific protected DAMM config, or use the old graduation instruction
-as the active new-launch route.
+Continue `codex/meteora-dbc-integration`. The owner selected DBC for NEW launches;
+the branch is based on their revert `111a75acc8c172b66bf8cedbc4af7eebe1f6a0b7`.
+Resume source for this milestone: `71c8cd10d9e5c8461ddce185e898408e11d24461`.
+Do not restore PR #34, pursue Kydos-specific DAMM operator provisioning, modify
+main, or reinterpret existing custom-curve accounts as DBC accounts.
 
-New architecture: Kydos interface -> DBC launch/trading -> supported DAMM v2
-migration -> Kydos fee settlement. Existing coins remain on their existing
-accounts. Do not initialize an existing Kydos mint through DBC or run two curves
-for the same launch. No production frontend, program or IDL is changed here.
+New architecture: Kydos UI -> DBC creation/trading -> supported DAMM v2 migration
+-> Kydos fee settlement. This milestone changes only the isolated `solana/dbc`
+package, its CI and continuity documents. Existing program, IDL, root dependencies,
+frontend and legacy launch accounts are untouched. No paid deployment or public
+transaction is part of these tests.
 
-## Implemented in the first code commit
+## Completed: dependencies and exact nominal allocation
 
-Commit `5551734758cf79d0d3129e9f57def54935992894` adds an isolated `solana/dbc`
-package, SDK 1.5.13, fixed-policy candidate generation, normalized requirements
-checks, SDK-derived supply reports, an unsigned createConfig instruction test,
-and dedicated CI. No signer, RPC endpoint, deployed fee recipient or production
-configuration is added. Root dependencies are unchanged.
+The earlier interrupted workflow DID commit the reviewed npm lockfile at
+`71c8cd10d9e5c8461ddce185e898408e11d24461`. Its Git blob is
+`84c53d6dc45db9cdd88d86a6f8b5d7a2a2f7d039`. This milestone preserves that file,
+removes both temporary lock bootstrap and CI repository-write permission, and
+uses `npm ci` exclusively. The CI no longer uploads dependency bundles or pushes
+commits. SDK stays 1.5.13; Node 22.16.0; no SDK or transitive dependency change.
 
-The candidate targets initial supply 1B at six decimals, nominal curve 793.1M,
-gross migration allocation 206.9M, and the prior candidate threshold
-85.005359057 SOL. Bonding fee: 100 bps, quote collection, no dynamic fee and
-creatorTradingFeePercentage=0 (the preexisting bonding-phase partner-revenue
-intent, not the later creator entitlement). Migrated pool: 100 bps, output-token
-collection, no dynamic fee/compounding. No extra creation or migration charge.
-All candidate liquidity is partner-permanently-locked. The eventual partner
-fee owner must be an IMPLEMENTED program that burns its base fee receipts and
-pays net quote 50% recorded creator / 50% Kydos, not an unrestricted LP wallet.
-This candidate does not assign fee rights to a production PDA.
+The first percentage-helper candidate had a nominal allocation discrepancy:
+11.482252 fewer curve tokens, 2.375678 more migration tokens and 9.106574 remainder.
+`exact-curve.mjs` now inverts the SDK's actual finite-range integer migration
+function rather than approximating its opening price with the reserve ratio.
+A second bounded integer search solves the lower curve price and liquidity for
+the exact quote threshold and nominal curve amount. No tolerances are widened.
 
-## Actual SDK result: exact allocation is not yet resolved
+Only `sqrtStartPrice` and `curve` change from the SDK-built candidate. All fee,
+lock, authority, supply and vesting settings remain unchanged. The resulting
+single segment ends at its migration price; its buffer capacity is exactly the
+approved curve allocation, so it does not require an additional supply buffer.
+Each result is independently recomputed with SDK helpers and rejected unless
+all nominal quantities are exact. DBC config creation also accepted these values
+when executed against the pinned program, not merely the JavaScript validator.
 
-CI run `37657033302`, artifact `11499375871`, executed the official SDK and passed
-39 tests (29 policy tests and 10 SDK tests). Unsigned config construction passed
-with RPC calls prohibited. SDK validation is not runtime program validation.
-
-The generated report, in raw units with 1,000,000 units per token, recorded:
-
-| Field | SDK result | Requested |
+| Quantity | Raw units | Human units |
 | --- | --- | --- |
-| Initial supply | 1000000000000000 | 1000000000000000 |
-| Nominal curve amount | 793099988517748 | 793100000000000 |
-| Gross migration amount | 206900002375678 | 206900000000000 |
-| Remainder at nominal threshold | 9106574 | Not yet reconciled |
-| Minimum supply with buffer | 1000000000000000 | 1000000000000000 |
+| Initial and configured post-migration supply | 1000000000000000 | 1B tokens |
+| Nominal curve allocation | 793100000000000 | 793.1M tokens |
+| Gross migration threshold | 206900000000000 | 206.9M tokens |
+| Quote graduation threshold | 85005359057 | 85.005359057 SOL |
+| Minimum supply with buffer | 1000000000000000 | 1B tokens |
+| Unallocated nominal supply | 0 | 0 tokens |
 
-That is 11.482252 fewer curve tokens, 2.375678 more gross migration tokens and
-9.106574 tokens outside those two nominal amounts. No extra initial issuance is
-introduced by this SDK candidate. These are calculated values, NOT observed
-balances after real buys, sells or graduation. The strict requirements checker
-reports mismatch; no tolerance was widened to make it pass.
+Resulting sqrt start price: `97542788885440377`; migration sqrt price:
+`373906170871547102`; curve liquidity: `104665909691083263283300748933251`.
+These are integer SDK/program parameters, not price or return guarantees.
 
-The nominal report can be generated with `node inspect.mjs` after installing the
-isolated package. It always returns releaseReady=false. An illustrative 20-bps
-protocol migration deduction is labeled as an assumption and is not evidence of
-actual protocol collection or a Kydos burn.
+## Policy retained
 
-## Dependency and test status
+Original SPL mint, six decimals, immutable metadata setting, no retained mint or
+freeze authority. Bonding fee: 100 bps, quote-only, no dynamic fee,
+creatorTradingFeePercentage=0 for the bonding-phase partner allocation.
+Migrated pool: 100 bps, DBC OutputToken mapped to DAMM BothToken, no dynamic fee
+or compounding. No additional creation/migration charge. Partner position:
+100% permanently locked; no discretionary creator or treasury LP allocation.
+The intended post-migration quote entitlement remains 50% creator / 50% Kydos,
+and all launch-controlled base fees are to be burned by the future controller.
 
-The initial CI job resolved published npm packages, ran npm ci, executed SDK tests
-and uploaded the generated package-lock plus public dependencies. Transitive lock
-finalization is still open: the exact generated lockfile has not been committed,
-and the temporary bootstrap must be removed before merge/reproducibility approval.
-No manually reconstructed lockfile is approved. The SDK source revision reviewed
-was `a28b7239e71899eb52ff7aacac4dec90441885c4`; npm version identity is not a proof
-of full source/tarball or deployed-binary equivalence.
+## Executed local lifecycle, not just instruction construction
 
-## Next executable acceptance milestone
+`npm run test:runtime` loads public pinned DBC, DAMM and Metaplex executables
+into a disposable Agave 2.1.21 validator on fixed loopback port 18899. It rejects
+other RPC endpoints, checks exact bytecode hashes, uses generated test wallets,
+and never reads a production wallet or submits to mainnet/devnet. The legacy
+Kydos program is deliberately NOT loaded. Temporary ledgers are cleaned up.
 
-Finalize the lockfile, reconcile nominal allocations through actual SDK/program
-math, and run a complete isolated DBC lifecycle: config creation, mint creation,
-buys, sells, final threshold crossing, DAMM migration and post-migration swap.
-Measure exact mint supply, final-buy overshoot/rounding, surplus, protocol base
-and quote deductions, net deposits, permanently locked amount and fee owner.
-Do not claim exact allocation or change supply based solely on a percentage input.
+Synthetic genesis includes funded test wallets and a DBC-authorized dynamic DAMM
+configuration at the SDK's published route address. This is a local dependency
+fixture, NOT production provisioning or proof of the mainnet configuration.
+The fee beneficiary is an ephemeral wallet, NOT an implemented Kydos settlement
+PDA. This distinction remains an explicit release blocker.
 
-Then implement authenticated creator registration, app routing/indexing, and a
-fee controller with actual claims, base burns and equal quote payouts. DBC's
-creator can be transferable; do not let that silently redirect an entitlement
-promised to the originally recorded creator. Production launches remain gated
-until the fee owner can actually claim and enforce the policy.
+Two paths execute: buy -> partial-fill completion, and buy -> sell -> partial-fill
+completion. Both create the config and mint, migrate, verify the exact deposited
+balances and full liquidity lock, then execute a DAMM buy and sell to verify
+output-asset fee accrual. Twenty-nine named assertion groups cover these paths,
+negative transactions and rollback. The run submits 28 isolated transactions.
 
-No DBC config, pool, public-network transaction, paid upgrade, token launch,
-keeper, base burn or payout was performed. Existing Kydos code may remain for
-legacy compatibility, but DBC is the selected engine for new launches.
+Rejected executed cases include insufficient configured supply, premature
+migration, impossible slippage, oversized exact-input final buys, missing protocol
+flash-rent reserve and duplicate migration. A deliberately failing instruction
+AFTER successful DBC migration proves rollback of the pool, positions, source
+vaults and migration state. A rejected submission is counted only after executed
+transaction metadata confirms the program invocation and failure.
 
-## Primary references
+The pinned DBC program requires its global pool-authority account to have a
+flash-rent reserve. The test first proves safe failure without it, then funds
+1 SOL only in the local ledger. Successful migration reimburses the reserve
+from the sponsor; token liquidity principal is not used for rent. Production
+must inspect the existing protocol reserve, not blindly fund it.
 
+## Nominal allocation versus actual trade rounding
+
+Both tested paths kept initial mint supply exactly 1B. At completion, measured
+circulation was `793099999999999` raw units (793099999.999999 tokens), leaving
+`206900000000001` in the base vault: ONE raw base unit of swap rounding, not the
+old multi-token configuration discrepancy. Quote reserves exceeded the threshold
+by ONE lamport. These residuals are explicitly reported, not silently assigned
+to a recipient or counted as a burn. Different trade paths require further testing.
+
+Observed protocol migration rate: 20 bps. Actual deductions and deposits:
+
+| Field | Raw amount |
+| --- | --- |
+| Protocol base migration fee | 413799999722 |
+| Protocol quote migration fee | 170010718 |
+| Net base deposited into DAMM | 206486200000278 |
+| Net quote deposited into DAMM | 84835348339 |
+
+Fees retained in the DBC vaults, surplus and the one-unit base residual are kept
+separate from the AMM deposits. Gross source amounts equal deposits plus residual
+vault amounts. Initial and post-migration mint supply are unchanged; no Kydos
+fee burn or quote payout occurred. The initial DAMM position has zero unlocked
+and zero vested liquidity; all pool liquidity equals its permanently locked
+liquidity. Its NFT belongs to the explicit ephemeral test beneficiary.
+
+Local measurements: 174199 and 166699 migration compute units; maximum packet
+1196 bytes, below 1232. These are fixture measurements, not a mainnet cost quote.
+Duplicate raw DBC migration REJECTS without moving reserves. It is not an
+idempotent success API; the future worker must inspect migration progress first.
+Oversized final ExactIn fails on the finite range. The future client must use
+quoted PartialFill (with real slippage protection) and reconcile unspent input.
+
+## Evidence and remaining work
+
+Passing locally: 46 policy/SDK/confirmation tests; 29 executed lifecycle cases;
+syntax checks. The final changed runtime ran twice successfully. The dedicated
+CI repeats installation from the committed lock, helper tests, exact report and
+all executed lifecycle assertions, then checks no tracked files were modified.
+It retains JSON reports and logs. Exact delivery-SHA CI must be inspected after
+commit; earlier green runs are not evidence for this revision.
+
+Still NOT implemented: production config creation, Kydos creator registration,
+fee-controller PDA and authenticated claims/base burns/equal quote payouts,
+frontend/indexer routing, keeper recovery, and deployed-source compatibility.
+No production fee rights should be assigned to a controller that cannot claim.
+The local test wallet is not an approved production custody shortcut. Existing
+Kydos coins remain legacy; no importer, second curve or account migration exists.
+
+## Primary references and source pins
+
+- SDK 1.5.13; reviewed source `a28b7239e71899eb52ff7aacac4dec90441885c4`.
 - https://docs.meteora.ag/developer-guides/dbc/typescript-sdk/reference
-- https://docs.meteora.ag/core-products/dbc/accounts-and-permissions
-- https://docs.meteora.ag/core-products/dbc/fees/overview
-- https://github.com/MeteoraAg/dynamic-bonding-curve-sdk/blob/a28b7239e71899eb52ff7aacac4dec90441885c4/packages/dynamic-bonding-curve/src/helpers/buildCurve.ts
+- https://docs.meteora.ag/core-products/dbc/migration-and-liquidity
+- https://solana.com/docs/rpc/http/getsignaturestatuses
+- DBC flash rent source: https://github.com/MeteoraAg/dynamic-bonding-curve/blob/f552f20aa3c1c7631427c3827aeea7c58b902813/programs/dynamic-bonding-curve/src/instructions/migration/flash_rent.rs
+- Exact fixture Git and SHA256 identities are enforced by runtime-support.mjs
+  and included in every lifecycle-report.json. Fixture execution is not a proof
+  that current mainnet bytecode equals those binaries or an independent audit.

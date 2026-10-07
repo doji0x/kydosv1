@@ -1,34 +1,43 @@
 # Astra continuity checkpoint
 
-## Active task: Meteora DBC integration
+## Active branch: codex/meteora-dbc-integration
 
-Owner selected DBC for NEW launches and explicitly requested a new branch.
-Continue `codex/meteora-dbc-integration`, based on the owner's revert
-`111a75acc8c172b66bf8cedbc4af7eebe1f6a0b7`. At branch creation main was still
-`38ff3b3619ea1e11bd6d6576ba03a35eea0c1f8b`. Do not resume protected-DAMM operator
-provisioning, restore PR #34, merge the revert, or overwrite unrelated work.
+Continue the SAME DBC branch. Resume source:
+`71c8cd10d9e5c8461ddce185e898408e11d24461`. Based on owner's PR #34 revert
+`111a75acc8c172b66bf8cedbc4af7eebe1f6a0b7`. Do not resume protected-DAMM operator
+provisioning, restore custom graduation, change main, or move legacy accounts.
 
-First code commit: `5551734758cf79d0d3129e9f57def54935992894`.
-Isolated solana/dbc package uses official SDK 1.5.13, builds a candidate and
-checks actual calculated supply plus unsigned config instruction construction.
-Root dependencies, program/IDL and production launch client remain unchanged.
+The interrupted task had saved the real npm lock. It is now retained unchanged;
+CI lock bootstrap/self-write jobs and dependency bundle uploads are removed.
+Only isolated solana/dbc code, its workflow and continuity docs change. Existing
+Kydos program/IDL, launch client, root dependencies and supply policy are untouched.
 
-CI run 37657033302 passed 39 offline tests and candidate generation. Artifact
-11499375871 contains npm-generated lockfile, test results, report and public
-SDK dependencies. No RPC is permitted in the unsigned config test. The compiler
-and validator suites for the legacy program were not rerun as part of this proof.
+## Delivered and verified locally
 
-Actual SDK nominal result: initial 1000000000000000; curve 793099988517748;
-gross migration 206900002375678; remainder 9106574 raw base units. Buffer minimum
-fits initial supply, but exact 793.1M/206.9M allocation does NOT match. Strict
-checks report this mismatch; no tolerance or supply change was authorized.
+- Integer reconciliation fixes the finite-range percentage-helper discrepancy.
+  Actual SDK AND executed DBC config now accept nominal 793.1M / 206.9M, 1B
+  supply, no extra issuance, unchanged 85.005359057 SOL threshold and fee policy.
+- 46 policy/SDK/confirmation tests and syntax checks pass.
+- 29 executed lifecycle cases pass: actual config + SPL mint creation, buys,
+  sell, partial-fill threshold crossing, DAMM migration, full permanent lock,
+  fee-owner verification, post-migration swaps, rejected duplicate and rollback
+  after successful migration. Two independent paths; 28 local transactions.
+- Final trade rounding leaves one raw base unit (0.000001 token) and one lamport
+  surplus in BOTH tested paths. Nominal allocation checks remain exact. Reports
+  separate protocol migration fees, net deposits, trading fees and residuals.
+- Agave 2.1.21, SDK 1.5.13 and existing lock. Pinned real public program binaries;
+  synthetic genesis DAMM config. Fixed loopback only. No Kydos program loaded.
 
-Next: finalize the real generated package lock and remove CI bootstrap; reconcile
-allocation using executed DBC math, then run create/trade/graduate/post-swap against
-pinned local programs. This milestone does not execute DBC or implement a fee
-controller. Do not assign production fee rights to an unimplemented PDA.
+## Limits and next action
 
-Design/evidence: docs/dbc-transition.md. Old protected-route task notes are
-historical, not active instructions. No mainnet/devnet transaction, paid upgrade,
-config, token, pool, claim, burn or payout. Final SHA and exact-head CI belong
-in chat, not in a recursive commit containing its own SHA.
+Inspect exact-head DBC CI and review the bounded milestone. Reports/logs are
+retained by the normal workflow. No live DBC configuration, production fee
+controller, UI/indexer integration or keeper exists yet. Fee owner is an ephemeral
+local TEST wallet, not proof of program-enforced creator rights or base burns.
+Next implement authenticated creator mapping and a usable fee-controller PDA,
+then app/keeper integration. Do not assign production rights to an unimplemented
+PDA or use a wallet as a production bypass. Current binary/deployment and config
+compatibility remain release requirements. No paid upgrade or public transaction.
+
+Details and measurements: docs/dbc-transition.md. Final commit SHA and post-edit CI
+belong in the chat/PR handoff, not a recursive commit with this file's own SHA.

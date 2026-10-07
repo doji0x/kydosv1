@@ -14,6 +14,7 @@ import {
   DammV2DynamicFeeMode, DammV2BaseFeeMode,
 } from '@meteora-ag/dynamic-bonding-curve-sdk';
 import { DBC_REQUIREMENTS as R, checkSupplyAccounting } from './policy.mjs';
+import { reconcileNominalCurve } from './exact-curve.mjs';
 
 export const SDK_VERSION = '1.5.13';
 export const REVIEWED_SDK_REVISION = 'a28b7239e71899eb52ff7aacac4dec90441885c4';
@@ -57,7 +58,7 @@ export function candidateInputs() {
 }
 
 export function buildCandidateParameters() {
-  return precise(() => buildCurve(candidateInputs()));
+  return precise(() => reconcileNominalCurve(buildCurve(candidateInputs())));
 }
 
 /**
@@ -68,7 +69,7 @@ export function buildCandidateParameters() {
  */
 export function inspectCandidate() {
   return precise(() => {
-    const parameters = buildCurve(candidateInputs());
+    const parameters = reconcileNominalCurve(buildCurve(candidateInputs()));
     const placeholder = new PublicKey(new Uint8Array(32).fill(9));
     validateConfigParameters({ ...parameters, leftoverReceiver: placeholder });
     const migrationSqrtPrice = getMigrationThresholdPrice(parameters.migrationQuoteThreshold,
@@ -93,7 +94,7 @@ export function inspectCandidate() {
     const deltaMigration = supply.grossMigrationAllocationRaw - R.grossMigrationAllocationRaw;
     const remainder = initial - supply.nominalCurveAllocationRaw - supply.grossMigrationAllocationRaw;
     const report = {
-      schemaVersion: 1, sdkVersion: SDK_VERSION, reviewedSdkRevision: REVIEWED_SDK_REVISION,
+      schemaVersion: 2, reconciliation: 'INTEGER_FINITE_RANGE_NOMINAL', sdkVersion: SDK_VERSION, reviewedSdkRevision: REVIEWED_SDK_REVISION,
       evidence: 'OFFLINE_SDK_CALCULATION_AND_VALIDATION', decimalPrecision: CANDIDATE_PRECISION,
       sdkValidationPassed: true, onChainValidationPassed: false, releaseReady: false,
       initialSupplyRaw: initial.toString(),

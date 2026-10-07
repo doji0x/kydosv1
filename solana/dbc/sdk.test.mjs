@@ -67,7 +67,10 @@ test('allocation acceptance is computed from SDK output, never a copied success 
   const outcome = checkSupplyAccounting({ initialSupplyRaw:r.initialSupplyRaw,
     nominalCurveAllocationRaw:r.nominalCurveAllocationRaw, grossMigrationAllocationRaw:r.grossMigrationAllocationRaw,
     extraInitialIssuanceRaw:r.extraInitialIssuanceRaw });
-  assert.equal(r.exactRequestedAllocationsMatch, outcome.accountingMatches);
+  assert.equal(outcome.accountingMatches, true);
+  assert.equal(r.exactRequestedAllocationsMatch, true);
+  assert.equal(r.unallocatedAtNominalThresholdRaw, '0');
+  assert.equal(r.minimumSupplyWithBufferRaw, R.totalSupplyRaw.toString());
   assert.deepEqual(r.accountingErrors, [...outcome.errors]);
   assert.equal(BigInt(r.curveAllocationDeltaRaw), BigInt(r.nominalCurveAllocationRaw) - R.nominalCurveAllocationRaw);
   assert.equal(BigInt(r.migrationAllocationDeltaRaw), BigInt(r.grossMigrationAllocationRaw) - R.grossMigrationAllocationRaw);
@@ -104,4 +107,18 @@ test('configuration transaction builds unsigned without any RPC or Kydos instruc
   const decoded = client.partner.program.coder.instruction.decode(tx.instructions[0].data);
   assert.equal(decoded.name.replaceAll('_','').toLowerCase(),'createconfig');
   assert.ok(tx.instructions[0].data.length > 8);
+});
+
+ test('integer reconciliation preserves every non-curve SDK policy field', async () => {
+  const { buildCurve } = await import('@meteora-ag/dynamic-bonding-curve-sdk');
+  const { reconcileNominalCurve } = await import('./exact-curve.mjs');
+  const original = buildCurve(candidateInputs());
+  const before = toPlain(original);
+  const exact = toPlain(reconcileNominalCurve(original));
+  assert.deepEqual(toPlain(original), before, 'must not mutate input parameters');
+  for (const key of Object.keys(before)) if (!['sqrtStartPrice','curve'].includes(key)) {
+    assert.deepEqual(exact[key], before[key], key);
+  }
+  assert.equal(exact.curve.length, 1);
+  assert.throws(() => reconcileNominalCurve({...original, migrationFee:{feePercentage:1}}), /Unsupported/);
 });
