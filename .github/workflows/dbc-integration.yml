@@ -1,0 +1,48 @@
+name: DBC SDK integration proof
+on:
+  push:
+    branches: [codex/meteora-dbc-integration]
+    paths: ['solana/dbc/**', '.github/workflows/dbc-integration.yml']
+  pull_request:
+    paths: ['solana/dbc/**', '.github/workflows/dbc-integration.yml']
+permissions:
+  contents: read
+jobs:
+  sdk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: solana/dbc
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: 22.16.0}
+      - name: Bootstrap isolated lockfile for review
+        run: |
+          if [ ! -f package-lock.json ]; then
+            npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          fi
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm run check
+      - name: Execute policy and actual SDK tests
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee sdk-test-results.txt
+      - name: Capture real SDK configuration and accounting report
+        if: ${{ !cancelled() }}
+        run: node inspect.mjs > candidate-report.json
+      - name: Preserve public dependencies for offline reproduction
+        if: ${{ !cancelled() }}
+        run: tar -czf sdk-dependencies.tar.gz node_modules
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: dbc-sdk-proof
+          retention-days: 3
+          path: |
+            solana/dbc/package-lock.json
+            solana/dbc/candidate-report.json
+            solana/dbc/sdk-test-results.txt
+            solana/dbc/sdk-dependencies.tar.gz

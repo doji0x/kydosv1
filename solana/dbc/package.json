@@ -1,0 +1,22 @@
+{
+  "name": "@kydos/dbc-integration-proof",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22.16.0 <23" },
+  "scripts": {
+    "test": "node --test policy.test.mjs sdk.test.mjs",
+    "test:policy": "node --test policy.test.mjs",
+    "check": "node --check candidate.mjs && node --check inspect.mjs && node --check sdk.test.mjs",
+    "inspect": "node inspect.mjs"
+  },
+  "dependencies": {
+    "@meteora-ag/dynamic-bonding-curve-sdk": "1.5.13",
+    "@coral-xyz/anchor": "0.31.1",
+    "@solana/web3.js": "1.98.4",
+    "@solana/spl-token": "0.4.13",
+    "bn.js": "5.2.1",
+    "decimal.js": "10.6.0"
+  },
+  "devDependencies": { "typescript": "5.8.2" }
+}
