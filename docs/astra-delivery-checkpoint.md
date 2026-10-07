@@ -1,52 +1,54 @@
 # Astra continuity checkpoint
 
-## Current delivery: repaired atomic protected graduation
+Current design: [protected-migration.md](protected-migration.md).
 
-Continue PR #34 on **codex/atomic-protected-graduation**. Do not create another
-branch. Repair source: `8755fb2214bd818267852a4597729dfbe2bd16e4`;
-base: `c0038ce424bd4cc54af046d7b7f691b8d8b4aba4` (merged PR #33).
-Design and outstanding operator request: [protected-migration.md](protected-migration.md).
+## Current delivery - protected-route installation
 
-The atomic migration now executes locally: tracked reserves -> protected DAMM
-pool creation -> verified full permanent lock -> cleanup -> receipt. Retry and
-concurrent execution cannot seed twice; replay works after a real pool swap.
-This is not fee-settlement or deployment approval.
+- PR #32 merged at `63b2f51a6e2fb173326e9aa9c384ac2abf375e5a`.
+  Continue only PR #33 on `codex/protected-route-installation` from that base.
+- Installer source: `cc5e4c996a02a25a917de8b8d13924fb830d8c2f`.
+  Compiler-IDL / runtime-fixture correction: `4d40883a06fdb4ccf35d993de1ca43bd43235b16`.
+- Added actual `install_migration_route`, restricted to the current authenticated
+  Kydos loader-v3 upgrade authority. One-time route binds config fingerprint,
+  canonical program/ProgramData, DAMM deployment slot and fixed fee/lock policy.
+  Added a reusable guard for future migration; no update, close or sweep.
+- Existing program ID, initialize/buy/sell, Curve/FeePolicy layouts, original
+  instruction definitions/errors, curve math, 793.1M/206.9M allocation and
+  settlement arithmetic are preserved. New IDL entries are additive.
+- Four new Rust host tests compiled/passed and the SBF build/IDL generation
+  succeeded in Anchor run 37157451897. Original full runtime attempt found an
+  invalid negative-test fixture: its unknown `permission` property was ignored
+  by the pinned coder. Corrected actual encoded permission bytes at offset 248.
+  Program validation was not weakened. Fourteen executed cases are now required.
+- Downloaded compiler artifact 11286800097 from that run, normalized the generated
+  type helper and compared every old IDL entry. Checked-in IDL blob:
+  `df514227a2853d4810e5588291161509492d92e5`; SHA256:
+  `4550206550e25eb408f11af711eb0bd6841a46cd2d5b9b0506703c7d38363776`.
+  The strict fresh-build IDL comparison is still enabled.
+- Corrected-head runtime/build/IDL checks require fresh CI. Inspect final delivery
+  checks rather than treating the original build or synthetic fixtures as a full
+  runtime pass. Local environment has Node but no Rust/Anchor/validator toolchain.
 
-## Repairs
+## Mainnet observation now resolved
 
-- Agave 2.1.21's CLI `none` test fixture produced `Some(default_pubkey)` rather
-  than `None`. Both harnesses now use a distinct ephemeral DAMM authority and
-  verify its actual loader bytes. Production authority validation was not relaxed.
-- Split the oversized migration into bounded non-inlined SBF frames. The pinned
-  compiler returned success despite stack-overwrite diagnostics. A tested CI
-  gate now rejects those diagnostics; the repaired build has none.
-- Synchronize both sides of direct Curve lamport transfers at the following CPI,
-  fixing the executed `UnbalancedInstruction` error without changing budgets.
-- Restore the exact original source newline convention. Regenerate the browser
-  IDL from current-source Anchor IDL compilation; all old definitions remain.
-- Remove temporary diagnostic workflow/tool packaging. Retain normal compiler
-  and runtime logs in the Solana Anchor workflow.
+Read-only run 37156192684, job 111299944380, 2026-10-03T21:45Z, observed declared
+Kydos program executable and upgradeable at slot 453058242. Deployment slot:
+450014937. ProgramData: `HkAvMhKsTaB99iniJ9vqpZJ86Nm2Csu5Mm63tU2VwVQk`.
+Recorded upgrade authority: `6AK3h1s6byYRaDjNue8rMV1nqu8Q94AawPVVwNk7Phqc`.
+Creator PDA: `3tGjXG9oGyRDS3ppv1QsCNvYgr5XtAizKe75XcyHxuAd`.
+No protected config candidate was found by that pinned-layout scan.
+This is observation, NOT proof of signer control, source/binary parity,
+independent genesis pinning, or release readiness. Never hardcode the observed
+wallet as a substitute for the installer's current loader-state validation.
 
-## Verification
+## Next action / limits
 
-Local tools: Node 22.16.0, Agave 2.1.21, platform-tools v1.43, Rust 1.90.0.
-Executed route cases: 14/14. Executed graduation cases: 29/29. Solana JS: 142/142
-(including four build-diagnostic tests); confirmation harness: 6/6; Rust suites:
-35 tests; app lint/build and five market tests pass. Current-source IDL generation
-and browser comparison pass. Removing only the approved dispatch additions from
-lib.rs gives original blob `be9d9f83440eb737ed5e55ef07fefd78993709ee` exactly.
-
-Clean-fixture migration: 365748 CU, 26928240 setup lamports excluding network fees,
-256 KiB requested heap. Largest signed packet tested: 1141/1232 bytes. These are
-local measurements using synthetic genesis and pinned public DAMM bytecode, not
-mainnet cost quotes or source/binary verification. Resulting commit and exact-head
-CI state belong in PR/chat; do not reuse older green checks as new-head evidence.
-
-## Next action and release limits
-
-Review the repaired diff and exact-head CI. Actual mainnet configuration,
-upgrade-authority control, cluster identity and deployed-source parity remain
-release prerequisites. Last recorded scan found no matching config; no new
-public observation or operator request was submitted by this repair. No mainnet
-transaction, paid upgrade, installation, live migration, claim, burn or payout.
-Fee settlement and frontend/keeper rollout remain separate work.
+Review corrected-head runtime tests and IDL matching in draft PR #33. Obtain and
+independently verify an authorized Meteora configuration before any live install.
+Then implement complete atomic migration, full post-CPI validation, 100% initial
+liquidity lock and successful receipt/replay. Real migration remains unfinished.
+No mainnet route install, operator request submission, migration, pool, lock,
+receipt, claim, burn, payout, paid transaction or deployment was performed.
+A changed DAMM deployment/config must fail the future fresh-migration guard;
+route-version recovery requires separate review, not a generic reset function.
+Resulting delivery SHA and fresh CI belong in chat/PR, not a recursive self-SHA.
