@@ -15,6 +15,8 @@ pub mod math;
 pub mod fees;
 pub mod meteora;
 pub mod migration;
+pub mod dbc_fees;
+use dbc_fees::*;
 pub mod protected_migration;
 use protected_migration::*;
 
@@ -37,6 +39,18 @@ pub mod kydos_launchpad {
 
     pub fn install_migration_route(ctx: Context<InstallMigrationRoute>) -> Result<()> {
         protected_migration::install(ctx)
+    }
+
+    pub fn launch_dbc(ctx: Context<LaunchDbc>, metadata: DbcMetadata) -> Result<()> {
+        dbc_fees::launch(ctx, metadata)
+    }
+
+    pub fn settle_damm_fees(ctx: Context<SettleDammFees>) -> Result<()> {
+        dbc_fees::settle(ctx)
+    }
+
+    pub fn claim_dbc_fees(ctx: Context<ClaimDbcFees>) -> Result<()> {
+        dbc_fees::claim_bonding(ctx)
     }
 
     pub fn initialize(

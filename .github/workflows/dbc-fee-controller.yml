@@ -1,0 +1,96 @@
+name: DBC fee controller
+on:
+  push:
+    branches: [codex/meteora-dbc-integration]
+    paths: ['solana/programs/**','solana/dbc/**','solana/Cargo.*','src/lib/solana/idl/**','solana/scripts/protected-migration/compatibility.mjs','.github/workflows/dbc-fee-controller.yml']
+  pull_request:
+    paths: ['solana/programs/**','solana/dbc/**','solana/Cargo.*','src/lib/solana/idl/**','solana/scripts/protected-migration/compatibility.mjs','.github/workflows/dbc-fee-controller.yml']
+permissions:
+  contents: read
+jobs:
+  controller:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false, fetch-depth: 0}
+      - uses: actions/setup-node@v4
+        with: {node-version: 22.16.0}
+      - uses: dtolnay/rust-toolchain@1.90.0
+      - uses: swatinem/rust-cache@v2
+        with: {workspaces: solana}
+      - name: Install the unchanged isolated SDK lock
+        run: npm --prefix solana/dbc ci --ignore-scripts --no-audit --no-fund
+      - name: Rust accounting, policy fingerprint and existing account tests
+        working-directory: solana
+        run: |
+          cargo test --workspace --lib --locked
+          cargo test -p kydos_launchpad --test account_validation --test meteora_adapter --locked
+      - name: Install pinned Agave
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 2 --max-time 60 https://release.anza.xyz/v2.1.21/install -o "$RUNNER_TEMP/agave-install.sh"
+          sh "$RUNNER_TEMP/agave-install.sh"
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
+      - name: Build the existing Kydos program and reject stack overruns
+        id: sbf
+        working-directory: solana
+        run: |
+          set -euo pipefail
+          mkdir -p target
+          cargo build-sbf --manifest-path programs/kydos_launchpad/Cargo.toml -- --locked 2>&1 | tee target/dbc-controller-build.log
+          if grep -E -i 'Stack offset.*exceeded|stack frame.*exceed|stack overrun' target/dbc-controller-build.log; then exit 1; fi
+      - name: Generate interface from actual compiled source
+        id: idl
+        working-directory: solana
+        run: cargo run -p kydos_launchpad --example export_dbc_idl --features idl-build --locked
+      - name: Preserve generated browser interface without rewriting source
+        working-directory: solana/dbc
+        run: |
+          node --input-type=module <<'JS'
+          import {readFileSync,writeFileSync} from 'node:fs';
+          import {Program} from '@coral-xyz/anchor';
+          import {Connection} from '@solana/web3.js';
+          const raw=JSON.parse(readFileSync('../target/idl/kydos_launchpad.json'));
+          const idl=new Program(raw,{connection:new Connection('http://127.0.0.1:1')}).idl;
+          writeFileSync('../target/idl/kydos_launchpad.browser.json',JSON.stringify(idl,null,2)+'\n');
+          JS
+      - name: Fetch exact tested Meteora program binaries
+        working-directory: solana/dbc
+        run: |
+          set -euo pipefail
+          mkdir -p runtime/fixtures
+          base=https://raw.githubusercontent.com/MeteoraAg/dynamic-bonding-curve-sdk/a28b7239e71899eb52ff7aacac4dec90441885c4/packages/dynamic-bonding-curve/tests/fixtures
+          while read -r hash name; do
+            curl --fail --location --retry 2 --max-time 60 "$base/$name" -o "runtime/fixtures/$name"
+            test "$(git hash-object "runtime/fixtures/$name")" = "$hash"
+          done <<'PINS'
+          7fd83fbd3553fce004fb7af73ec230aa6d0a3360 dynamic_bonding_curve.so
+          946562cfc35b978dbaf1100363b7505b018fd6f6 cp_amm.so
+          5da6f4fa684bd01fc15a7d20eca754a11d247348 metaplex.so
+          PINS
+      - name: Execute PDA-custodied fee claims, burns, payouts and rollback
+        working-directory: solana/dbc
+        timeout-minutes: 5
+        run: |
+          set -euo pipefail
+          mkdir -p fee-results
+          node fee-runtime.mjs 2>&1 | tee fee-results/test-results.txt
+      - name: Check generated IDL, unsigned builders, fixed policy and original interfaces
+        if: ${{ !cancelled() && steps.idl.outcome == 'success' }}
+        run: |
+          node --test solana/dbc/controller.test.mjs
+          node solana/scripts/protected-migration/compatibility.mjs
+      - name: Tests must not rewrite tracked source
+        run: git diff --exit-code
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: dbc-fee-controller-evidence
+          retention-days: 7
+          path: |
+            solana/target/dbc-controller-build.log
+            solana/target/deploy/kydos_launchpad.so
+            solana/target/idl/kydos_launchpad.json
+            solana/target/idl/kydos_launchpad.browser.json
+            solana/dbc/fee-results/
