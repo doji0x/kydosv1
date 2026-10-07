@@ -8,6 +8,45 @@ on:
 permissions:
   contents: read
 jobs:
+  finalize-reviewed-lock:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/meteora-dbc-integration'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: dbc-sdk-proof
+          run-id: 37657033302
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/dbc-reviewed-lock
+      - name: Commit only the already-generated, reviewed lockfile
+        env:
+          EXPECTED_HEAD: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          lock="$RUNNER_TEMP/dbc-reviewed-lock/package-lock.json"
+          test "$(git hash-object "$lock")" = 84c53d6dc45db9cdd88d86a6f8b5d7a2a2f7d039
+          test ! -e solana/dbc/package-lock.json
+          remote=$(git ls-remote origin refs/heads/codex/meteora-dbc-integration | cut -f1)
+          test "$remote" = "$EXPECTED_HEAD"
+          cp "$lock" solana/dbc/package-lock.json
+          node --input-type=module <<'JS'
+          import {readFileSync} from 'node:fs';
+          import assert from 'node:assert/strict';
+          const pkg=JSON.parse(readFileSync('solana/dbc/package.json'));
+          const lock=JSON.parse(readFileSync('solana/dbc/package-lock.json'));
+          for(const key of ['name','version','dependencies','devDependencies','engines']) assert.deepEqual(lock.packages[''][key],pkg[key]);
+          JS
+          git add -- solana/dbc/package-lock.json
+          test "$(git diff --cached --name-only)" = solana/dbc/package-lock.json
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Pin the reviewed DBC npm dependency lock from SDK proof'
+          git push origin HEAD:refs/heads/codex/meteora-dbc-integration
   runtime-inputs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
