@@ -1,35 +1,34 @@
 # Astra continuity checkpoint
 
-## Active delivery: Meteora DBC integration
+## Active task: Meteora DBC integration
 
 Owner selected DBC for NEW launches and explicitly requested a new branch.
-Continue `codex/meteora-dbc-integration`, based on the owner's revert commit
+Continue `codex/meteora-dbc-integration`, based on the owner's revert
 `111a75acc8c172b66bf8cedbc4af7eebe1f6a0b7`. At branch creation main was still
-`38ff3b3619ea1e11bd6d6576ba03a35eea0c1f8b`. Do not restore PR #34 or resume
-private-config operator provisioning. Do not merge or overwrite either branch.
+`38ff3b3619ea1e11bd6d6576ba03a35eea0c1f8b`. Do not resume protected-DAMM operator
+provisioning, restore PR #34, merge the revert, or overwrite unrelated work.
 
-First scope: isolated `solana/dbc` package with official SDK 1.5.13, requirements
-tests, candidate generation, unsigned config ABI test and an honest SDK-derived
-accounting report. No program, IDL, existing launch client or root package change.
-Policy matching is not on-chain verification.
+First code commit: `5551734758cf79d0d3129e9f57def54935992894`.
+Isolated solana/dbc package uses official SDK 1.5.13, builds a candidate and
+checks actual calculated supply plus unsigned config instruction construction.
+Root dependencies, program/IDL and production launch client remain unchanged.
 
-Package publication, transitive lockfile and SDK execution are checked by the new
-DBC workflow, because local shell networking cannot resolve npm/GitHub. Its initial
-bootstrap uploads the generated lockfile for review; commit that lockfile and remove
-bootstrap before calling the install reproducible. Inspect exact branch commit CI.
-Never copy requested allocation numbers into an allegedly verified SDK report.
+CI run 37657033302 passed 39 offline tests and candidate generation. Artifact
+11499375871 contains npm-generated lockfile, test results, report and public
+SDK dependencies. No RPC is permitted in the unsigned config test. The compiler
+and validator suites for the legacy program were not rerun as part of this proof.
 
-Local policy tests: 29 pass on Node 22.16.0; candidate/test/inspector syntax checks
-pass. SDK tests, DBC runtime, migration, custody and payouts are not established by
-those checks alone. A missing implemented settlement PDA is a release blocker;
-do not assign production fee rights to an unimplemented controller to launch.
+Actual SDK nominal result: initial 1000000000000000; curve 793099988517748;
+gross migration 206900002375678; remainder 9106574 raw base units. Buffer minimum
+fits initial supply, but exact 793.1M/206.9M allocation does NOT match. Strict
+checks report this mismatch; no tolerance or supply change was authorized.
 
-Next: inspect actual SDK reports, reconcile exact nominal allocation and buffer
-requirements, then execute DBC creation/trading/graduation against pinned local
-programs. Adapt launch/UI/indexing only after canonical-account tests. Existing
-coins remain legacy; no DBC importer or second curve is implied. No transaction,
-upgrade, config, pool, fee claim, burn or payout is authorized by this checkpoint.
+Next: finalize the real generated package lock and remove CI bootstrap; reconcile
+allocation using executed DBC math, then run create/trade/graduate/post-swap against
+pinned local programs. This milestone does not execute DBC or implement a fee
+controller. Do not assign production fee rights to an unimplemented PDA.
 
-Historical protected-route documents and the prior active task in work-state
-are superseded for this task; do not resume the rejected architecture. Final
-commit identity and exact-head checks belong in the chat handoff.
+Design/evidence: docs/dbc-transition.md. Old protected-route task notes are
+historical, not active instructions. No mainnet/devnet transaction, paid upgrade,
+config, token, pool, claim, burn or payout. Final SHA and exact-head CI belong
+in chat, not in a recursive commit containing its own SHA.
