@@ -83,10 +83,22 @@ unsigned instruction construction. Rust tests cover serialization and policy-byt
 mutation in addition to the existing suites.
 
 Local evidence before upload: 23 controller runtime assertion groups, seven
-controller JavaScript tests, and 37 Rust tests passed. Final exact-head CI remains
-a separate requirement. Initial save intentionally requires compiler-generated
-browser IDL synchronization before a passing merge handoff. Do not treat these
-source records as proof that a newer commit passed.
+controller JavaScript tests, and 37 Rust tests passed. The first saved commit
+`32b5ed2` failed its fixture-length test. `a869fb9` fixed the actual fixture bytes
+without relaxing checks. Controller CI run `37675320585` then passed the Rust
+checks, SBF build and 23 executed controller cases; its remaining failure was
+the stale browser IDL, not fee settlement execution.
+
+The completion updates the checked-in browser IDL using that run's generated
+artifact `11507476130` (ZIP SHA256
+`39dae51ad1efb9572ac933306cb9c9c213032012ee82bf7b34d25d0658a487e8`).
+The JSON is whitespace-compacted but semantically identical to the normalized
+compiler output. Removing only the new controller definitions reconstructs the
+original browser-IDL Git blob `df514227a2853d4810e5588291161509492d92e5`.
+Local checks verified compiler equality and all unsigned builders without RPC.
+The resulting exact-head workflow must still finish successfully before merge
+readiness is reported; earlier runs do not certify a later revision. No controller
+logic, supply setting, authority check or payout rule changes in this IDL update.
 
 ## Outstanding production work
 
