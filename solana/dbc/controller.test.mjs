@@ -4,7 +4,8 @@ import {Program} from '@coral-xyz/anchor';import {Connection,PublicKey} from '@s
 import {NATIVE_MINT,getAssociatedTokenAddressSync} from '@solana/spl-token';
 import * as sdk from '@meteora-ag/dynamic-bonding-curve-sdk';
 import {feeAuthority,feeAddresses,launchDbcInstruction,settleDammInstruction,claimDbcInstruction,withRecipientAccounts,KYDOS_PROGRAM,TREASURY} from './fee-controller.mjs';
-const idl=JSON.parse(readFileSync(new URL('../../src/lib/solana/idl/kydos_launchpad.json',import.meta.url)));
+const browserText=readFileSync(new URL('../../src/lib/solana/idl/kydos_launchpad.json',import.meta.url),'utf8');
+const idl=JSON.parse(browserText);
 const connection=new Connection('http://127.0.0.1:1');let rpc=0;connection._rpcRequest=async()=>{rpc++;throw new Error('No RPC permitted');};connection._rpcBatchRequest=connection._rpcRequest;
 const program=new Program(idl,{connection});const pk=i=>new PublicKey(new Uint8Array(32).fill(i));
 const args={program,payer:pk(1),creator:pk(2),mint:pk(3),config:pk(4),positionNftMint:pk(5)};
@@ -12,6 +13,9 @@ const args={program,payer:pk(1),creator:pk(2),mint:pk(3),config:pk(4),positionNf
 test('compiler-generated interface equals the checked-in browser IDL',()=>{
  const generated=JSON.parse(readFileSync(new URL('../target/idl/kydos_launchpad.json',import.meta.url)));
  assert.deepEqual(new Program(generated,{connection}).idl,idl);assert.equal(idl.address,KYDOS_PROGRAM.toBase58());
+});
+test('browser IDL retains sync-idl canonical formatting as well as identical values',()=>{
+ assert.equal(browserText,JSON.stringify(program.idl,null,2)+'\n');
 });
 test('launch builder signs neither the transaction nor the internal fee authority',async()=>{
  const metadata={name:'Test',symbol:'TEST',uri:'https://example.invalid/test.json'};
