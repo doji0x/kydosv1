@@ -1,47 +1,46 @@
 # Astra continuity checkpoint
 
-## Active delivery: DBC fee controller, same branch
+## Active delivery: finish DBC browser merge candidate
 
-Continue `codex/meteora-dbc-integration` from inspected source
-`a869fb96cd442996a043c7aba56eecf6d7629f01`. Do not create another branch,
-restore custom graduation, pursue operator provisioning, merge main, or move
-legacy accounts. The owner asked to finish this implementation and commit it.
+Continue SAME branch `codex/meteora-dbc-integration`. Source:
+`b815a317efdd37e03b91f8a90b4a7dc13ab89765`. User requested finishing the outstanding
+browser patch so they can merge. No new branch, merge, public transaction, paid
+upgrade, secret/config injection, or release activation is authorized.
 
-The controller source was saved in `32b5ed2`; `a869fb9` corrected the malformed
-binary fixture without changing policy. The built controller now performs atomic
-DBC creation/original-creator registration, net bonding partner-fee claims to
-Kydos, and DAMM fee claim -> base burn -> equal original-creator/Kydos WSOL payouts.
-Custody uses Kydos PDAs, excludes donations and preserves odd quote dust. No
-raw claim, recipient override, account reset, NFT transfer or LP withdrawal exists.
+Controller CI 37858540064 completed successfully at the source commit: Rust,
+safe-stack SBF, generated IDL, 23 executed PDA-controller groups, builders and
+legacy compatibility. Do not restart the completed controller implementation.
+The older active_task in astra-work-state describes that now-completed milestone;
+this checkpoint is the current next-action record.
 
-## Verified evidence and this completion
+The saved browser patch is now being committed, not left as an attachment.
+Browser/UI/RPC/test contents match the prior patch. It adds devnet-only atomic
+creation, authenticated registry/position reads, review/simulation, fee settlement
+and durable transaction tracking. Public /launch remains Coming soon by default;
+no release manifest is supplied. Program, IDL, dependencies, supply ratio and
+legacy admin/market paths are untouched. Original patch hash and release details:
+docs/dbc-browser.md. Keep all fee-policy and compatibility checks intact.
 
-Controller run `37675320585` at `a869fb9` passed Rust tests, the safe-stack SBF
-build, source-generated IDL export, and all 23 executed controller assertion
-groups. Its remaining failure was the stale checked-in browser interface.
-Artifact `11507476130` SHA256:
-`39dae51ad1efb9572ac933306cb9c9c213032012ee82bf7b34d25d0658a487e8`.
+## Current verification and next action
 
-The browser IDL is now synchronized with that actual compiler artifact. Only
-JSON whitespace was compacted for transport; parsed values equal Anchor's
-normalized generated interface. Filtering the three new instructions, new
-account, two events and their types reproduces original browser blob
-`df514227a2853d4810e5588291161509492d92e5` exactly. Local unsigned builder checks
-pass for all three new instructions with RPC prohibited. No program code or
-account/fee policy was changed by this IDL completion.
+Previous OFFLINE evidence: 23 browser tests, 3 SDK differential, 25 selected
+regressions, lint and default/opt-in builds passed. That workspace was not a clean
+installation of the complete current branch. The new read-only DBC browser CI
+uses both committed locks; exact-head and full PR results must now be inspected.
+Open a PR against current main and fix demonstrated blockers on THIS branch.
+Do not describe pending, skipped or failing checks as passing.
 
-Inspect the resulting delivery-SHA CI before reporting the milestone green.
-Earlier passing runtime tests are evidence for the unchanged controller code,
-not a substitute for final IDL, compatibility and exact-head checks. The ordinary
-workflow repeats them; it must not rewrite source or disable any comparison.
+The source branch contains the owner's custom-graduation revert. Inspect full
+PR checks (including legacy installer regression) rather than relying only on the
+new push workflow. No previously approved checks may be removed to force green.
+Record final SHA and actual results in PR/chat, not recursive own-SHA commits.
 
-## Next work and release limits
+## Known production limits
 
-Design/evidence: `docs/dbc-fee-controller.md`; prior DBC lifecycle evidence:
-`docs/dbc-transition.md`. Work-state routes to the current controller milestone.
-After final checks, the next implementation is frontend/indexer and keeper
-integration. Creator payouts are WSOL, not automatically unwrapped SOL. Surplus,
-leftovers and rewards are outside these trading-fee endpoints. Production config,
-deployed-program verification and paid-upgrade approval remain separate. No
-mainnet/devnet transaction or deployment occurred. Final commit SHA and CI result
-belong in the chat handoff, not a recursive commit in this file.
+Full historical typecheck is red; prior offline comparison showed 185 baseline
+vs 182 patched diagnostics, not whole-repository type safety. No visual or real
+Phantom proof is claimed. The preview remains disabled/devnet-only.
+Initial buy/trading UI, production indexing, graduation/settlement automation,
+leftovers, unwrapping and live deployment verification remain outside this
+browser milestone. Creator payouts remain WSOL. Merge readiness must not be
+reported as production readiness.

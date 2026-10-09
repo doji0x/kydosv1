@@ -1,8 +1,11 @@
+/// <reference types="vite/client" />
 import React from 'react';
 import { Rocket } from 'lucide-react';
+import DbcWorkspace from '@/components/solana/DbcWorkspace';
 
 
 export default function SolanaLaunch() {
+  if (import.meta.env.VITE_KYDOS_DBC_UI_ENABLED === 'true') return <DbcWorkspace/>;
   return <main className="mx-auto max-w-2xl space-y-5 px-4 py-6">
     <div>
       <div className="mb-2 flex items-center gap-2 text-primary"><Rocket className="h-5 w-5"/><span className="text-xs font-semibold uppercase tracking-[0.2em]">Launch on Kydos</span></div>
