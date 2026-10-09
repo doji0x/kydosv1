@@ -12,6 +12,7 @@ import { BorshAccountsCoder, Program } from '@coral-xyz/anchor';
 import BN from 'bn.js';
 import * as sdk from '@meteora-ag/cp-amm-sdk';
 
+
 const KYDOS = new PublicKey('GnWBA3sdhKYCAZt2TnBEQmFiF7mvP7ydzUyjcompioQE');
 const LOADER = new PublicKey('BPFLoaderUpgradeab1e11111111111111111111111');
 const DAMM = sdk.CP_AMM_PROGRAM_ID;
@@ -54,8 +55,6 @@ for (const [name,index,change] of [
   change(value);
   const data = await coder.encode('Config', value);
   assert.equal(data.length,328);
-  // The pinned IDL represents permission storage inside its reserved bytes.
-  // An unknown object property is ignored by the coder; mutate the actual u128.
   if (name === 'permissions') data[248] = 1;
   assert.equal(data.subarray(248,264).equals(Buffer.alloc(16)), name !== 'permissions');
   const key = sdk.deriveConfigAddress(new BN(index));
@@ -80,25 +79,50 @@ function ix(signer, config, edits={}) {
   for (const [index,value] of Object.entries(edits)) keys[Number(index)] = {...keys[Number(index)],...value};
   return new TransactionInstruction({programId:KYDOS,keys,data:discriminator});
 }
+async function confirmed(connection, signature, {
+  requiredProgram, lastValidBlockHeight, attempts = 150, sleep = delay,
+} = {}) {
+  assert.ok(typeof signature === 'string' && signature.length > 0);
+  assert.ok(Number.isSafeInteger(attempts) && attempts > 0 && attempts <= 300);
+  let observed;
+  for (let i = 0; i < attempts; i++) {
+    const response = await connection.getSignatureStatuses([signature], { searchTransactionHistory: true });
+    const status = response.value?.[0];
+    if (status && ['confirmed', 'finalized'].includes(status.confirmationStatus)) {
+      observed = status;
+      const recorded = await connection.getTransaction(signature, {
+        commitment: 'confirmed', maxSupportedTransactionVersion: 0,
+      });
+      if (recorded?.meta) {
+        assert.equal(recorded.slot, status.slot, 'Confirmation/transaction slot mismatch');
+        assert.deepEqual(recorded.meta.err, status.err, 'Confirmation/transaction error mismatch');
+        if (requiredProgram) assert.ok(recorded.meta.logMessages?.includes(
+          `Program ${requiredProgram} invoke [1]`), 'Required program did not execute');
+        return recorded;
+      }
+    }
+    // A recorded confirmed failure is not an expired transaction. Missing metadata
+    // must still time out, never turn into a successful negative test.
+    if (!observed && lastValidBlockHeight !== undefined &&
+        await connection.getBlockHeight('confirmed') > lastValidBlockHeight) {
+      throw new Error('Unconfirmed local transaction expired; execution not established');
+    }
+    await sleep(200);
+  }
+  throw new Error('Confirmed transaction metadata unavailable; execution not established');
+}
+
 async function execute(instructions,signer) {
   const latest = await connection.getLatestBlockhash();
-  // Unique message even in the same block: a repeated install cannot be mistaken
-  // for a previously successful transaction with an identical signature.
   const tx = new Transaction({...latest,feePayer:signer.publicKey})
     .add(ComputeBudgetProgram.setComputeUnitLimit({units:400000+(++nonce)}),...instructions);
   tx.sign(signer);
   const signature = await connection.sendRawTransaction(tx.serialize(),{skipPreflight:true,maxRetries:2});
-  const result = await connection.confirmTransaction({...latest,signature},'confirmed');
-  let recorded;
-  for (let attempt=0; attempt<5; attempt++) {
-    recorded = await connection.getTransaction(signature,{commitment:'confirmed',maxSupportedTransactionVersion:0});
-    if (recorded?.meta) break;
-    await delay(200);
-  }
-  assert.ok(recorded?.meta, 'Missing confirmed transaction metadata');
-  assert.deepEqual(recorded.meta.err,result.value.err);
-  assert.ok(recorded.meta.logMessages?.some(l=>l.includes(`Program ${KYDOS.toBase58()} invoke`)), 'Kydos did not execute');
-  return recorded.meta;
+  // Some web3 websocket paths throw the expected InstructionError. HTTP status
+  // plus recorded metadata proves execution without swallowing that exception.
+  return (await confirmed(connection, signature, {
+    requiredProgram:KYDOS.toBase58(), lastValidBlockHeight:latest.lastValidBlockHeight,
+  })).meta;
 }
 const pass = text => {successes++; console.log(`PASS ${text}`);};
 async function rejectAndPreserve(name,instruction,signer) {
@@ -118,7 +142,7 @@ try {
     '--reset','--quiet','--ledger',join(dir,'ledger'),'--rpc-port','18899','--faucet-port','18901',
     '--gossip-port','18902','--dynamic-port-range','18910-18940','--bind-address','127.0.0.1',
     '--upgradeable-program',KYDOS.toBase58(),resolve('solana/target/deploy/kydos_launchpad.so'),authority.publicKey.toBase58(),
-    '--upgradeable-program',DAMM.toBase58(),fixtureBinary,'none',
+    '--upgradeable-program',DAMM.toBase58(),fixtureBinary,authority.publicKey.toBase58(),
     '--account',route.toBase58(),prefund,
     ...fixtures.flatMap(f=>['--account',f.key.toBase58(),f.path]),
   ],{stdio:['ignore',logFd,logFd]});
@@ -130,10 +154,18 @@ try {
     if (Date.now()>deadline) throw new Error('Validator startup timeout');
     try {await connection.getLatestBlockhash();break;} catch {await delay(500);}
   }
+  // Use a real local upgrade authority, not the ambiguous CLI string 'none'.
+  // Confirm both loader layouts before treating the synthetic ledger as ready.
+  for (const id of [KYDOS,DAMM]) {
+    const loaderState=await connection.getAccountInfo(programData(id));
+    assert.equal(loaderState?.owner.toBase58(),LOADER.toBase58());
+    assert.equal(loaderState?.data.readUInt32LE(0),3);
+    assert.equal(loaderState?.data[12],1);
+    assert.ok(loaderState?.data.subarray(13,45).equals(authority.publicKey.toBuffer()),'Unexpected local upgrade authority');
+  }
   for (const signer of [authority,outsider]) {
     const signature=await connection.requestAirdrop(signer.publicKey,2_000_000_000);
-    const result=await connection.confirmTransaction({...await connection.getLatestBlockhash(),signature},'confirmed');
-    assert.equal(result.value.err,null,'Local airdrop failed');
+    assert.equal((await confirmed(connection,signature)).meta.err,null,'Local airdrop failed');
   }
   const program=new Program(idl,{connection});
   const generated=await program.methods.installMigrationRoute().accountsStrict({
@@ -168,6 +200,7 @@ try {
   assert.equal(Buffer.from(decoded.configHash).toString('hex'),sha256(valid.data));
   assert.equal(decoded.creatorAuthority.toBase58(),creator.toBase58());
   assert.equal(decoded.installedBy.toBase58(),authority.publicKey.toBase58());
+  assert.equal(decoded.quoteMint.toBase58(),'So11111111111111111111111111111111111111112');
   assert.equal(decoded.treasury.toBase58(),'5ZuV8eqkvzYFVEKbLvGBdexL2tFv7E5BCd2HZpjqbdg');
   assert.equal(decoded.baseFeeBps,100); assert.equal(decoded.collectFeeMode,0);
   assert.equal(decoded.permanentLockPolicy,1); assert.equal(decoded.settlementPolicyVersion,1);
