@@ -11,13 +11,12 @@ import { Connection, PublicKey, Keypair, SystemProgram, ComputeBudgetProgram, Tr
 import { BorshAccountsCoder, Program } from '@coral-xyz/anchor';
 import BN from 'bn.js';
 import * as sdk from '@meteora-ag/cp-amm-sdk';
-import { confirmed } from './confirmed.mjs';
+
 
 const KYDOS = new PublicKey('GnWBA3sdhKYCAZt2TnBEQmFiF7mvP7ydzUyjcompioQE');
 const LOADER = new PublicKey('BPFLoaderUpgradeab1e11111111111111111111111');
 const DAMM = sdk.CP_AMM_PROGRAM_ID;
 const authority = Keypair.generate(), outsider = Keypair.generate();
-const dammAuthority = Keypair.generate().publicKey;
 const derived = seed => PublicKey.findProgramAddressSync([Buffer.from(seed)], KYDOS)[0];
 const route = derived('migration_route'), creator = derived('meteora_pool_creator');
 const programData = id => PublicKey.findProgramAddressSync([id.toBuffer()], LOADER)[0];
@@ -80,6 +79,39 @@ function ix(signer, config, edits={}) {
   for (const [index,value] of Object.entries(edits)) keys[Number(index)] = {...keys[Number(index)],...value};
   return new TransactionInstruction({programId:KYDOS,keys,data:discriminator});
 }
+async function confirmed(connection, signature, {
+  requiredProgram, lastValidBlockHeight, attempts = 150, sleep = delay,
+} = {}) {
+  assert.ok(typeof signature === 'string' && signature.length > 0);
+  assert.ok(Number.isSafeInteger(attempts) && attempts > 0 && attempts <= 300);
+  let observed;
+  for (let i = 0; i < attempts; i++) {
+    const response = await connection.getSignatureStatuses([signature], { searchTransactionHistory: true });
+    const status = response.value?.[0];
+    if (status && ['confirmed', 'finalized'].includes(status.confirmationStatus)) {
+      observed = status;
+      const recorded = await connection.getTransaction(signature, {
+        commitment: 'confirmed', maxSupportedTransactionVersion: 0,
+      });
+      if (recorded?.meta) {
+        assert.equal(recorded.slot, status.slot, 'Confirmation/transaction slot mismatch');
+        assert.deepEqual(recorded.meta.err, status.err, 'Confirmation/transaction error mismatch');
+        if (requiredProgram) assert.ok(recorded.meta.logMessages?.includes(
+          `Program ${requiredProgram} invoke [1]`), 'Required program did not execute');
+        return recorded;
+      }
+    }
+    // A recorded confirmed failure is not an expired transaction. Missing metadata
+    // must still time out, never turn into a successful negative test.
+    if (!observed && lastValidBlockHeight !== undefined &&
+        await connection.getBlockHeight('confirmed') > lastValidBlockHeight) {
+      throw new Error('Unconfirmed local transaction expired; execution not established');
+    }
+    await sleep(200);
+  }
+  throw new Error('Confirmed transaction metadata unavailable; execution not established');
+}
+
 async function execute(instructions,signer) {
   const latest = await connection.getLatestBlockhash();
   const tx = new Transaction({...latest,feePayer:signer.publicKey})
@@ -110,7 +142,7 @@ try {
     '--reset','--quiet','--ledger',join(dir,'ledger'),'--rpc-port','18899','--faucet-port','18901',
     '--gossip-port','18902','--dynamic-port-range','18910-18940','--bind-address','127.0.0.1',
     '--upgradeable-program',KYDOS.toBase58(),resolve('solana/target/deploy/kydos_launchpad.so'),authority.publicKey.toBase58(),
-    '--upgradeable-program',DAMM.toBase58(),fixtureBinary,dammAuthority.toBase58(),
+    '--upgradeable-program',DAMM.toBase58(),fixtureBinary,authority.publicKey.toBase58(),
     '--account',route.toBase58(),prefund,
     ...fixtures.flatMap(f=>['--account',f.key.toBase58(),f.path]),
   ],{stdio:['ignore',logFd,logFd]});
@@ -122,13 +154,15 @@ try {
     if (Date.now()>deadline) throw new Error('Validator startup timeout');
     try {await connection.getLatestBlockhash();break;} catch {await delay(500);}
   }
-  const loaderState=await connection.getAccountInfo(programData(KYDOS));
-  assert.ok(loaderState?.data.subarray(13,45).equals(authority.publicKey.toBuffer()),'Unexpected local validator');
-  // Agave 2.1.21's CLI `none` writes Some(default), not a real None.
-  // Use a distinct explicit local authority; never relax the on-chain guard.
-  const dammLoader = await connection.getAccountInfo(programData(DAMM));
-  assert.equal(dammLoader.data[12],1);
-  assert.ok(dammLoader.data.subarray(13,45).equals(dammAuthority.toBuffer()),'Invalid local DAMM loader fixture');
+  // Use a real local upgrade authority, not the ambiguous CLI string 'none'.
+  // Confirm both loader layouts before treating the synthetic ledger as ready.
+  for (const id of [KYDOS,DAMM]) {
+    const loaderState=await connection.getAccountInfo(programData(id));
+    assert.equal(loaderState?.owner.toBase58(),LOADER.toBase58());
+    assert.equal(loaderState?.data.readUInt32LE(0),3);
+    assert.equal(loaderState?.data[12],1);
+    assert.ok(loaderState?.data.subarray(13,45).equals(authority.publicKey.toBuffer()),'Unexpected local upgrade authority');
+  }
   for (const signer of [authority,outsider]) {
     const signature=await connection.requestAirdrop(signer.publicKey,2_000_000_000);
     assert.equal((await confirmed(connection,signature)).meta.err,null,'Local airdrop failed');
@@ -151,7 +185,7 @@ try {
   const failed=await execute([ix(authority.publicKey,valid.key),SystemProgram.transfer({
     fromPubkey:authority.publicKey,toPubkey:outsider.publicKey,lamports:9_000_000_000,
   })],authority);
-  assert.equal(failed.err?.InstructionError?.[0],2,`Expected second business instruction to fail: ${JSON.stringify(failed.err)}\n${failed.logMessages?.join('\n')}`);
+  assert.equal(failed.err?.InstructionError?.[0],2,'Expected second business instruction to fail');
   assert.ok(failed.logMessages.some(l=>l===`Program ${KYDOS.toBase58()} success`),'Route installation did not succeed before forced failure');
   const rolledBack=await connection.getAccountInfo(route);
   assert.equal(rolledBack.owner.toBase58(),SystemProgram.programId.toBase58());

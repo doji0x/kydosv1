@@ -1,0 +1,48 @@
+name: DBC browser integration
+on:
+  push:
+    branches: [codex/meteora-dbc-integration]
+    paths: ['src/lib/solana/**', 'src/components/solana/DbcWorkspace.jsx', 'src/pages/SolanaLaunch.jsx', 'base44/shared/solanaRpc.js', 'solana/dbc/**', 'tests/dbc-browser.test.mjs', '.github/workflows/dbc-browser.yml', 'package*.json']
+  pull_request:
+    paths: ['src/lib/solana/**', 'src/components/solana/DbcWorkspace.jsx', 'src/pages/SolanaLaunch.jsx', 'base44/shared/solanaRpc.js', 'solana/dbc/**', 'tests/dbc-browser.test.mjs', '.github/workflows/dbc-browser.yml', 'package*.json']
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: 22.16.0}
+      - name: Install committed application and isolated SDK locks
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm --prefix solana/dbc ci --ignore-scripts --no-audit --no-fund
+      - name: Browser flow and existing launch regressions (mocked RPC)
+        run: |
+          set -euo pipefail
+          node --test tests/dbc-browser.test.mjs solana/tests/rpc.test.js solana/tests/costs.test.js solana/tests/launch.test.js | tee dbc-browser-results.txt
+      - name: Compare browser adapter against pinned DBC SDK
+        run: |
+          set -euo pipefail
+          node --test solana/dbc/browser.test.mjs | tee dbc-browser-sdk-results.txt
+      - name: Lint and build with public launches still disabled
+        run: |
+          npm run lint
+          npm run build
+      - name: Build opt-in workspace without enabling a release or deployment
+        env:
+          VITE_KYDOS_DBC_UI_ENABLED: 'true'
+        run: npm run build
+      - name: Tests must not modify tracked source
+        run: git diff --exit-code
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: dbc-browser-checks
+          retention-days: 7
+          path: |
+            dbc-browser-results.txt
+            dbc-browser-sdk-results.txt

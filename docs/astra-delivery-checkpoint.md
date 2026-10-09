@@ -1,52 +1,51 @@
 # Astra continuity checkpoint
 
-## Current delivery: repaired atomic protected graduation
+## Active delivery: finish PR #35 for owner merge
 
-Continue PR #34 on **codex/atomic-protected-graduation**. Do not create another
-branch. Repair source: `8755fb2214bd818267852a4597729dfbe2bd16e4`;
-base: `c0038ce424bd4cc54af046d7b7f691b8d8b4aba4` (merged PR #33).
-Design and outstanding operator request: [protected-migration.md](protected-migration.md).
+Continue SAME branch `codex/meteora-dbc-integration`. Inspected source:
+`138355218c63d31d02b15f6e31bc55e13cd3fa58`. User asked to finish outstanding
+browser integration so THEY can merge. Do not merge, create another branch,
+deploy, enable a release, submit public transactions or restore custom graduation.
 
-The atomic migration now executes locally: tracked reserves -> protected DAMM
-pool creation -> verified full permanent lock -> cleanup -> receipt. Retry and
-concurrent execution cannot seed twice; replay works after a real pool swap.
-This is not fee-settlement or deployment approval.
+The prior browser attachment is committed in d8fb79a. PR #35 includes the owner's
+custom-graduation revert, exact DBC lifecycle, PDA fee controller and disabled,
+devnet-gated browser workspace. Legacy test harness repaired in 1383552 without
+changing Rust, fee policy, dependencies, instructions or legacy accounts.
 
-## Repairs
+## Confirmed source evidence and final correction
 
-- Agave 2.1.21's CLI `none` test fixture produced `Some(default_pubkey)` rather
-  than `None`. Both harnesses now use a distinct ephemeral DAMM authority and
-  verify its actual loader bytes. Production authority validation was not relaxed.
-- Split the oversized migration into bounded non-inlined SBF frames. The pinned
-  compiler returned success despite stack-overwrite diagnostics. A tested CI
-  gate now rejects those diagnostics; the repaired build has none.
-- Synchronize both sides of direct Curve lamport transfers at the following CPI,
-  fixing the executed `UnbalancedInstruction` error without changing budgets.
-- Restore the exact original source newline convention. Regenerate the browser
-  IDL from current-source Anchor IDL compilation; all old definitions remain.
-- Remove temporary diagnostic workflow/tool packaging. Retain normal compiler
-  and runtime logs in the Solana Anchor workflow.
+At 1383552, application, protected compatibility/evidence, DBC browser, executed
+DBC lifecycle and fee-controller PR workflows all passed. Browser clean-lock CI
+passed 48 flow/regression tests plus 3 SDK differential checks, lint and both
+build modes. Controller ran actual PDA claims/burns/payouts. Solana Anchor also
+passed the repaired 14-case legacy runtime; its ONLY failure was strict IDL text
+comparison, followed by the skipped output/lock check.
 
-## Verification
+The browser IDL had been compacted for earlier transport. Its JSON values were
+identical to the actual Anchor CLI output. This commit restores canonical pretty
+formatting from the downloaded CLI artifact, NOT hand-reconstructed semantics.
+Artifact 11643420895 / run 37985272445, SHA256:
+`d8ab6d8038b84abfc1779014c434780badc2843c4170dc69a057986e6660985a`.
+Normalized browser blob: `5227512e70bd606f4815f2fb5a3e6b4c2a9cd5ee`.
+The unchanged strict sync-idl.mjs --check passed locally against that artifact.
+An eighth controller test now checks canonical formatting as well as parsed
+interface equality, so the fast controller workflow catches this regression.
+No executable program, IDL value, fee rule or existing safeguard was relaxed.
 
-Local tools: Node 22.16.0, Agave 2.1.21, platform-tools v1.43, Rust 1.90.0.
-Executed route cases: 14/14. Executed graduation cases: 29/29. Solana JS: 142/142
-(including four build-diagnostic tests); confirmation harness: 6/6; Rust suites:
-35 tests; app lint/build and five market tests pass. Current-source IDL generation
-and browser comparison pass. Removing only the approved dispatch additions from
-lib.rs gives original blob `be9d9f83440eb737ed5e55ef07fefd78993709ee` exactly.
+## Before reporting merge readiness
 
-Clean-fixture migration: 365748 CU, 26928240 setup lamports excluding network fees,
-256 KiB requested heap. Largest signed packet tested: 1141/1232 bytes. These are
-local measurements using synthetic genesis and pinned public DAMM bytecode, not
-mainnet cost quotes or source/binary verification. Resulting commit and exact-head
-CI state belong in PR/chat; do not reuse older green checks as new-head evidence.
+Inspect ALL six PR workflows on this resulting SHA: application, evidence,
+browser, lifecycle, controller and full Anchor. Older successful runs do not
+substitute for final-head tests. Resolve any actual failure on this branch.
+Update PR/chat with final SHA, completed results and mergeability. Do not create
+recursive commits simply to record this file's own SHA. Main and public networks
+remain untouched. The previous active task in astra-work-state is historical;
+this checkpoint supersedes its pending controller-IDL action.
 
-## Next action and release limits
-
-Review the repaired diff and exact-head CI. Actual mainnet configuration,
-upgrade-authority control, cluster identity and deployed-source parity remain
-release prerequisites. Last recorded scan found no matching config; no new
-public observation or operator request was submitted by this repair. No mainnet
-transaction, paid upgrade, installation, live migration, claim, burn or payout.
-Fee settlement and frontend/keeper rollout remain separate work.
+Design: docs/dbc-browser.md, docs/dbc-fee-controller.md, docs/dbc-transition.md.
+Public /launch stays Coming soon unless preview flag is enabled; preview still
+requires independently verified devnet config and complete program hashes.
+Quote payouts are WSOL. No visual/real-Phantom verification is claimed. Historical
+full typecheck remains red; prior offline 185 vs 182 diagnostic comparison is not
+whole-project typecheck success. Initial-buy/trading UI, production indexing,
+automation, leftovers, unwrapping and live release verification are later work.
