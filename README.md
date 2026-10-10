@@ -34,9 +34,17 @@ The on-chain workspace lives in `solana/`. Client adapters live in `src/lib/sola
 2. Configure a local Solana validator and Anchor toolchain using `solana/README.md`.
 3. Set the required Solana and Helius environment values through the platform secret manager.
 4. Run the web app with `npm run dev`.
-5. Read the [launch form setup](solana/README.md#launch-form-and-public-metadata) before configuring Phantom. Token-creation transactions remain deferred until AMM/graduation work is ready.
+5. Read the [launch form setup](solana/README.md#launch-form-and-public-metadata) before configuring Phantom. For the mainnet-capable DBC launch flow, follow `docs/dbc-mainnet.md`; the form is public but signing requires a verified release manifest.
 
 The checked-in Solana UI is intentionally explicit about confirmed state, stale quotes, slippage, and transaction recovery. Do not treat local-validator behavior as production readiness.
+
+## Mainnet DBC launches
+
+The `/launch` page supports connected-Phantom creation, image or hosted metadata,
+reviewed priority/rent fees, real-SOL consent, confirmed-launch navigation and
+controller fee actions. Configure and verify the approved mainnet deployment
+using [the mainnet release checklist](docs/dbc-mainnet.md). No live manifest or
+private key is included in this repository.
 
 ## Repository map
 

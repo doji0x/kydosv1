@@ -28,11 +28,11 @@ jobs:
         run: |
           set -euo pipefail
           node --test solana/dbc/browser.test.mjs | tee dbc-browser-sdk-results.txt
-      - name: Lint and build with public launches still disabled
+      - name: Lint and build with no live release configured
         run: |
           npm run lint
           npm run build
-      - name: Build opt-in workspace without enabling a release or deployment
+      - name: Build compatibility with the retired preview flag (does not authorize transactions)
         env:
           VITE_KYDOS_DBC_UI_ENABLED: 'true'
         run: npm run build

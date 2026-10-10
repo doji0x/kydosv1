@@ -7,9 +7,10 @@ import BN from 'bn.js';
 import { Connection, Keypair, PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
 import { MintLayout, AccountLayout, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, NATIVE_MINT } from '@solana/spl-token';
 import * as dbc from '../src/lib/solana/dbcBrowser.js';
-import { prepareDbcReview, submitDbcReview, discardDbcReview } from '../src/lib/solana/dbcReview.js';
+import { prepareDbcReview, submitDbcReview, discardDbcReview, dbcPriorityFee } from '../src/lib/solana/dbcReview.js';
 import { createActivityStore } from '../src/lib/solana/lifecycle.js';
 import { encodeSignature } from '../src/lib/solana/transactions.js';
+import { dbcExplorerUrl, dbcLaunchUrl } from '../src/lib/solana/dbcLinks.js';
 import { buildSolanaRpcPayload } from '../base44/shared/solanaRpc.js';
 import idl from '../src/lib/solana/idl/kydos_launchpad.json' with { type: 'json' };
 
@@ -49,12 +50,13 @@ async function harness() {
   accounts.set(dbc.positionNftAccount(nft).toBase58(), info(TOKEN_2022_PROGRAM_ID,token));
   const state = { chain: dbc.DEVNET, sends: 0, signs: 0, feeMultiplier: 1, failSim: false, emptyFees: false,
     failSend: false, mutateSigned: false, changeAfterSign: false, zeroBalance: false,
-    positions: [{ pubkey: dbc.positionAddress(nft), account: info(dbc.DAMM,position) }] };
+    height: 50, positions: [{ pubkey: dbc.positionAddress(nft), account: info(dbc.DAMM,position) }] };
   const storageMap = new Map(), storage = { getItem: key => storageMap.get(key) ?? null, setItem: (key,value) => storageMap.set(key,value) };
   let count = 0;
   const activity = createActivityStore({ storage, locks: { request: async (_name,_opts,fn) => fn({}) }, id: () => String(++count) });
   const connection = {
     getGenesisHash: async () => state.chain,
+    getBlockHeight: async () => state.height,
     getAccountInfo: async pubkey => accounts.get(pubkey.toBase58()) ?? null,
     getProgramAccounts: async () => state.positions,
     getLatestBlockhash: async () => ({ blockhash: key(200).publicKey.toBase58(), lastValidBlockHeight: 100 }),
@@ -85,15 +87,16 @@ async function harness() {
     tx.partialSign(payer); if (state.changeAfterSign) state.chain = dbc.MAINNET; return tx;
   } };
   const release = { enabled: true, genesisHash: dbc.DEVNET, config: config.toBase58(), programDataHashes };
-  const prepare = (operation='create') => prepareDbcReview({ connection, wallet, release, operation,
-    mint, nft, name:'Kydos test',symbol:'TEST',metadataUri:'https://example.com/token.json' });
-  const send = review => submitDbcReview({ connection,wallet,release,review,activity });
+  const prepare = (operation='create', extra = {}) => prepareDbcReview({ connection, wallet, release, operation,
+    mint, nft, name:'Kydos test',symbol:'TEST',metadataUri:'https://example.com/token.json', ...extra });
+  const send = (review, extra = {}) => submitDbcReview({ connection,wallet,release,review,activity,...extra });
   return { connection,wallet,release,accounts,state,activity,registry,prepare,send };
 }
 
-test('release gate fails closed on disabled, missing pins and mainnet', async () => {
+test('release gate allows explicit mainnet and devnet, rejects disabled, missing pins and unsupported networks', async () => {
   const h=await harness(); assert.throws(()=>dbc.validateDbcRelease(null),/disabled/);
-  assert.throws(()=>dbc.validateDbcRelease({...h.release,genesisHash:dbc.MAINNET}),/devnet-only/);
+  assert.equal(dbc.validateDbcRelease({...h.release,genesisHash:dbc.MAINNET}).genesisHash,dbc.MAINNET);
+  assert.throws(()=>dbc.validateDbcRelease({...h.release,genesisHash:mint.toBase58()}),/not a supported/);
   assert.throws(()=>dbc.validateDbcRelease({...h.release,programDataHashes:{}}),/hash/);
   assert.equal((await dbc.verifyDbcRelease(h.connection,h.release)).config,config.toBase58());
 });
@@ -216,4 +219,70 @@ test('fee reviews reserve all possible account rents and deduplicate equal recip
   const h=await harness();const review=await h.prepare('settle');assert.equal(review.costs.rentLamports,4n*165n*100n);
   h.accounts.set(a.launch.toBase58(),info(dbc.KYDOS,await coder.encode('dbcLaunch',{...h.registry,creator:dbc.TREASURY})));
   const same=await h.prepare('settle');assert.equal(same.costs.rentLamports,3n*165n*100n);
+});
+
+
+test('verified mainnet creation requires real-SOL acknowledgment, then signs and broadcasts once',async()=>{
+  const h=await harness();h.state.chain=dbc.MAINNET;h.release.genesisHash=dbc.MAINNET;
+  const review=await h.prepare();
+  assert.equal(review.chain,dbc.MAINNET);
+  await assert.rejects(h.send(review),/real SOL/);assert.equal(h.state.signs,0);
+  await assert.rejects(h.send(review,{mainnetAcknowledged:'true'}),/real SOL/);
+  const result=await h.send(review,{mainnetAcknowledged:true});
+  assert.equal(result.chain,dbc.MAINNET);assert.equal(h.state.signs,1);assert.equal(h.state.sends,1);
+  assert.equal(h.activity.read()[0].scope.chain,dbc.MAINNET);
+});
+test('mainnet fee settlement keeps original recipients and the 50/50 policy',async()=>{
+  const h=await harness();h.state.chain=dbc.MAINNET;h.release.genesisHash=dbc.MAINNET;
+  const r=await h.prepare('settle');
+  assert.equal(r.preview.creatorQuote,r.preview.kydosQuote);
+  assert.equal(r.preview.baseBurned,200n);
+  await h.send(r,{mainnetAcknowledged:true});assert.equal(h.state.sends,1);
+});
+test('mainnet release rejects devnet RPC and deployed-code changes without signing',async()=>{
+  const h=await harness();h.release.genesisHash=dbc.MAINNET;
+  await assert.rejects(h.prepare(),/network/);assert.equal(h.state.signs,0);
+  h.state.chain=dbc.MAINNET;const review=await h.prepare();
+  const pd=PublicKey.findProgramAddressSync([dbc.KYDOS.toBuffer()],dbc.UPGRADEABLE_LOADER)[0];
+  h.accounts.get(pd.toBase58()).data[45]^=1;
+  await assert.rejects(h.send(review,{mainnetAcknowledged:true}),/Deployed program/);assert.equal(h.state.signs,0);
+});
+test('priority prices are integer, bounded and rounded up using the reviewed CU limit',async()=>{
+  assert.equal(dbcPriorityFee('create',100000n),60000n);assert.equal(dbcPriorityFee('settle',100000n),30000n);
+  assert.equal(dbcPriorityFee('create',1n),1n);
+  for(const price of [-1n,1000001n,NaN,100000,'100000']) assert.throws(()=>dbcPriorityFee('create',price),/Priority/);
+  const h=await harness();await assert.rejects(h.prepare('create',{priorityMicroLamports:1000001n}),/Priority/);
+  assert.equal(h.state.signs+h.state.sends,0);
+});
+test('priority fee is visible, included once in the total and bound to the signed message',async()=>{
+  const h=await harness();
+  h.connection.getFeeForMessage=async message=>{
+    // Identify by exact ComputeBudget program instead of trusting an RPC-selected fee.
+    const ix=message.compiledInstructions.find(ix=>message.staticAccountKeys[ix.programIdIndex].toBase58()==='ComputeBudget111111111111111111111111111111'&&Buffer.from(ix.data)[0]===3);
+    assert(ix);assert.equal(Buffer.from(ix.data).readBigUInt64LE(1),100000n);
+    return {value:10000+60000};
+  };
+  const r=await h.prepare('create',{priorityMicroLamports:100000n});
+  assert.equal(r.costs.priorityFeeLamports,60000n);assert.equal(r.costs.networkFeeLamports,70000n);
+  assert.equal(r.costs.requiredLamports,70000n+r.costs.rentLamports+r.costs.metadataFeeLamports);
+  await h.send(r);assert.equal(h.state.sends,1);
+});
+test('RPC priority underestimation cannot produce an underfunded approval',async()=>{
+  const h=await harness();await assert.rejects(h.prepare('create',{priorityMicroLamports:1000000n}),/excludes/);assert.equal(h.state.signs,0);
+});
+test('expired blockhash before or during Phantom approval never broadcasts',async()=>{
+  let h=await harness(),r=await h.prepare();h.state.height=101;
+  await assert.rejects(h.send(r),/expired/);assert.equal(h.state.signs,0);assert.equal(h.state.sends,0);
+  h=await harness();r=await h.prepare();const sign=h.wallet.signTransaction;
+  h.wallet.signTransaction=async tx=>{const signed=await sign(tx);h.state.height=101;return signed;};
+  await assert.rejects(h.send(r),/expired/);assert.equal(h.state.signs,1);assert.equal(h.state.sends,0);
+  assert.equal(h.activity.read()[0].state,'not-submitted');
+});
+test('mainnet and devnet explorer/deep links are network-bound, never legacy-market links',()=>{
+  const signature=encodeSignature(new Uint8Array(64).fill(3));
+  assert.equal(dbcExplorerUrl('tx',signature,dbc.MAINNET),`https://solscan.io/tx/${signature}`);
+  assert(dbcExplorerUrl('token',mint,dbc.DEVNET).endsWith('?cluster=devnet'));
+  assert.equal(dbcLaunchUrl(mint,dbc.MAINNET),`/launch?dbcMint=${mint}&network=mainnet-beta`);
+  assert.throws(()=>dbcExplorerUrl('tx',signature,mint.toBase58()),/not a supported/);
+  assert.throws(()=>dbcExplorerUrl('evil','javascript:alert(1)',dbc.MAINNET));
 });

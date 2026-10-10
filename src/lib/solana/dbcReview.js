@@ -9,7 +9,7 @@ import { confirmTransactionHttp, encodeSignature } from './transactions.js';
 import { requireTransactionFunds } from './preflight.js';
 import { DBC_ROUTE, KYDOS, TREASURY, LAUNCH_SIZE, dbcAddresses, dbcProgram,
   dbcLaunchInstruction, dbcFeeInstruction, recipientAta, readDbcLaunch, readDbcPositions,
-  validateDbcRelease, verifyDbcRelease, withDbcRecipients, sha256 } from './dbcBrowser.js';
+  MAINNET, validateDbcRelease, verifyDbcRelease, withDbcRecipients, sha256 } from './dbcBrowser.js';
 
 const prepared = new WeakMap();
 const check = (ok, message) => { if (!ok) throw new Error(message); };
@@ -26,10 +26,30 @@ const instructionDigest = transaction => sha256(Buffer.from(JSON.stringify(trans
   keys: ix.keys.map(k => [k.pubkey.toBase58(), k.isSigner, k.isWritable]),
 })))));
 
+// Fixed, reviewed legacy-transaction budget. No RPC-selected uncapped priority fee.
+export const MAX_DBC_PRIORITY_MICROLAMPORTS = 1_000_000n;
+export function dbcPriorityFee(operation, microLamports) {
+  check(['create', 'settle', 'bonding'].includes(operation), 'Invalid DBC operation');
+  check(typeof microLamports === 'bigint' && microLamports >= 0n && microLamports <= MAX_DBC_PRIORITY_MICROLAMPORTS,
+    'Priority price must be between 0 and 1000000 micro-lamports per compute unit');
+  return (microLamports * (operation === 'create' ? 600000n : 300000n) + 999999n) / 1000000n;
+}
+function computeBudget(intent) {
+  dbcPriorityFee(intent.operation, intent.priorityMicroLamports);
+  return [ComputeBudgetProgram.setComputeUnitLimit({ units: intent.operation === 'create' ? 600000 : 300000 }),
+    ...(intent.priorityMicroLamports ? [ComputeBudgetProgram.setComputeUnitPrice({ microLamports: intent.priorityMicroLamports })] : [])];
+}
+async function requireUnexpired(connection, latest) {
+  const height = await connection.getBlockHeight('confirmed');
+  check(Number.isSafeInteger(latest.lastValidBlockHeight) && Number.isSafeInteger(height) && height >= 0 &&
+    height <= latest.lastValidBlockHeight,
+  'Transaction blockhash expired. No transaction was submitted; prepare a fresh review.');
+}
+
 async function build(connection, intent, payer, release) {
   if (intent.operation === 'create') {
     const instruction = await dbcLaunchInstruction({ connection, payer, config: release.config, ...intent });
-    const transaction = new Transaction().add(ComputeBudgetProgram.setComputeUnitLimit({ units: 600000 }), instruction);
+    const transaction = new Transaction().add(...computeBudget(intent), instruction);
     return { transaction, record: null };
   }
   check(intent.operation === 'settle' || intent.operation === 'bonding', 'Invalid DBC operation');
@@ -40,7 +60,7 @@ async function build(connection, intent, payer, release) {
   }
   const instruction = await dbcFeeInstruction({ connection, payer, record,
     source: intent.operation === 'settle' ? 'damm' : 'bonding', nft: intent.nft });
-  const transaction = new Transaction().add(ComputeBudgetProgram.setComputeUnitLimit({ units: 300000 }),
+  const transaction = new Transaction().add(...computeBudget(intent),
     ...withDbcRecipients(instruction, payer, record.creator).instructions);
   return { transaction, record };
 }
@@ -48,6 +68,8 @@ async function build(connection, intent, payer, release) {
 async function estimate(connection, transaction, intent, payer, release, record) {
   const fee = await connection.getFeeForMessage(transaction.compileMessage(), 'confirmed');
   const networkFeeLamports = integer(fee?.value, 'Network fee');
+  const priorityFeeLamports = dbcPriorityFee(intent.operation, intent.priorityMicroLamports);
+  check(networkFeeLamports >= priorityFeeLamports, 'RPC fee estimate excludes the reviewed priority fee');
   const balanceLamports = integer(await connection.getBalance(payer, 'confirmed'), 'Wallet balance');
   const rent = async size => integer(await connection.getMinimumBalanceForRentExemption(size, 'confirmed'), 'Account rent');
   let rentLamports = 0n, metadataFeeLamports = 0n;
@@ -66,7 +88,7 @@ async function estimate(connection, transaction, intent, payer, release, record)
   }
   const requiredLamports = networkFeeLamports + rentLamports + metadataFeeLamports;
   const shortfallLamports = requiredLamports > balanceLamports ? requiredLamports - balanceLamports : 0n;
-  return Object.freeze({ networkFeeLamports, rentLamports, metadataFeeLamports, requiredLamports, balanceLamports,
+  return Object.freeze({ networkFeeLamports, priorityFeeLamports, rentLamports, metadataFeeLamports, requiredLamports, balanceLamports,
     shortfallLamports, sufficient: shortfallLamports === 0n });
 }
 
@@ -90,14 +112,15 @@ async function simulate(connection, transaction, intent) {
 }
 
 export async function prepareDbcReview({ connection, wallet, release: input, operation,
-  name, symbol, metadataUri, mint, nft, initialBuyLamports = 0n }) {
+  name, symbol, metadataUri, mint, nft, initialBuyLamports = 0n, priorityMicroLamports = 0n }) {
   check(['create', 'settle', 'bonding'].includes(operation), 'Invalid DBC operation');
   check(initialBuyLamports === 0n, 'DBC initial purchases are not yet enabled');
+  dbcPriorityFee(operation, priorityMicroLamports);
   const payer = walletKey(wallet), release = await verifyDbcRelease(connection, input);
   const mintKeypair = operation === 'create' ? Keypair.generate() : null;
   const intent = Object.freeze(operation === 'create'
-    ? { operation, mint: mintKeypair.publicKey.toBase58(), name, symbol, metadataUri, initialBuyLamports }
-    : { operation, mint: new PublicKey(mint).toBase58(), ...(operation === 'settle' ? { nft: new PublicKey(nft).toBase58() } : {}) });
+    ? { operation, priorityMicroLamports, mint: mintKeypair.publicKey.toBase58(), name, symbol, metadataUri, initialBuyLamports }
+    : { operation, priorityMicroLamports, mint: new PublicKey(mint).toBase58(), ...(operation === 'settle' ? { nft: new PublicKey(nft).toBase58() } : {}) });
   const built = await build(connection, intent, payer, release);
   const latest = await connection.getLatestBlockhash('confirmed');
   built.transaction.feePayer = payer; built.transaction.recentBlockhash = latest.blockhash;
@@ -114,9 +137,10 @@ export async function prepareDbcReview({ connection, wallet, release: input, ope
 export function discardDbcReview(review) { if (review) prepared.delete(review); }
 
 export async function submitDbcReview({ connection, wallet, review, release: input,
-  activity = browserActivity(), onStage = _stage => {}, ensureCurrent = () => {} }) {
+  activity = browserActivity(), onStage = _stage => {}, ensureCurrent = () => {}, mainnetAcknowledged = false }) {
   const internal = prepared.get(review);
   check(internal, 'Review expired or already used. Prepare a fresh DBC review.');
+  check(review.chain !== MAINNET || mainnetAcknowledged === true, 'Confirm that this mainnet transaction spends real SOL before signing.');
   prepared.delete(review); // Never reuse private mint material after a send attempt.
   const { intent, mintKeypair, release, digest } = internal, payer = walletKey(wallet);
   check(payer.toBase58() === review.payer, 'Wallet changed; review again');
@@ -142,6 +166,7 @@ export async function submitDbcReview({ connection, wallet, review, release: inp
     stage('simulating'); await simulate(connection, tx, intent);
     ensureCurrent(); check(walletKey(wallet).equals(payer), 'Wallet changed before signing');
     check(await connection.getGenesisHash() === review.chain, 'Network changed before signing');
+    await requireUnexpired(connection, latest); ensureCurrent();
     if (mintKeypair) tx.partialSign(mintKeypair);
     const message = Buffer.from(tx.serializeMessage());
     save({ state: 'signing', ...latest, messageBase64: message.toString('base64') });
@@ -152,6 +177,7 @@ export async function submitDbcReview({ connection, wallet, review, release: inp
     save({ state: 'signed', signature });
     // A program upgrade while Phantom was open invalidates approval, not the policy.
     await verifyDbcRelease(connection, release); ensureCurrent();
+    await requireUnexpired(connection, latest); ensureCurrent();
     save({ state: 'submitting' }); stage('submitting');
     const returned = await connection.sendRawTransaction(wire, { skipPreflight: false, preflightCommitment: 'confirmed', maxRetries: 0 });
     check(returned === signature, 'RPC returned a different signature');
@@ -161,6 +187,6 @@ export async function submitDbcReview({ connection, wallet, review, release: inp
       throw new Error('DBC transaction failed on chain');
     }
     save({ state: 'confirmed', message: 'DBC transaction confirmed on chain' });
-    return Object.freeze({ mint: intent.mint, signature, operation });
+    return Object.freeze({ mint: intent.mint, signature, operation, chain: review.chain });
   });
 }

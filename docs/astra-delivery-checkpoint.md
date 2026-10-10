@@ -1,51 +1,48 @@
 # Astra continuity checkpoint
 
-## Active delivery: finish PR #35 for owner merge
+## Active delivery: commit mainnet-capable launch UI to PR #35
 
-Continue SAME branch `codex/meteora-dbc-integration`. Inspected source:
-`138355218c63d31d02b15f6e31bc55e13cd3fa58`. User asked to finish outstanding
-browser integration so THEY can merge. Do not merge, create another branch,
-deploy, enable a release, submit public transactions or restore custom graduation.
+Continue SAME branch `codex/meteora-dbc-integration`. Verified base:
+`1640f470d653732ff187d5d7dd48a0816e6f26b3`, tree
+`461e84c36165fc468308e694d77efb9375912a66`. User explicitly requested committing
+the previously prepared mainnet launch UI updates. Do not merge, deploy, inject
+live credentials/configuration, submit public transactions or restore custom
+graduation. The earlier controller/DBC implementation is not being restarted.
 
-The prior browser attachment is committed in d8fb79a. PR #35 includes the owner's
-custom-graduation revert, exact DBC lifecycle, PDA fee controller and disabled,
-devnet-gated browser workspace. Legacy test harness repaired in 1383552 without
-changing Rust, fee policy, dependencies, instructions or legacy accounts.
+## Delivered scope
 
-## Confirmed source evidence and final correction
+The 30-path local draft is now being published through the normal GitHub tools;
+the formerly blocked dbcBrowser.js upload succeeded. All original draft files
+were SHA256-checked and applied to the exact verified source tree. Only these
+continuity records were refreshed for publication; executable code matches the
+approved draft. Do not describe unattached blobs as completed branch commits.
 
-At 1383552, application, protected compatibility/evidence, DBC browser, executed
-DBC lifecycle and fee-controller PR workflows all passed. Browser clean-lock CI
-passed 48 flow/regression tests plus 3 SDK differential checks, lint and both
-build modes. Controller ran actual PDA claims/burns/payouts. Solana Anchor also
-passed the repaired 14-case legacy runtime; its ONLY failure was strict IDL text
-comparison, followed by the skipped output/lock check.
+The launch form replaces Coming soon, accepts independently verified mainnet or
+devnet manifests, connects image/IPFS upload or hosted metadata to creator-registered
+DBC creation, and requires real-SOL consent on mainnet. Capped priority fees,
+expiry checks, correct-network success/recovery links and original fee policy are
+preserved. Header Phantom connection is wired. Deployment checker is read-only.
+The temporary workspace export becomes an isolated Chromium action-test workflow.
+No Rust, canonical IDL, root lockfile, supply, treasury or fee-split change.
+Details and operator requirements: docs/dbc-mainnet.md.
 
-The browser IDL had been compacted for earlier transport. Its JSON values were
-identical to the actual Anchor CLI output. This commit restores canonical pretty
-formatting from the downloaded CLI artifact, NOT hand-reconstructed semantics.
-Artifact 11643420895 / run 37985272445, SHA256:
-`d8ab6d8038b84abfc1779014c434780badc2843c4170dc69a057986e6660985a`.
-Normalized browser blob: `5227512e70bd606f4815f2fb5a3e6b4c2a9cd5ee`.
-The unchanged strict sync-idl.mjs --check passed locally against that artifact.
-An eighth controller test now checks canonical formatting as well as parsed
-interface equality, so the fast controller workflow catches this regression.
-No executable program, IDL value, fee rule or existing safeguard was relaxed.
+## Verification and next action
 
-## Before reporting merge readiness
+Local reconstruction from workspace artifact 11681876974 passed 70 focused/selected
+checks and 138 existing Solana tests, lint and production build. Suites overlap;
+do not report 208 unique tests. No local browser pass is claimed: the previous
+runtime blocked navigation. Eleven Chromium fixture cases are included in CI.
+Root typecheck remains a documented baseline limitation, not a passing check.
 
-Inspect ALL six PR workflows on this resulting SHA: application, evidence,
-browser, lifecycle, controller and full Anchor. Older successful runs do not
-substitute for final-head tests. Resolve any actual failure on this branch.
-Update PR/chat with final SHA, completed results and mergeability. Do not create
-recursive commits simply to record this file's own SHA. Main and public networks
-remain untouched. The previous active task in astra-work-state is historical;
-this checkpoint supersedes its pending controller-IDL action.
+Finish the atomic commit/ref update with expected base SHA, verify its tree, then
+inspect all exact-head PR workflows, especially DBC mainnet UI actions. Fix actual
+failures on this branch without weakening tests. Update PR/chat with final SHA and
+completed results. Do not recursively commit the checkpoint's own SHA.
 
-Design: docs/dbc-browser.md, docs/dbc-fee-controller.md, docs/dbc-transition.md.
-Public /launch stays Coming soon unless preview flag is enabled; preview still
-requires independently verified devnet config and complete program hashes.
-Quote payouts are WSOL. No visual/real-Phantom verification is claimed. Historical
-full typecheck remains red; prior offline 185 vs 182 diagnostic comparison is not
-whole-project typecheck success. Initial-buy/trading UI, production indexing,
-automation, leftovers, unwrapping and live release verification are later work.
+## Live release boundary
+
+No active manifest or keys are included. Transactions still require verified
+network, deployed programs and approved DBC policy. Operator deployment/config,
+server RPC/upload secrets and a real-wallet rehearsal remain unverified.
+Creation-only UI does not include initial buys, trading screens, public indexing,
+keepers, leftovers or automatic WSOL unwrapping. A commit is not mainnet activation.

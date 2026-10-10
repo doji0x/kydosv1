@@ -3,16 +3,30 @@
   "purpose": "Small navigation and resume record; not an execution engine, deployment authorization, or passing-check claim.",
   "owner": "ChatGPT",
   "delivery_branch": "codex/meteora-dbc-integration",
-  "observed_source_sha": "a869fb96cd442996a043c7aba56eecf6d7629f01",
+  "observed_source_sha": "1640f470d653732ff187d5d7dd48a0816e6f26b3",
   "observed_upstream_sha": "38ff3b3619ea1e11bd6d6576ba03a35eea0c1f8b",
   "active_task": {
-    "id": "dbc-fee-controller",
-    "request": "Finish the committed DBC fee controller on the same branch; synchronize its actual generated browser IDL and verify exact-head CI.",
-    "status": "controller-runtime-passed-browser-idl-synchronized-final-head-ci-required",
-    "scope": ["solana/dbc", "solana/programs/kydos_launchpad", "solana/scripts/protected-migration/compatibility.mjs", "src/lib/solana/idl/kydos_launchpad.json", ".github/workflows/dbc-fee-controller.yml", "docs/dbc-fee-controller.md", "docs/astra-delivery-checkpoint.md", "docs/astra-work-state.json"],
-    "acceptance": "Atomic creator registration; program-custodied bonding and DAMM fee claims; actual base burn and equal original-creator/Kydos quote payouts; donor balances and odd dust preserved; legacy compatibility and generated IDL checks pass.",
-    "design_record": "docs/dbc-fee-controller.md",
-    "next_action": "Inspect delivery-SHA controller CI after the generated-IDL commit, resolve any failing check without weakening it, then review frontend/indexer and keeper integration as the next implementation. No public-network deployment."
+    "id": "dbc-mainnet-ui",
+    "request": "Prepare the DBC launch flow for mainnet and connect the actual token-launch UI actions.",
+    "status": "approved-draft-being-committed-exact-head-ci-required",
+    "scope": [
+      "src/components/solana/DbcWorkspace.jsx",
+      "src/components/nav/TopBar.jsx",
+      "src/pages/SolanaLaunch.jsx",
+      "src/lib/solana/dbcBrowser.js",
+      "src/lib/solana/dbcReview.js",
+      "src/lib/solana/dbcMetadata.js",
+      "src/lib/solana/dbcLinks.js",
+      "src/lib/solana/Activity.jsx",
+      "solana/scripts/check-dbc-release.mjs",
+      "tests/dbc-*.test.mjs",
+      "tests/ui",
+      ".github/workflows/dbc-workspace.yml",
+      "docs/dbc-mainnet.md"
+    ],
+    "acceptance": "Verified mainnet and devnet identities, working connect/upload/review/approve/copy/open controls, explicit mainnet consent and bounded costs, stale/rejected/ambiguous safeguards, unchanged controller policy, exact-head tests pass.",
+    "design_record": "docs/dbc-mainnet.md",
+    "next_action": "Commit the approved mainnet UI draft on this branch. Same-tool publication now succeeds. Inspect all exact-head PR workflows, especially the new Chromium UI suite; fix demonstrated failures without disabling checks. No merge, deployment, live manifest injection or public transaction."
   },
   "read_policy": {
     "startup": ["check delivery HEAD/checks", "read AGENTS.md", "read rolling checkpoint", "read this state when resuming"],

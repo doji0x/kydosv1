@@ -10,6 +10,7 @@ import { NATIVE_MINT, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID,
   unpackAccount, unpackMint } from '@solana/spl-token';
 import idl from './idl/kydos_launchpad.json' with { type: 'json' };
 import { validateLaunch } from './market.js';
+import { identifySolanaNetwork } from '../../../base44/shared/solanaNetwork.js';
 
 export const KYDOS = new PublicKey(idl.address);
 export const DBC = new PublicKey('dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN');
@@ -64,10 +65,10 @@ export function dbcAddresses(mint, config) {
     metadata: pda(METADATA, 'metadata', METADATA, mint) };
 }
 
-/** Public release manifest, not a signing key. Mainnet remains explicitly closed. */
+/** Public, independently reviewed release manifest; never a signing key. */
 export function validateDbcRelease(input) {
   requireValue(input?.enabled === true, 'DBC transactions are disabled until a verified release manifest is supplied.');
-  requireValue(input.genesisHash === DEVNET, 'This DBC browser milestone is devnet-only; mainnet is not enabled.');
+  identifySolanaNetwork(input.genesisHash); // Only exact mainnet/devnet genesis identities are allowed.
   const config = pk(input.config).toBase58();
   const hashes = {};
   for (const program of [KYDOS, DBC, DAMM, METADATA]) {
@@ -75,7 +76,7 @@ export function validateDbcRelease(input) {
     requireValue(typeof hash === 'string' && /^[0-9a-f]{64}$/.test(hash), `Missing verified ProgramData hash for ${key}`);
     hashes[key] = hash;
   }
-  return Object.freeze({ enabled: true, genesisHash: DEVNET, config, programDataHashes: Object.freeze(hashes) });
+  return Object.freeze({ enabled: true, genesisHash: input.genesisHash, config, programDataHashes: Object.freeze(hashes) });
 }
 export async function verifyDbcConfig(info) {
   const d = await externalData(info, DBC, 'PoolConfig', 1048);

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { browserActivity, unresolved } from './lifecycle.js';
 import { PROGRAM_ID } from './client.js';
+import { dbcLaunchUrl } from './dbcLinks.js';
 
 export function useActivity(connection, wallet, conflict) {
   const [records, setRecords] = useState([]);
@@ -52,7 +53,7 @@ export function Activity({ activity, connection, onConfirmed = undefined }) {
       <p>{record.message}</p>
       {record.evidence?.expired && <p>Blockhash expired; absent history does not release this lock.</p>}
       {unresolved(record) && <button type="button" className="underline" disabled={busy || !connection || record.scope.chain !== activity.chain} onClick={() => reconcile(record)}>Reconcile history (never resubmits)</button>}
-      {record.state === 'confirmed' && record.scope.chain === activity.chain && <Link className="block underline" to={record.metadata.protocol === 'dbc-v1' ? `/launch?dbcMint=${encodeURIComponent(record.metadata.mint)}` : `/solana/${record.metadata.mint}`}>{record.metadata.protocol === 'dbc-v1' ? 'Open DBC launch' : 'Open market'}</Link>}
+      {record.state === 'confirmed' && record.scope.chain === activity.chain && <Link className="block underline" to={record.metadata.protocol === 'dbc-v1' ? dbcLaunchUrl(record.metadata.mint, record.scope.chain) : `/solana/${record.metadata.mint}`}>{record.metadata.protocol === 'dbc-v1' ? 'Open DBC launch' : 'Open market'}</Link>}
     </article>)}
   </section>;
 }
