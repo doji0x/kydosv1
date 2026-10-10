@@ -1,0 +1,39 @@
+name: DBC workspace
+on:
+  push:
+    branches: [codex/meteora-dbc-integration]
+    paths: ['src/**', 'tests/**', 'solana/dbc/**', '.github/workflows/dbc-workspace.yml']
+  pull_request:
+    paths: ['src/**', 'tests/**', 'solana/dbc/**', '.github/workflows/dbc-workspace.yml']
+permissions:
+  contents: read
+jobs:
+  workspace:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: 22.16.0}
+      - name: Install committed application lock
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Check launch regressions and build
+        run: |
+          node --test tests/dbc-browser.test.mjs
+          npm run lint
+          npm run build
+          git diff --exit-code
+      - name: Capture reproducible public-source workspace
+        run: |
+          mkdir -p /tmp/dbc-workspace
+          git rev-parse HEAD > /tmp/dbc-workspace/source-commit.txt
+          git archive --format=tar.gz HEAD > /tmp/dbc-workspace/source.tar.gz
+          tar -czf /tmp/dbc-workspace/dependencies.tar.gz node_modules
+          cd /tmp/dbc-workspace
+          sha256sum *.tar.gz > SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dbc-workspace-inputs
+          retention-days: 3
+          path: /tmp/dbc-workspace
