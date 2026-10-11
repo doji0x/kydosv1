@@ -8,8 +8,13 @@ const baseline = path => execFileSync('git', ['show', `${BASELINE_COMMIT}:${path
 const current = path => readFileSync(path, 'utf8');
 const libPath = 'solana/programs/kydos_launchpad/src/lib.rs';
 let lib = current(libPath);
-// Only the new module, import and the two thin instruction dispatchers may be added.
+// Removing only these approved modules/imports and thin dispatchers must still
+// reproduce the original creation/trading source byte-for-byte.
 for (const addition of [
+  'pub mod dbc_fees;\nuse dbc_fees::*;\n',
+  '    pub fn launch_dbc(ctx: Context<LaunchDbc>, metadata: DbcMetadata) -> Result<()> {\n        dbc_fees::launch(ctx, metadata)\n    }\n\n',
+  '    pub fn settle_damm_fees(ctx: Context<SettleDammFees>) -> Result<()> {\n        dbc_fees::settle(ctx)\n    }\n\n',
+  '    pub fn claim_dbc_fees(ctx: Context<ClaimDbcFees>) -> Result<()> {\n        dbc_fees::claim_bonding(ctx)\n    }\n\n',
   'pub mod protected_migration;\nuse protected_migration::*;\n',
   '    pub fn install_migration_route(ctx: Context<InstallMigrationRoute>) -> Result<()> {\n        protected_migration::install(ctx)\n    }\n\n',
   '    pub fn migrate(ctx: Context<Migrate>, max_setup_lamports: u64) -> Result<()> {\n        protected_migration::migrate(ctx, max_setup_lamports)\n    }\n\n',

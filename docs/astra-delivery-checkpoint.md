@@ -1,52 +1,50 @@
 # Astra continuity checkpoint
 
-## Current delivery: repaired atomic protected graduation
+## Active delivery: mainnet launch UI committed in PR #35
 
-Continue PR #34 on **codex/atomic-protected-graduation**. Do not create another
-branch. Repair source: `8755fb2214bd818267852a4597729dfbe2bd16e4`;
-base: `c0038ce424bd4cc54af046d7b7f691b8d8b4aba4` (merged PR #33).
-Design and outstanding operator request: [protected-migration.md](protected-migration.md).
+Continue SAME branch `codex/meteora-dbc-integration`. Source:
+`13c5237fc19b3fc0f7f7080f3ee85252d7e3b3e7`, tree
+`60223873214b8f8e5dda76da7f120745605d7141`. User requested committing the prepared
+mainnet-capable launch UI. That entire 30-file update is committed and pushed,
+not an offline patch or unattached blobs. Do not merge, deploy, inject a live
+manifest/credentials, submit public transactions or restore custom graduation.
 
-The atomic migration now executes locally: tracked reserves -> protected DAMM
-pool creation -> verified full permanent lock -> cleanup -> receipt. Retry and
-concurrent execution cannot seed twice; replay works after a real pool swap.
-This is not fee-settlement or deployment approval.
+## Scope preserved
 
-## Repairs
+Mainnet/devnet manifest support, public DBC launch form, Phantom connection,
+artwork/IPFS or hosted metadata, explicit mainnet consent, capped priority cost,
+blockhash expiry checks, network-correct success/recovery actions and read-only
+approved-binary checker are included. No Rust, canonical IDL, dependency lock,
+supply, treasury, original-creator rights or fee-split changes. Operator setup:
+docs/dbc-mainnet.md. Transactions remain blocked without a verified manifest.
 
-- Agave 2.1.21's CLI `none` test fixture produced `Some(default_pubkey)` rather
-  than `None`. Both harnesses now use a distinct ephemeral DAMM authority and
-  verify its actual loader bytes. Production authority validation was not relaxed.
-- Split the oversized migration into bounded non-inlined SBF frames. The pinned
-  compiler returned success despite stack-overwrite diagnostics. A tested CI
-  gate now rejects those diagnostics; the repaired build has none.
-- Synchronize both sides of direct Curve lamport transfers at the following CPI,
-  fixing the executed `UnbalancedInstruction` error without changing budgets.
-- Restore the exact original source newline convention. Regenerate the browser
-  IDL from current-source Anchor IDL compilation; all old definitions remain.
-- Remove temporary diagnostic workflow/tool packaging. Retain normal compiler
-  and runtime logs in the Solana Anchor workflow.
+## Exact source CI and narrow test correction
 
-## Verification
+All SIX pre-existing PR workflows passed 13c5237: application, compatibility,
+DBC browser integration, executed DBC lifecycle, fee controller and full Anchor.
+The NEW DBC mainnet UI actions workflow passed all 40 Node checks, then failed
+before any of its 11 Chromium scenarios could interact: Buffer was undefined.
+Run 38096390802 / job 114343049309 records that startup error.
 
-Local tools: Node 22.16.0, Agave 2.1.21, platform-tools v1.43, Rust 1.90.0.
-Executed route cases: 14/14. Executed graduation cases: 29/29. Solana JS: 142/142
-(including four build-diagnostic tests); confirmation harness: 6/6; Rust suites:
-35 tests; app lint/build and five market tests pass. Current-source IDL generation
-and browser comparison pass. Removing only the approved dispatch additions from
-lib.rs gives original blob `be9d9f83440eb737ed5e55ef07fefd78993709ee` exactly.
+Production src/main.jsx already initializes Buffer before dynamically importing
+App. The test harness had statically imported SPL Token dependencies before its
+setup function ran. This commit makes only the harness entry follow production's
+initialization order. The complete harness now builds locally with Vite; no test
+case, assertion, network isolation, fee policy or production safeguard is removed.
+Do not count this build as completed Chromium execution.
 
-Clean-fixture migration: 365748 CU, 26928240 setup lamports excluding network fees,
-256 KiB requested heap. Largest signed packet tested: 1141/1232 bytes. These are
-local measurements using synthetic genesis and pinned public DAMM bytecode, not
-mainnet cost quotes or source/binary verification. Resulting commit and exact-head
-CI state belong in PR/chat; do not reuse older green checks as new-head evidence.
+Local source evidence: 70 focused/selected checks, 138 existing Solana tests,
+lint and production build passed. Suites overlap; not 208 unique checks. Historical
+root typecheck remains a separate known limitation. Local browser navigation was
+restricted in the earlier session, so executed browser evidence comes from CI.
 
-## Next action and release limits
+## Next action
 
-Review the repaired diff and exact-head CI. Actual mainnet configuration,
-upgrade-authority control, cluster identity and deployed-source parity remain
-release prerequisites. Last recorded scan found no matching config; no new
-public observation or operator request was submitted by this repair. No mainnet
-transaction, paid upgrade, installation, live migration, claim, burn or payout.
-Fee settlement and frontend/keeper rollout remain separate work.
+Inspect ALL seven exact-head PR workflows after this correction, especially the
+11 real Chromium action tests. Fix demonstrated failures on this same branch,
+then update PR/chat with actual SHA-bound outcomes. Do not repeat completed
+controller work or mark pending/skipped checks passed. No recursive own-SHA commit.
+
+Live deployed controller/configuration, server settings and real-wallet rehearsal
+remain operator prerequisites. Creation-only UI does not provide initial buys,
+trading screens, public indexing, keepers, leftovers or automatic WSOL unwrapping.

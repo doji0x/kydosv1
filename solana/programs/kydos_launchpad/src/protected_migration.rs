@@ -1,11 +1,8 @@
-//! Protected-route installation and atomic graduation. No fee claim, burn,
-//! payout, or public-network deployment is enabled by this module.
+//! Protected-route installation only. No migrate, reserve transfer, fee claim,
+//! burn, payout, or public-network deployment is enabled by this module.
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{bpf_loader_upgradeable, hash::hash, program_error::ProgramError};
 use crate::meteora;
-
-mod atomic;
-pub use atomic::*;
 
 pub const ROUTE_SEED: &[u8] = b"migration_route";
 pub const ROUTE_VERSION: u8 = 1;
@@ -134,7 +131,7 @@ pub fn install(ctx: Context<InstallMigrationRoute>) -> Result<()> {
     Ok(())
 }
 
-/// Read-only guard for fresh fund-moving handlers. Caller must provide an
+/// Read-only guard for future fund-moving handlers. Caller must provide an
 /// authenticated Account<MigrationRoute>; this additionally checks its PDA.
 /// Do not apply this freshness check to an already-successful migration replay.
 pub fn validate_route(route_key: &Pubkey, route: &MigrationRoute, config: &AccountInfo,

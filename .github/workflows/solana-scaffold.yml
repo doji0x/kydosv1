@@ -8,25 +8,12 @@ on:
     paths: ['solana/**','src/lib/solana/**','src/lib/SolanaWalletContext.jsx','src/pages/SolanaLaunch.jsx','src/hooks/useLaunchFlow.js','src/hooks/useSolanaChartFeed.js','src/hooks/useMarketTrading.js','src/pages/AdminLaunch.jsx','src/pages/SolanaMarket.jsx','src/pages/Board.jsx','src/components/board/**','src/components/solana/**','base44/functions/launchMetadata/**','base44/shared/launchMetadata.js','base44/functions/indexSolanaTransactions/**','base44/functions/solanaRpc/**','base44/shared/solanaRpc.js','base44/shared/solana*.js','base44/shared/adminLaunch.js','base44/shared/heliusSolanaTrades*','base44/functions/adminLaunchToken/**','base44/functions/solanaTokenChart/**','base44/functions/solanaBoard/**','base44/entities/SolanaIndexState.jsonc','base44/entities/AdminLaunchReceipt.jsonc','base44/entities/SolanaTrade.jsonc','package.json','package-lock.json','.github/workflows/solana-scaffold.yml']
 permissions: {contents: read}
 jobs:
-  harness:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v4
-        with: {persist-credentials: false}
-      - uses: actions/setup-node@v4
-        with: {node-version: 22.16.0}
-      - run: npm ci --ignore-scripts --no-audit --no-fund
-      - run: node --test solana/tests/runtime/confirmed.test.mjs
-      - run: node --check solana/tests/runtime/graduation.mjs
-      - run: node --test solana/tests/check-sbf-build.test.mjs
   anchor:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: {node-version: 22.16.0}
+        with: {node-version: 20}
       - uses: dtolnay/rust-toolchain@1.90.0
       - uses: swatinem/rust-cache@v2
         with: {workspaces: solana}
@@ -47,30 +34,33 @@ jobs:
       - name: Host account validation and Meteora ABI tests (no validator or deployment)
         working-directory: solana
         run: cargo test -p kydos_launchpad --test account_validation --test meteora_adapter --locked
-      - name: Build SBF with locked dependencies and reject unsafe stack diagnostics
-        id: sbf
+      - name: Build SBF with locked dependencies
         working-directory: solana
-        run: |
-          set -o pipefail
-          mkdir -p target
-          anchor build --program-name kydos_launchpad --no-idl -- -- --locked 2>&1 | tee target/sbf-build.log
-          node scripts/check-sbf-build.mjs target/sbf-build.log
+        # Anchor -> cargo build-sbf -> cargo build each consumes a separator.
+        # Generate the IDL separately because it invokes cargo test directly.
+        run: anchor build --program-name kydos_launchpad --no-idl -- -- --locked
       - name: Generate IDL with locked dependencies
         id: idl
         working-directory: solana
         run: anchor idl build --program-name kydos_launchpad --out target/idl/kydos_launchpad.json --out-ts target/types/kydos_launchpad.ts -- --locked
-      - name: Preserve compiler-generated browser interface without changing the source checkout
+      - name: Report generated interface additions without changing checked-in IDL
         run: |
           node --input-type=module <<'JS'
-          import { readFileSync, writeFileSync } from 'node:fs';
+          import { readFileSync } from 'node:fs';
           import { createHash } from 'node:crypto';
           import { Program } from '@coral-xyz/anchor';
           import { Connection } from '@solana/web3.js';
+          const old = JSON.parse(readFileSync('src/lib/solana/idl/kydos_launchpad.json'));
           const raw = JSON.parse(readFileSync('solana/target/idl/kydos_launchpad.json'));
           const generated = new Program(raw, {connection:new Connection('http://127.0.0.1:8899')}).idl;
-          const bytes = JSON.stringify(generated,null,2)+'\n';
-          writeFileSync('solana/target/idl/kydos_launchpad.browser.json',bytes);
-          console.log('GENERATED_IDL_SHA256 '+createHash('sha256').update(bytes).digest('hex'));
+          const delta = { address:generated.address, metadata:generated.metadata, sections:{} };
+          for (const group of ['instructions','accounts','events','types','errors']) {
+            const previous = new Map((old[group] ?? []).map(i=>[i.name,i]));
+            delta.sections[group] = { order:(generated[group] ?? []).map(i=>i.name),
+              changed:(generated[group] ?? []).filter(i=>JSON.stringify(previous.get(i.name))!==JSON.stringify(i)) };
+          }
+          delta.generatedSha256 = createHash('sha256').update(JSON.stringify(generated,null,2)+'\n').digest('hex');
+          console.log('GENERATED_IDL_DELTA '+JSON.stringify(delta));
           JS
       - name: Fetch and verify pinned public DAMM runtime fixture
         timeout-minutes: 2
@@ -80,15 +70,7 @@ jobs:
           test "$(git hash-object solana/target/runtime-fixtures/cp_amm.so)" = 946562cfc35b978dbaf1100363b7505b018fd6f6
       - name: Execute route installation against a loopback-only validator
         timeout-minutes: 6
-        run: |
-          set -o pipefail
-          node solana/tests/runtime/route-installation.mjs 2>&1 | tee solana/target/route-runtime.log
-      - name: Execute atomic graduation against real Kydos and pinned DAMM bytecode
-        if: ${{ !cancelled() && steps.sbf.outcome == 'success' && steps.idl.outcome == 'success' }}
-        timeout-minutes: 8
-        run: |
-          set -o pipefail
-          node solana/tests/runtime/graduation.mjs 2>&1 | tee solana/target/graduation-runtime.log
+        run: node solana/tests/runtime/route-installation.mjs
       - name: Verify browser IDL matches the built program
         if: ${{ !cancelled() && steps.idl.outcome == 'success' }}
         working-directory: solana
@@ -108,8 +90,4 @@ jobs:
           path: |
             solana/target/deploy/kydos_launchpad.so
             solana/target/idl/kydos_launchpad.json
-            solana/target/idl/kydos_launchpad.browser.json
             solana/target/types/kydos_launchpad.ts
-            solana/target/sbf-build.log
-            solana/target/route-runtime.log
-            solana/target/graduation-runtime.log

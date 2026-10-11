@@ -1,0 +1,49 @@
+name: DBC mainnet UI actions
+on:
+  push:
+    branches: [codex/meteora-dbc-integration]
+    paths: ['src/**', 'tests/**', 'solana/dbc/**', 'solana/scripts/check-dbc-release.mjs', '.github/workflows/dbc-workspace.yml', 'package*.json']
+  pull_request:
+    paths: ['src/**', 'tests/**', 'solana/dbc/**', 'solana/scripts/check-dbc-release.mjs', '.github/workflows/dbc-workspace.yml', 'package*.json']
+permissions:
+  contents: read
+jobs:
+  ui-actions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: 22.16.0}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Install isolated test tools and committed application lock
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          python -m pip install -r tests/ui/requirements.txt
+          python -m playwright install --with-deps chromium
+      - name: Mainnet guards, metadata retry and approved-binary tests
+        run: |
+          set -euo pipefail
+          node --test tests/dbc-browser.test.mjs tests/dbc-metadata.test.mjs tests/dbc-release.test.mjs | tee /tmp/dbc-mainnet-tests.txt
+      - name: Real Chromium launch actions with isolated wallet and RPC fixtures
+        env:
+          DBC_UI_ARTIFACTS: /tmp/dbc-ui-actions
+        run: |
+          set -euo pipefail
+          python tests/ui/test_launch.py 2>&1 | tee /tmp/dbc-ui-results.txt
+      - name: Lint and production build without live credentials or release activation
+        run: |
+          npm run lint
+          npm run build
+          git diff --exit-code
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: dbc-mainnet-ui-evidence
+          retention-days: 7
+          path: |
+            /tmp/dbc-mainnet-tests.txt
+            /tmp/dbc-ui-results.txt
+            /tmp/dbc-ui-actions
