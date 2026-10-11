@@ -1,3 +1,4 @@
+import { RequestError, requestStatus } from '@/lib/requestError';
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
@@ -14,12 +15,11 @@ export default function useMarketDiscovery({ interval = '24h', mint = null } = {
         if (data?.schema !== 1 || data.network !== MARKET_NETWORK || !Array.isArray(data.tokens) || !data.trending) throw new Error('Market data is temporarily unavailable.');
         return data;
       } catch (error) {
-        const failure = new Error(error.response?.data?.error || error.message || 'Market data is temporarily unavailable.');
-        failure.status = error.response?.status; throw failure;
+        throw new RequestError(error.response?.data?.error || error.message || 'Market data is temporarily unavailable.', { status: error.response?.status });
       }
     },
     staleTime: 20_000, refetchInterval: 30_000, refetchIntervalInBackground: false,
-    retry: (failureCount, error) => error.status !== 401 && error.status !== 403 && failureCount < 1,
+    retry: (failureCount, error) => requestStatus(error) !== 401 && requestStatus(error) !== 403 && failureCount < 1,
   });
   const snapshot = result.data || fallbackSnapshot;
   return { ...result, snapshot, now, status: snapshotStatus(snapshot.fetchedAt, now) };

@@ -48,7 +48,7 @@ async function harness() {
     delegateOption: 0, delegate: PublicKey.default, state: 1, isNativeOption: 0, isNative: 0n,
     delegatedAmount: 0n, closeAuthorityOption: 0, closeAuthority: PublicKey.default },token);
   accounts.set(dbc.positionNftAccount(nft).toBase58(), info(TOKEN_2022_PROGRAM_ID,token));
-  const state = { chain: dbc.DEVNET, sends: 0, signs: 0, feeMultiplier: 1, failSim: false, emptyFees: false,
+  const state = { chain: dbc.MAINNET, sends: 0, signs: 0, feeMultiplier: 1, failSim: false, emptyFees: false,
     failSend: false, mutateSigned: false, changeAfterSign: false, zeroBalance: false,
     height: 50, positions: [{ pubkey: dbc.positionAddress(nft), account: info(dbc.DAMM,position) }] };
   const storageMap = new Map(), storage = { getItem: key => storageMap.get(key) ?? null, setItem: (key,value) => storageMap.set(key,value) };
@@ -84,25 +84,26 @@ async function harness() {
   const wallet = { publicKey: payer.publicKey, signTransaction: async tx => {
     state.signs++;
     if (state.mutateSigned) tx.add(SystemProgram.transfer({ fromPubkey: payer.publicKey, toPubkey: key(3).publicKey, lamports: 1 }));
-    tx.partialSign(payer); if (state.changeAfterSign) state.chain = dbc.MAINNET; return tx;
+    tx.partialSign(payer); if (state.changeAfterSign) state.chain = dbc.DEVNET; return tx;
   } };
-  const release = { enabled: true, genesisHash: dbc.DEVNET, config: config.toBase58(), programDataHashes };
+  const release = { enabled: true, genesisHash: dbc.MAINNET, config: config.toBase58(), programDataHashes };
   const prepare = (operation='create', extra = {}) => prepareDbcReview({ connection, wallet, release, operation,
     mint, nft, name:'Kydos test',symbol:'TEST',metadataUri:'https://example.com/token.json', ...extra });
-  const send = (review, extra = {}) => submitDbcReview({ connection,wallet,release,review,activity,...extra });
+  const send = (review, extra = {}) => submitDbcReview({ connection,wallet,release,review,activity,mainnetAcknowledged:true,...extra });
   return { connection,wallet,release,accounts,state,activity,registry,prepare,send };
 }
 
-test('release gate allows explicit mainnet and devnet, rejects disabled, missing pins and unsupported networks', async () => {
+test('release gate allows mainnet only and rejects disabled, missing pins and other networks', async () => {
   const h=await harness(); assert.throws(()=>dbc.validateDbcRelease(null),/disabled/);
   assert.equal(dbc.validateDbcRelease({...h.release,genesisHash:dbc.MAINNET}).genesisHash,dbc.MAINNET);
-  assert.throws(()=>dbc.validateDbcRelease({...h.release,genesisHash:mint.toBase58()}),/not a supported/);
+  assert.throws(()=>dbc.validateDbcRelease({...h.release,genesisHash:mint.toBase58()}),/mainnet/);
+  assert.throws(()=>dbc.validateDbcRelease({...h.release,genesisHash:dbc.DEVNET}),/mainnet/);
   assert.throws(()=>dbc.validateDbcRelease({...h.release,programDataHashes:{}}),/hash/);
   assert.equal((await dbc.verifyDbcRelease(h.connection,h.release)).config,config.toBase58());
 });
 test('wrong network and modified deployed code reject before wallet',async()=>{
-  const h=await harness();h.state.chain=dbc.MAINNET;await assert.rejects(h.prepare(),/network/);assert.equal(h.state.signs,0);
-  h.state.chain=dbc.DEVNET;const pd=PublicKey.findProgramAddressSync([dbc.KYDOS.toBuffer()],dbc.UPGRADEABLE_LOADER)[0];
+  const h=await harness();h.state.chain=dbc.DEVNET;await assert.rejects(h.prepare(),/network/);assert.equal(h.state.signs,0);
+  h.state.chain=dbc.MAINNET;const pd=PublicKey.findProgramAddressSync([dbc.KYDOS.toBuffer()],dbc.UPGRADEABLE_LOADER)[0];
   h.accounts.get(pd.toBase58()).data[45]^=1;await assert.rejects(h.prepare(),/Deployed program/);
 });
 test('policy validates captured config and rejects every changed byte',async()=>{
@@ -226,7 +227,7 @@ test('verified mainnet creation requires real-SOL acknowledgment, then signs and
   const h=await harness();h.state.chain=dbc.MAINNET;h.release.genesisHash=dbc.MAINNET;
   const review=await h.prepare();
   assert.equal(review.chain,dbc.MAINNET);
-  await assert.rejects(h.send(review),/real SOL/);assert.equal(h.state.signs,0);
+  await assert.rejects(h.send(review,{mainnetAcknowledged:false}),/real SOL/);assert.equal(h.state.signs,0);
   await assert.rejects(h.send(review,{mainnetAcknowledged:'true'}),/real SOL/);
   const result=await h.send(review,{mainnetAcknowledged:true});
   assert.equal(result.chain,dbc.MAINNET);assert.equal(h.state.signs,1);assert.equal(h.state.sends,1);
@@ -240,7 +241,7 @@ test('mainnet fee settlement keeps original recipients and the 50/50 policy',asy
   await h.send(r,{mainnetAcknowledged:true});assert.equal(h.state.sends,1);
 });
 test('mainnet release rejects devnet RPC and deployed-code changes without signing',async()=>{
-  const h=await harness();h.release.genesisHash=dbc.MAINNET;
+  const h=await harness();h.state.chain=dbc.DEVNET;
   await assert.rejects(h.prepare(),/network/);assert.equal(h.state.signs,0);
   h.state.chain=dbc.MAINNET;const review=await h.prepare();
   const pd=PublicKey.findProgramAddressSync([dbc.KYDOS.toBuffer()],dbc.UPGRADEABLE_LOADER)[0];

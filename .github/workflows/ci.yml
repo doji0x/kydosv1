@@ -8,15 +8,18 @@ on:
 
 jobs:
   build:
-    name: Lint and build
+    name: Frontend typecheck, lint and build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '22.16.0'
           cache: npm
       - run: npm ci
-      - run: npm run lint --if-present
+      - run: npm run typecheck
+      - run: npm run test:types
+      - run: node --test tests/mainnet-network.test.mjs
+      - run: npm run lint
       - run: node --test tests/market-discovery.test.mjs tests/market-candles.test.mjs
       - run: npm run build

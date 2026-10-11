@@ -1,3 +1,4 @@
+import { requestStatus } from '@/lib/requestError';
 import React, { useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -9,7 +10,7 @@ import { ageLabel, formatPrice } from '@/lib/markets';
 export default function ExternalMarketChart({ mint, symbol, livePrice }) {
   const [interval, setInterval] = useState('1h');
   const feed = useMarketCandles(mint, interval), { page, candles } = feed;
-  const signIn = [401, 403].includes(feed.error?.status);
+  const signIn = [401, 403].includes(requestStatus(feed.error));
   return <section aria-label={`${symbol} interactive price chart`} className="mb-5 min-w-0 overflow-hidden rounded-2xl border border-border bg-card/70">
     <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4">
       <div><h2 className="text-sm font-semibold">{symbol} / USD <span className="ml-2 font-mono text-primary">{formatPrice(livePrice ?? candles.at(-1)?.close)}</span></h2><p className="mt-1 text-[11px] text-muted-foreground">{page ? `${page.pool.name} · ${ageLabel(page.fetchedAt, feed.now)}` : 'Sampled Jupiter price history'}</p></div>

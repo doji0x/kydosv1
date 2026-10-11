@@ -3,12 +3,15 @@ import { base44 } from "@/api/base44Client";
 import { ensureProfile } from "@/lib/profile";
 import { useSolanaWallet } from '@/lib/SolanaWalletContext';
 
-const Ctx = createContext({ me: undefined, likedIds: new Set(), refresh: () => {}, toggleLike: () => {} });
+/** @typedef {{ id: string; profile: Awaited<ReturnType<typeof ensureProfile>> }} WalletIdentity */
+/** @type {React.Context<{ me: WalletIdentity | null | undefined; likedIds: Set<string>;
+ * refresh: () => Promise<void>; toggleLike: (post: { id: string; like_count?: number }) => Promise<void> }>} */
+const Ctx = createContext({ me: undefined, likedIds: new Set(), refresh: async () => {}, toggleLike: async () => {} });
 
 export function MeProvider({ children }) {
   const wallet = useSolanaWallet();
   const walletId = wallet.publicKey?.toBase58();
-  const [me, setMe] = useState(undefined);
+  const [me, setMe] = useState(/** @type {WalletIdentity | null | undefined} */ (undefined));
   const [likedIds, setLikedIds] = useState(new Set());
 
   const refresh = useCallback(async () => {

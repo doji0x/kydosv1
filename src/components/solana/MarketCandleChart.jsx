@@ -7,9 +7,9 @@ import { canUpdateLastCandle } from '@/lib/solana/candles';
 const lineBar = bar => ({ time: bar.time, value: bar.close });
 const volumeBar = bar => bar.volume == null ? { time: bar.time } : ({ time: bar.time, value: bar.volume, color: bar.close >= bar.open ? '#22c55e66' : '#ef444466' });
 
-export default function MarketCandleChart({ candles, timeframe, seriesKey = timeframe, currency = 'SOL', volumeCurrency = 'SOL', onLoadOlder, canLoadOlder = false, livePrice = null }) {
+export default function MarketCandleChart({ candles, timeframe, seriesKey = timeframe, currency = 'SOL', volumeCurrency = 'SOL', onLoadOlder = undefined, canLoadOlder = false, livePrice = null }) {
   const container = useRef(null), api = useRef(null), previous = useRef([]), frame = useRef(null);
-  const following = useRef(true), applying = useRef(false), history = useRef({}), bars = useRef(new Map());
+  const following = useRef(true), applying = useRef(false), history = useRef({ onLoadOlder, canLoadOlder }), bars = useRef(new Map());
   history.current = { onLoadOlder, canLoadOlder };
   bars.current = new Map(candles.map(bar => [bar.time, bar]));
   const [legend, setLegend] = useState(null), [follow, setFollow] = useState(true);
@@ -24,6 +24,7 @@ export default function MarketCandleChart({ candles, timeframe, seriesKey = time
       timeScale: { borderColor: '#292929', timeVisible: true, secondsVisible: false },
       localization: { priceFormatter: formatPrice },
     });
+    /** @type {import('lightweight-charts').PriceFormatCustom} */
     const priceFormat = { type: 'custom', formatter: formatPrice, minMove: 0.000000000001 };
     const price = chart.addLineSeries({ color: '#f2b429', lineWidth: 2, priceFormat });
     const volume = chart.addHistogramSeries({ priceFormat: { type: 'volume' }, priceScaleId: '', lastValueVisible: false, priceLineVisible: false });

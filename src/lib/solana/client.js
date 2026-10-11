@@ -18,9 +18,9 @@ export const CURVE_SPACE = 397;
 export const FEE_POLICY_SPACE = 76;
 export const TREASURY = new PublicKey(TREASURY_ADDRESS);
 export const METADATA_SPACE = 679;
-const accountsCoder = new BorshAccountsCoder(idl);
+const accountsCoder = new BorshAccountsCoder(/** @type {import("@coral-xyz/anchor").Idl} */ (idl));
 const bn = value => new BN(rawAmount(value).toString());
-const programFor = (connection, wallet) => new Program(idl, new AnchorProvider(connection, wallet, { commitment: 'confirmed' }));
+const programFor = (connection, wallet) => new Program(/** @type {import("@coral-xyz/anchor").Idl} */ (idl), new AnchorProvider(connection, wallet, { commitment: 'confirmed' }));
 
 export function deriveMarketAddresses(mint) {
   const key = new PublicKey(mint);

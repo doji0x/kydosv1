@@ -10,10 +10,11 @@ const message = reason => reason?.response?.data?.error || reason.message;
 const sol = lamports => ((lamports || 0) / 1e9).toFixed(9);
 const resolved = state => ['confirmed', 'failed'].includes(state);
 export default function AdminLaunch() {
-  const [user, setUser] = useState(), [wallet, setWallet] = useState();
+  const [user, setUser] = useState(/** @type {import('@base44/sdk').User | null | undefined} */ (undefined));
+  const [wallet, setWallet] = useState(/** @type {import('@/types/application').AdminWalletStatus | undefined} */ (undefined));
   const [form, setForm] = useState({ name: '', symbol: '', image: null });
   const [statusText, setStatusText] = useState(''), [busy, setBusy] = useState(false);
-  const [error, setError] = useState(''), [logs, setLogs] = useState([]), [result, setResult] = useState();
+  const [error, setError] = useState(''), [logs, setLogs] = useState([]), [result, setResult] = useState(/** @type {import('@/types/application').AdminLaunchReceipt | undefined} */ (undefined));
   const lock = useRef(false);
   const refresh = useCallback(async () => {
     const { data } = await base44.functions.invoke('adminLaunchToken', { action: 'status' });
@@ -44,7 +45,7 @@ export default function AdminLaunch() {
   };
   const submit = async event => {
     event.preventDefault(); if (lock.current || unresolved) return;
-    lock.current = true; setBusy(true); setError(''); setLogs([]); setResult();
+    lock.current = true; setBusy(true); setError(''); setLogs([]); setResult(undefined);
     let attempted = false;
     try {
       setStatusText('Checking server wallet…');
@@ -53,11 +54,12 @@ export default function AdminLaunch() {
       const details = { name: form.name.trim(), symbol: form.symbol.trim().toUpperCase() };
       validateMetadataDetails(details); await validateLaunchImage(form.image);
       setStatusText('Uploading photo…');
-      const { file_url: imageUrl } = await base44.integrations.Core.UploadPublicFile({ file: form.image });
+      const { file_url: imageUrl } = await base44.integrations.Core.UploadFile({ file: form.image });
       setStatusText('Saving token details…');
       const metadata = new File([JSON.stringify({ ...details, image: imageUrl })], 'metadata.json', { type: 'application/json' });
-      const { file_url: metadataUri } = await base44.integrations.Core.UploadPublicFile({ file: metadata });
+      const { file_url: metadataUri } = await base44.integrations.Core.UploadFile({ file: metadata });
       setStatusText('Simulating and submitting on ' + current.network.name + '…');
+      /** @type {import('@/types/application').AdminLaunchReceipt} */
       const pending = { state: 'unknown', requestId: crypto.randomUUID(), wallet: current.wallet, network: current.network, startedAt: new Date().toISOString() };
       localStorage.setItem(PENDING_KEY, JSON.stringify(pending));
       if (!localStorage.getItem(PENDING_KEY)) throw new Error('Unable to save launch recovery information.');
@@ -71,7 +73,7 @@ export default function AdminLaunch() {
       await refresh();
     } catch (reason) {
       const data = reason?.response?.data; setError(message(reason)); setLogs(data?.logs || []);
-      if (!attempted || data?.submitted === false) { localStorage.removeItem(PENDING_KEY); setResult(); }
+      if (!attempted || data?.submitted === false) { localStorage.removeItem(PENDING_KEY); setResult(undefined); }
     } finally { lock.current = false; setBusy(false); }
   };
   if (user === undefined) return <p role="status" className="p-8 text-center">Checking admin access…</p>;

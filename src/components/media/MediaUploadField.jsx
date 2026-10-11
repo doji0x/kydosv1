@@ -11,6 +11,8 @@ export function isVideo(url = "") {
   return /\.(mp4|webm|mov|m4v|ogv)(\?|$)/i.test(url);
 }
 
+/** @param {{ value: string; onChange: (url: string) => void; allowVideo?: boolean;
+ * className?: string; previewClassName?: string; onBusyChange?: (busy: boolean) => void }} props */
 export default function MediaUploadField({ value, onChange, allowVideo = false, className = "", previewClassName = "w-full aspect-video", onBusyChange }) {
   const inputRef = useRef(null);
   const [busy, setBusy] = useState(false);
@@ -28,7 +30,7 @@ export default function MediaUploadField({ value, onChange, allowVideo = false, 
     setBusy(true);
     onBusyChange?.(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadPublicFile({ file });
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
       onChange(file_url);
     } catch {
       toast.error("Upload failed — you can paste a media URL instead.");

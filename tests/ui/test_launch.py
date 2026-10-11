@@ -200,15 +200,14 @@ class LaunchUI(unittest.TestCase):
         expect(self.page.get_by_role('alert').filter(has_text='RPC network does not match')).to_be_visible()
         self.assertEqual((self.state('images'), self.state('signs'), self.state('sends')), (0, 0, 0))
 
-    def test_devnet_links_and_consent_are_not_mislabeled_as_mainnet(self):
+    def test_devnet_manifest_cannot_authorize_mainnet_only_operations(self):
         self.open('?case=devnet')
         self.connect()
         self.details()
-        self.review()
-        self.assertEqual(self.page.get_by_role('checkbox', name='I understand this is Solana mainnet', exact=False).count(), 0)
-        self.page.get_by_role('button', name='Launch token with Phantom').click()
-        expect(self.page.get_by_role('heading', name='Token launched on Solana devnet')).to_be_visible()
-        self.assertIn('?cluster=devnet', self.page.get_by_role('link', name='View transaction', exact=True).get_attribute('href'))
+        expect(self.page.get_by_role('alert').filter(has_text='require Solana mainnet')).to_be_visible()
+        expect(self.page.get_by_role('button', name='Review token launch')).to_be_disabled()
+        expect(self.page.get_by_role('button', name='Verify launch readiness')).to_be_disabled()
+        self.assertEqual((self.state('images'), self.state('signs'), self.state('sends')), (0, 0, 0))
 
     def test_original_creator_fee_actions_on_mainnet(self):
         self.open()

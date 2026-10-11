@@ -6,6 +6,7 @@ import { Wallet } from 'lucide-react';
 import { LOGO_URL } from "@/lib/brand";
 import { useMe } from "@/lib/MeContext";
 
+/** @type {React.Context<{ requireAuth: (label?: string) => boolean }>} */
 const GateContext = createContext({ requireAuth: () => true });
 
 // Wraps guest actions: returns true when signed in, otherwise opens the prompt.
