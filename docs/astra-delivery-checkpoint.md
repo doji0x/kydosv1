@@ -1,50 +1,51 @@
 # Astra continuity checkpoint
 
-## Active delivery: mainnet launch UI committed in PR #35
+## Active delivery: PR #36, frontend types and mainnet-only boundaries
 
-Continue SAME branch `codex/meteora-dbc-integration`. Source:
-`13c5237fc19b3fc0f7f7080f3ee85252d7e3b3e7`, tree
-`60223873214b8f8e5dda76da7f120745605d7141`. User requested committing the prepared
-mainnet-capable launch UI. That entire 30-file update is committed and pushed,
-not an offline patch or unattached blobs. Do not merge, deploy, inject a live
-manifest/credentials, submit public transactions or restore custom graduation.
+Continue `codex/mainnet-readiness-typecheck`, created from merged PR #35/main
+`0fe3a908b2f1169871a03f7bff3187164bd3035f`. The formerly interrupted 87-file
+implementation is now committed and pushed at
+`1b78c30a18812cc97d1031575c51e49fd37a1fc6`; PR #36 is open. Do not recreate the
+branch, resume the older DBC branch, merge, deploy or spend public funds.
 
-## Scope preserved
+## Delivered scope
 
-Mainnet/devnet manifest support, public DBC launch form, Phantom connection,
-artwork/IPFS or hosted metadata, explicit mainnet consent, capped priority cost,
-blockhash expiry checks, network-correct success/recovery actions and read-only
-approved-binary checker are included. No Rust, canonical IDL, dependency lock,
-supply, treasury, original-creator rights or fee-split changes. Operator setup:
-docs/dbc-mainnet.md. Transactions remain blocked without a verified manifest.
+Full frontend compiler and coverage checks: 201 maintained files, zero diagnostics.
+Accurate UI/ref/state/wallet/error and upload contracts; no active-source exclusions
+or suppression comments. Application CI now enforces checking instead of relying
+on builds. New DBC releases, launch readiness, indexing and RPC relay require
+mainnet; historical labels remain intact. The bounded, sanitized relay never
+retries a submission or falls back to devnet. Obsolete public protected-route
+observations were retired; compatibility and local regressions remain.
 
-## Exact source CI and narrow test correction
+Rust, canonical IDL, locked dependencies, nominal supply, creator rights and fee
+policy are unchanged. No release manifest or signing credentials were supplied.
+Design: docs/mainnet-readiness.md. Live-release procedure: docs/dbc-mainnet.md.
 
-All SIX pre-existing PR workflows passed 13c5237: application, compatibility,
-DBC browser integration, executed DBC lifecycle, fee controller and full Anchor.
-The NEW DBC mainnet UI actions workflow passed all 40 Node checks, then failed
-before any of its 11 Chromium scenarios could interact: Buffer was undefined.
-Run 38096390802 / job 114343049309 records that startup error.
+## Publication replay and compatibility correction
 
-Production src/main.jsx already initializes Buffer before dynamically importing
-App. The test harness had statically imported SPL Token dependencies before its
-setup function ran. This commit makes only the harness entry follow production's
-initialization order. The complete harness now builds locally with Vite; no test
-case, assertion, network isolation, fee policy or production safeguard is removed.
-Do not count this build as completed Chromium execution.
+At 1b78c30, clean-install application CI passed the complete frontend compiler,
+coverage, five contract tests, network tests, lint and build. Browser integration
+passed, and mainnet UI run 38120766762 passed all 40 Node checks and 11 executed
+Chromium scenarios, including devnet rejection. The downloaded artifact
+11695251961 has SHA256 dff4896274e7b8e4b4d00576f67164418862e11a063cca544570b6180bd93b68.
+These are isolated wallet/RPC fixtures, not mainnet or real Phantom execution.
 
-Local source evidence: 70 focused/selected checks, 138 existing Solana tests,
-lint and production build passed. Suites overlap; not 208 unique checks. Historical
-root typecheck remains a separate known limitation. Local browser navigation was
-restricted in the earlier session, so executed browser evidence comes from CI.
+The legacy exact-source check failed only on two compiler-only Anchor IDL casts
+in client.js. This correction permits precisely those two complete annotated
+lines, then compares all remaining bytes with the ORIGINAL baseline. No generic
+comment/whitespace stripping or baseline replacement is introduced. Six local
+mutation tests prove changed slippage, recipients, preflight, retries, added code,
+other annotations and duplicate lines still fail. All original program/IDL/math
+compatibility checks remain. No production code changes in this correction.
 
 ## Next action
 
-Inspect ALL seven exact-head PR workflows after this correction, especially the
-11 real Chromium action tests. Fix demonstrated failures on this same branch,
-then update PR/chat with actual SHA-bound outcomes. Do not repeat completed
-controller work or mark pending/skipped checks passed. No recursive own-SHA commit.
-
-Live deployed controller/configuration, server settings and real-wallet rehearsal
-remain operator prerequisites. Creation-only UI does not provide initial buys,
-trading screens, public indexing, keepers, leftovers or automatic WSOL unwrapping.
+Inspect all resulting exact-head PR checks, especially full Anchor and the repaired
+compatibility job; do not reuse the prior SHA's green results as final evidence.
+Record delivery SHA and completed results in PR/chat without recursive self-SHA
+commits. The source work-state is historical; this checkpoint supersedes it.
+Backend/Deno and Node-tooling coverage/errors remain the next approved milestone,
+followed by live evidence, trading/indexing, durable workers, residual policy and
+controlled release. This is FRONTEND completion, not repository-wide type safety
+or production launch authorization. Main and public networks remain untouched.

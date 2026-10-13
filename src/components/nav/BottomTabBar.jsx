@@ -4,7 +4,7 @@ import { LayoutGrid, MessagesSquare, Bell, Plus, UserRound } from "lucide-react"
 import { motion } from "framer-motion";
 import { useUnreadCount } from "@/hooks/useUnreadCount";
 
-function Tab({ to, icon: Icon, label, end, badge }) {
+function Tab({ to, icon: Icon, label, end = false, badge = 0 }) {
   return (
     <NavLink to={to} end={end} aria-label={label} className="relative flex items-center justify-center h-full select-none">
       {({ isActive }) => (

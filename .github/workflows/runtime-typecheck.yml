@@ -1,0 +1,46 @@
+name: Backend runtime typecheck
+on:
+  pull_request:
+    branches: [main]
+    paths: ['base44/**', '_shared/**', 'astraChat/**', 'astraAudit/**', 'scripts/**', 'typechecks/**', '.github/workflows/runtime-typecheck.yml']
+permissions:
+  contents: read
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DENO_DIR: /tmp/kydos-deno-cache
+      DENO_NO_PACKAGE_JSON: '1'
+      NO_COLOR: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: denoland/setup-deno@v2
+        with: {deno-version: '2.9.7'}
+      - name: Establish isolated check-only platform declaration
+        run: |
+          mkdir -p /tmp/kydos-runtime-evidence
+          printf 'export declare const secrets: { get(name: string): string | undefined };\n' > /tmp/kydos-runtime-evidence/runtime.d.ts
+          printf '{"nodeModulesDir":"none","compilerOptions":{"checkJs":true,"strict":false},"imports":{"base44:runtime":"./runtime.d.ts"}}\n' > /tmp/kydos-runtime-evidence/deno.json
+          deno --version > /tmp/kydos-runtime-evidence/versions.txt
+          git rev-parse HEAD > /tmp/kydos-runtime-evidence/source-commit.txt
+          git archive --format=tar.gz HEAD > /tmp/kydos-runtime-evidence/source.tar.gz
+      - name: Check actual backend source without executing handlers
+        run: |
+          set -o pipefail
+          mapfile -t files < <(find base44/functions base44/shared -type f \( -name '*.ts' -o -name '*.js' \) | sort)
+          deno check --config /tmp/kydos-runtime-evidence/deno.json --no-lock "${files[@]}" 2>&1 | tee /tmp/kydos-runtime-evidence/backend-check.txt
+      - name: Preserve public checker inputs for offline reproduction
+        if: ${{ !cancelled() }}
+        run: |
+          cp "$(command -v deno)" /tmp/kydos-runtime-evidence/deno
+          tar -czf /tmp/kydos-runtime-evidence/deno-cache.tar.gz -C /tmp/kydos-deno-cache .
+          cd /tmp/kydos-runtime-evidence
+          sha256sum deno source.tar.gz deno-cache.tar.gz > SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: runtime-typecheck-baseline
+          retention-days: 3
+          path: /tmp/kydos-runtime-evidence/

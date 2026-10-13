@@ -1,3 +1,4 @@
+import { RequestError, requestStatus, requestRetryAfter } from '@/lib/requestError';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
@@ -12,8 +13,10 @@ async function requestCandles(input, signal) {
     let data;
     try { ({ data } = await base44.functions.invoke('marketCandles', input)); }
     catch (error) {
-      const failure = new Error(error.response?.data?.error || error.message || 'Chart data is temporarily unavailable.');
-      failure.status = error.response?.status; failure.retryAfter = Math.min(3600, Math.max(60, Number(error.response?.data?.retryAfter) || 60)); throw failure;
+      throw new RequestError(error.response?.data?.error || error.message || 'Chart data is temporarily unavailable.', {
+        status: error.response?.status,
+        retryAfter: Math.min(3600, Math.max(60, Number(error.response?.data?.retryAfter) || 60)),
+      });
     }
     if (controller.signal.aborted) throw new DOMException('Chart request cancelled.', 'AbortError');
     return validateCandlePage(data, input);
@@ -32,12 +35,12 @@ export default function useMarketCandles(mint, interval = '1h', { enabled = true
   }, [identity]);
   const result = useQuery({
     queryKey: candleQueryKey(mint, interval), enabled,
-    queryFn: ({ signal }) => requestCandles({ mint, interval, pool: client.getQueryData(candleQueryKey(mint, interval))?.pool.address || null }, signal),
+    queryFn: ({ signal }) => requestCandles({ mint, interval, pool: (/** @type {import('@/types/application').CandlePage | undefined} */ (client.getQueryData(candleQueryKey(mint, interval))))?.pool.address || null }, signal),
     staleTime: 30_000, gcTime: 30 * 60_000,
-    refetchInterval: query => Math.max(60_000, (query.state.data?.retryAfter || query.state.error?.retryAfter || 0) * 1000),
+    refetchInterval: query => Math.max(60_000, (query.state.data?.retryAfter || requestRetryAfter(query.state.error) || 0) * 1000),
     refetchIntervalInBackground: false, refetchOnWindowFocus: false,
-    retry: (count, error) => ![400, 401, 403, 404].includes(error.status) && count < 2,
-    retryDelay: (_, error) => (error.retryAfter || 60) * 1000,
+    retry: (count, error) => ![400, 401, 403, 404].includes(requestStatus(error)) && count < 2,
+    retryDelay: (_, error) => (requestRetryAfter(error) || 60) * 1000,
   });
   const page = result.data, currentHistory = history?.identity === identity && history.pool === page?.pool.address ? history : null;
   const candles = useMemo(() => mergeCandlePages(currentHistory?.candles || [], page?.candles || []).slice(-MAX_CHART_CANDLES), [currentHistory, page]);

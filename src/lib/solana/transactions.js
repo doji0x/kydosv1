@@ -41,11 +41,8 @@ export async function confirmTransactionHttp(connection, { signature, lastValidB
 }
 
 export function outcomeError(cause, signature, state = 'unknown') {
-  const error = new Error(state === 'unknown'
+  const error = Object.assign(new Error(state === 'unknown'
     ? 'Submission or confirmation unavailable. This transaction may have landed. Check its signature; do not resubmit.'
-    : `Transaction failed on chain: ${JSON.stringify(cause)}`);
-  error.cause = cause;
-  error.signature = signature;
-  error.state = state;
+    : `Transaction failed on chain: ${JSON.stringify(cause)}`), { cause, signature, state });
   return error;
 }

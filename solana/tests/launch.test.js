@@ -13,7 +13,7 @@ import { createActivityStore } from '../../src/lib/solana/lifecycle.js';
 const payer = Keypair.generate();
 const wallet = { publicKey: payer.publicKey };
 const args = { wallet, name: 'Kydos', symbol: 'KYDO', metadataUri: 'ipfs://bafybeigz2d3example', initialBuyLamports: 1_000_000_000n };
-const chain = Object.keys(LAUNCH_NETWORKS)[1];
+const chain = Object.keys(LAUNCH_NETWORKS)[0];
 const activity = { execute: async (_scope, _metadata, action) => action(() => {}) };
 function rpc() {
   return {
@@ -102,7 +102,7 @@ test('unfunded launch identifies wallet and actual RPC network before simulation
   await assert.rejects(submitReviewedLaunch({ connection, built, review, activity: store,
     wallet: { ...wallet, signTransaction: async () => { signs++; } },
   }), error => error.state === 'not-submitted' && error.message.includes(payer.publicKey.toBase58()) &&
-    error.message.includes('Solana devnet') && error.message.includes('0 native SOL'));
+    error.message.includes('Solana mainnet') && error.message.includes('0 native SOL'));
   assert.equal(signs, 0); assert.equal(simulations, 0); assert.equal(sends, 0);
   assert.equal(store.read()[0].state, 'not-submitted');
 });
@@ -115,7 +115,7 @@ test('failed or unavailable pre-sign simulation stops before Phantom and leaves 
     connection.simulateTransaction = async () => {
       if (failure === 'transport') throw new Error('Simulation RPC unavailable');
       if (failure === 'missing-result') return {};
-      if (failure === 'chain-changed') { connection.getGenesisHash = async () => Object.keys(LAUNCH_NETWORKS)[0]; return { value: { err: null } }; }
+      if (failure === 'chain-changed') { connection.getGenesisHash = async () => Object.keys(LAUNCH_NETWORKS)[1]; return { value: { err: null } }; }
       return { value: { err: failure, logs: [] } };
     };
     connection.sendRawTransaction = async () => { sends++; };
@@ -126,7 +126,7 @@ test('failed or unavailable pre-sign simulation stops before Phantom and leaves 
       assert.equal(error.state, 'not-submitted');
       if (failure === 'AccountNotFound') {
         assert.match(error.message, /Solana simulation.*funded fee payer/);
-        assert.match(error.message, /Solana devnet/);
+        assert.match(error.message, /Solana mainnet/);
         assert.ok(error.message.includes(payer.publicKey.toBase58()));
       }
       return true;
@@ -147,7 +147,7 @@ test('Phantom funding failure after successful app simulation reports the checke
     await assert.rejects(submitReviewedLaunch({ connection, built, review, activity: store,
       wallet: { ...wallet, signTransaction: async () => { throw error; } },
     }), result => result.state === 'not-submitted' && /Phantom could not find a funded fee payer/.test(result.message) &&
-      /Solana devnet/.test(result.message) && result.message.includes(payer.publicKey.toBase58()));
+      /Solana mainnet/.test(result.message) && result.message.includes(payer.publicKey.toBase58()));
     assert.equal(sends, 0);
   }
 });
@@ -203,14 +203,14 @@ test('changed wallet, message, network, fees and unavailable programs prevent si
     connection.sendRawTransaction = async () => { sends++; };
     if (change === 'wallet') signer.publicKey = Keypair.generate().publicKey;
     if (change === 'message') built.transaction.instructions[1].data = Buffer.from([1]);
-    if (change === 'chain') connection.getGenesisHash = async () => Object.keys(LAUNCH_NETWORKS)[0];
+    if (change === 'chain') connection.getGenesisHash = async () => Object.keys(LAUNCH_NETWORKS)[1];
     if (change === 'fee') connection.getFeeForMessage = async () => ({ value: 10_001 });
     if (change === 'program') connection.getAccountInfo = async () => null;
     if (change === 'balance') connection.getBalance = async () => 0;
     await assert.rejects(submitReviewedLaunch({ connection, wallet: signer, built, review, activity }));
     assert.equal(signs, 0, change); assert.equal(sends, 0, change);
   }
-  await assert.rejects(prepareLaunchReview({ ...args, connection: { ...rpc(), getGenesisHash: async () => 'unknown' } }), /not a supported/);
+  await assert.rejects(prepareLaunchReview({ ...args, connection: { ...rpc(), getGenesisHash: async () => 'unknown' } }), /require Solana mainnet/);
 });
 
 test('maximum valid text fits as a single create-and-buy packet; wallet rejection never broadcasts', async () => {

@@ -9,6 +9,8 @@ import { useMe } from "@/lib/MeContext";
 import { useSignInGate } from "@/lib/SignInGate";
 import { createPost } from "@/lib/social";
 
+/** @param {{ token?: { id: string; ticker: string }; replyTo?: string;
+ * placeholder?: string; onPosted?: () => void }} props */
 export default function PostComposer({ token: fixedToken, replyTo, placeholder = "What's happening on the curve?", onPosted }) {
   const { me } = useMe();
   const { requireAuth } = useSignInGate();

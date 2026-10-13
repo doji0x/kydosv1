@@ -1,4 +1,4 @@
-import { identifySolanaNetwork } from './solanaNetwork.js';
+import { requireMainnetNetwork } from './solanaNetwork.js';
 import { PROGRAM_ADDRESS, DECODER_VERSION } from './solanaProtocol.js';
 import { decodeKydosTransaction, uniqueEvents } from './solanaEvents.js';
 export async function rpcCall(endpoint, method, params = []) {
@@ -9,7 +9,7 @@ export async function rpcCall(endpoint, method, params = []) {
   if (payload.error || !Object.hasOwn(payload, 'result')) throw new Error(`Solana ${method} unavailable (${payload.error?.code || 'invalid response'})`);
   return payload.result;
 }
-export const readNetwork = async endpoint => identifySolanaNetwork(await rpcCall(endpoint, 'getGenesisHash'));
+export const readNetwork = async endpoint => requireMainnetNetwork(await rpcCall(endpoint, 'getGenesisHash'));
 export async function persistEvents(entity, rows) {
   const unique = uniqueEvents(rows);
   if (!unique.length) return 0;

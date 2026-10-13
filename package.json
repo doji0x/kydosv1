@@ -8,8 +8,11 @@
     "build": "vite build",
     "lint": "eslint . --quiet",
     "lint:fix": "eslint . --fix",
-    "typecheck": "tsc -p ./jsconfig.json",
-    "preview": "vite preview"
+    "typecheck": "npm run typecheck:app && npm run typecheck:coverage",
+    "preview": "vite preview",
+    "typecheck:app": "tsc -p ./jsconfig.json",
+    "typecheck:coverage": "node scripts/typecheck-coverage.mjs",
+    "test:types": "node --test tests/typecheck-contracts.test.mjs"
   },
   "dependencies": {
     "@base44/sdk": "^0.8.53",

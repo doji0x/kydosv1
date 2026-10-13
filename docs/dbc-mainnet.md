@@ -5,7 +5,7 @@
 The existing `/launch` navigation now opens the actual DBC creation workspace,
 not a Coming soon screen. `VITE_KYDOS_DBC_UI_ENABLED` is retired: setting it does
 not authorize transactions. The independently reviewed release manifest is the
-transaction gate. Both exact Solana mainnet and devnet identities are supported;
+transaction gate. New production operations require the exact Solana mainnet identity;
 unknown networks, mismatched RPCs, unapproved configurations and changed deployed
 programs fail before signing.
 
@@ -107,7 +107,7 @@ Focused local checks: `node --test tests/dbc-browser.test.mjs tests/dbc-metadata
 The `DBC mainnet UI actions` workflow adds actual Chromium interaction tests using
 the real React/provider/review code with isolated wallet, RPC and upload fixtures.
 It exercises mainnet launch, copy/open actions, upload retry, rejected approvals,
-ambiguous recovery, missing configuration, mismatched networks, devnet links,
+ambiguous recovery, missing configuration, mismatched networks, rejection of devnet releases,
 fee settlement, funding failures, signed-out hosted metadata and mobile layout.
 No public RPC or real-wallet approval is used in those tests. Existing independent
 controller/lifecycle validators and compatibility workflows remain enabled.
@@ -115,9 +115,10 @@ controller/lifecycle validators and compatibility workflows remain enabled.
 Creation does not include an initial purchase. DBC/DAMM buy/sell screens,
 production DBC indexing/discovery, graduation/settlement keepers, leftover handling
 and optional SOL unwrapping are not supplied by this UI change. The legacy admin
-server-wallet launch path is not silently repointed. Repository-wide historical
-JavaScript typecheck failures are a separate limitation; passing the focused
-workflows must not be called a full-project typecheck pass.
+server-wallet launch path is not silently repointed. The full frontend compiler and coverage checks now pass and run in CI. Backend
+and Node-tooling coverage remain a separate unfinished milestone; passing the
+frontend checks must not be called repository-wide type safety. See
+[mainnet-readiness.md](mainnet-readiness.md).
 
 Primary protocol references: https://solana.com/docs/core/fees/fee-structure,
 https://solana.com/docs/rpc/http/getgenesishash,

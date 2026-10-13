@@ -16,5 +16,5 @@ export async function fetchNotifications(me){
  mentions.forEach(item=>{if(item.author_id!==me.id&&!items.some(value=>value.id===`r${item.id}`))items.push({id:`m${item.id}`,type:'mention',actor_id:item.author_id,created_date:item.created_date,post_id:item.id,preview:item.body});});
  follows.forEach(item=>items.push({id:`f${item.id}`,type:'follow',actor_id:item.follower_id,created_date:item.created_date}));
  const actors=[...new Set(items.map(item=>item.actor_id))],profiles=actors.length?await base44.entities.Profile.filter({user_id:{$in:actors}},'-created_date',200):[],byUser=Object.fromEntries(profiles.map(profile=>[profile.user_id,profile]));
- return items.sort((a,b)=>new Date(b.created_date)-new Date(a.created_date)).slice(0,60).map(item=>({...item,handle:byUser[item.actor_id]?.handle||'anon',avatar:byUser[item.actor_id]?.avatar_url}));
+ return items.sort((a,b)=>new Date(b.created_date).getTime()-new Date(a.created_date).getTime()).slice(0,60).map(item=>({...item,handle:byUser[item.actor_id]?.handle||'anon',avatar:byUser[item.actor_id]?.avatar_url}));
 }

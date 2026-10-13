@@ -8,8 +8,12 @@ import { Label } from "@/components/ui/label"
 
 const Form = FormProvider
 
-const FormFieldContext = React.createContext({})
+/** @type {React.Context<{ name: string } | null>} */
+const FormFieldContext = React.createContext(null)
 
+/** @template {import("react-hook-form").FieldValues} T
+ * @template {import("react-hook-form").FieldPath<T>} N
+ * @param {import("react-hook-form").ControllerProps<T, N>} props */
 const FormField = (
   {
     ...props
@@ -25,14 +29,12 @@ const FormField = (
 const useFormField = () => {
   const fieldContext = React.useContext(FormFieldContext)
   const itemContext = React.useContext(FormItemContext)
-  const { getFieldState, formState } = useFormContext()
-
-  const fieldState = getFieldState(fieldContext.name, formState)
-
-  if (!fieldContext) {
-    throw new Error("useFormField should be used within <FormField>")
+  const form = useFormContext()
+  if (!fieldContext || !itemContext || !form) {
+    throw new Error("useFormField requires <Form>, <FormField>, and <FormItem>")
   }
-
+  const { getFieldState, formState } = form
+  const fieldState = getFieldState(fieldContext.name, formState)
   const { id } = itemContext
 
   return {
@@ -45,9 +47,12 @@ const useFormField = () => {
   }
 }
 
-const FormItemContext = React.createContext({})
+/** @type {React.Context<{ id: string } | null>} */
+const FormItemContext = React.createContext(null)
 
-const FormItem = React.forwardRef(({ className, ...props }, ref) => {
+const FormItem = React.forwardRef(/** @param {React.ComponentPropsWithoutRef<"div">} props
+ * @param {React.ForwardedRef<React.ElementRef<"div">>} ref */
+({ className, ...props }, ref) => {
   const id = React.useId()
 
   return (
@@ -58,7 +63,9 @@ const FormItem = React.forwardRef(({ className, ...props }, ref) => {
 })
 FormItem.displayName = "FormItem"
 
-const FormLabel = React.forwardRef(({ className, ...props }, ref) => {
+const FormLabel = React.forwardRef(/** @param {React.ComponentPropsWithoutRef<typeof Label>} props
+ * @param {React.ForwardedRef<React.ElementRef<typeof Label>>} ref */
+({ className, ...props }, ref) => {
   const { error, formItemId } = useFormField()
 
   return (
@@ -71,7 +78,9 @@ const FormLabel = React.forwardRef(({ className, ...props }, ref) => {
 })
 FormLabel.displayName = "FormLabel"
 
-const FormControl = React.forwardRef(({ ...props }, ref) => {
+const FormControl = React.forwardRef(/** @param {React.ComponentPropsWithoutRef<typeof Slot>} props
+ * @param {React.ForwardedRef<React.ElementRef<typeof Slot>>} ref */
+({ ...props }, ref) => {
   const { error, formItemId, formDescriptionId, formMessageId } = useFormField()
 
   return (
@@ -89,7 +98,9 @@ const FormControl = React.forwardRef(({ ...props }, ref) => {
 })
 FormControl.displayName = "FormControl"
 
-const FormDescription = React.forwardRef(({ className, ...props }, ref) => {
+const FormDescription = React.forwardRef(/** @param {React.ComponentPropsWithoutRef<"p">} props
+ * @param {React.ForwardedRef<React.ElementRef<"p">>} ref */
+({ className, ...props }, ref) => {
   const { formDescriptionId } = useFormField()
 
   return (
@@ -102,7 +113,9 @@ const FormDescription = React.forwardRef(({ className, ...props }, ref) => {
 })
 FormDescription.displayName = "FormDescription"
 
-const FormMessage = React.forwardRef(({ className, children, ...props }, ref) => {
+const FormMessage = React.forwardRef(/** @param {React.ComponentPropsWithoutRef<"p">} props
+ * @param {React.ForwardedRef<React.ElementRef<"p">>} ref */
+({ className, children, ...props }, ref) => {
   const { error, formMessageId } = useFormField()
   const body = error ? String(error?.message) : children
 

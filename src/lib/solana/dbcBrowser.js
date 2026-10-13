@@ -10,7 +10,7 @@ import { NATIVE_MINT, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID,
   unpackAccount, unpackMint } from '@solana/spl-token';
 import idl from './idl/kydos_launchpad.json' with { type: 'json' };
 import { validateLaunch } from './market.js';
-import { identifySolanaNetwork } from '../../../base44/shared/solanaNetwork.js';
+import { requireMainnetNetwork } from '../../../base44/shared/solanaNetwork.js';
 
 export const KYDOS = new PublicKey(idl.address);
 export const DBC = new PublicKey('dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN');
@@ -68,7 +68,7 @@ export function dbcAddresses(mint, config) {
 /** Public, independently reviewed release manifest; never a signing key. */
 export function validateDbcRelease(input) {
   requireValue(input?.enabled === true, 'DBC transactions are disabled until a verified release manifest is supplied.');
-  identifySolanaNetwork(input.genesisHash); // Only exact mainnet/devnet genesis identities are allowed.
+  requireMainnetNetwork(input.genesisHash); // This deployment has only a mainnet RPC.
   const config = pk(input.config).toBase58();
   const hashes = {};
   for (const program of [KYDOS, DBC, DAMM, METADATA]) {

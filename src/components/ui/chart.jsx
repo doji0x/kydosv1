@@ -10,6 +10,7 @@ const THEMES = {
   dark: ".dark"
 }
 
+/** @type {React.Context<import("@/types/ui").ChartContextValue | null>} */
 const ChartContext = React.createContext(null)
 
 function useChart() {
@@ -22,7 +23,9 @@ function useChart() {
   return context
 }
 
-const ChartContainer = React.forwardRef(({ id, className, children, config, ...props }, ref) => {
+const ChartContainer = React.forwardRef(/** @param {import("@/types/ui").ChartContainerProps} props
+ * @param {React.ForwardedRef<React.ElementRef<"div">>} ref */
+({ id, className, children, config, ...props }, ref) => {
   const uniqueId = React.useId()
   const chartId = `chart-${id || uniqueId.replace(/:/g, "")}`
 
@@ -46,6 +49,7 @@ const ChartContainer = React.forwardRef(({ id, className, children, config, ...p
 })
 ChartContainer.displayName = "Chart"
 
+/** @param {{ id: string; config: import("@/types/ui").ChartConfig }} props */
 const ChartStyle = ({
   id,
   config
@@ -79,7 +83,9 @@ return color ? `  --color-${key}: ${color};` : null
 
 const ChartTooltip = RechartsPrimitive.Tooltip
 
-const ChartTooltipContent = React.forwardRef((
+const ChartTooltipContent = React.forwardRef(/** @param {import("@/types/ui").ChartTooltipContentProps} props
+ * @param {React.ForwardedRef<React.ElementRef<"div">>} ref */
+(
   {
     active,
     payload,
@@ -153,11 +159,11 @@ const ChartTooltipContent = React.forwardRef((
         {payload.map((item, index) => {
           const key = `${nameKey || item.name || item.dataKey || "value"}`
           const itemConfig = getPayloadConfigFromPayload(config, item, key)
-          const indicatorColor = color || item.payload.fill || item.color
+          const indicatorColor = color || item.payload?.fill || item.color
 
           return (
             (<div
-              key={item.dataKey}
+              key={String(item.dataKey ?? index)}
               className={cn(
                 "flex w-full flex-wrap items-stretch gap-2 [&>svg]:h-2.5 [&>svg]:w-2.5 [&>svg]:text-muted-foreground",
                 indicator === "dot" && "items-center"
@@ -179,10 +185,10 @@ const ChartTooltipContent = React.forwardRef((
                           "my-0.5": nestLabel && indicator === "dashed",
                         })}
                         style={
-                          {
+                          /** @type {import("@/types/ui").CSSVariables} */ ({
                             "--color-bg": indicatorColor,
                             "--color-border": indicatorColor
-                          }
+                          })
                         } />
                     )
                   )}
@@ -216,7 +222,9 @@ ChartTooltipContent.displayName = "ChartTooltip"
 
 const ChartLegend = RechartsPrimitive.Legend
 
-const ChartLegendContent = React.forwardRef((
+const ChartLegendContent = React.forwardRef(/** @param {import("@/types/ui").ChartLegendContentProps} props
+ * @param {React.ForwardedRef<React.ElementRef<"div">>} ref */
+(
   { className, hideIcon = false, payload, verticalAlign = "bottom", nameKey },
   ref
 ) => {
@@ -262,7 +270,9 @@ const ChartLegendContent = React.forwardRef((
 })
 ChartLegendContent.displayName = "ChartLegend"
 
-// Helper to extract item config from a payload.
+/** @param {import("@/types/ui").ChartConfig} config
+ * @param {unknown} payload
+ * @param {string} key */
 function getPayloadConfigFromPayload(
   config,
   payload,

@@ -11,7 +11,7 @@ permanently locked PDA-held DAMM positions. It never uses raw claim instructions
 legacy creation for DBC launches, admin custody keys, automatic WSOL unwrapping,
 or a hidden initial purchase. Existing token markets remain on their own routes.
 
-Release verification checks exact mainnet/devnet genesis identity, upgradeable
+Production release verification requires the exact mainnet genesis identity, upgradeable
 program and ProgramData PDA ownership, independently approved complete deployment
 hashes, and the DBC configuration's fixed economic fingerprint. Mainnet is now
 supported, not implicitly enabled: a missing or invalid manifest blocks signing.

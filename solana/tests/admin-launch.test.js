@@ -10,7 +10,7 @@ import { estimateTransactionCosts } from '../../src/lib/solana/costs.js';
 import { buildAdminLaunchTransaction, estimateAdminLaunchCosts, requireAdminFunds, adminSimulationError } from '../../base44/shared/adminLaunch.js';
 import { identifySolanaNetwork, inspectLaunchNetwork } from '../../base44/shared/solanaNetwork.js';
 import { PROGRAM_ADDRESS } from '../../base44/shared/solanaProtocol.js';
-const chain = 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG', network = identifySolanaNetwork(chain), signer = web3.Keypair.generate();
+const chain = '5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d', network = identifySolanaNetwork(chain), signer = web3.Keypair.generate();
 function rpc() { return { getLatestBlockhash: async () => ({ blockhash: web3.Keypair.generate().publicKey.toBase58() }), getBalance: async () => 1000000000, getFeeForMessage: async () => ({ value: 10000 }), getMinimumBalanceForRentExemption: async size => size * 17 + 10 }; }
 test('admin initialize, fee-policy account, signatures and costs match the Anchor client', async () => {
   const connection = rpc(), details = { name: 'Kydos 🚀', symbol: 'KYDO', metadataUri: 'https://example.com/token.json' };
@@ -33,9 +33,9 @@ test('debit errors call getLogs even when Solana returned empty logs', async () 
 });
 test('full network hashes and missing-program diagnosis are distinct', async () => {
   assert.equal(identifySolanaNetwork('5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d').cluster, 'mainnet-beta');
-  assert.equal(network.cluster, 'devnet'); assert.throws(() => identifySolanaNetwork('unsupported'), /HELIUS_RPC_URL/);
+  assert.equal(network.cluster, 'mainnet-beta'); assert.throws(() => identifySolanaNetwork('unsupported'), /HELIUS_RPC_URL/);
   const status = await inspectLaunchNetwork({ getGenesisHash: async () => chain, getAccountInfo: async key => key.equals(PROGRAM_ID) ? null : { executable: true } }, PROGRAM_ID, METADATA_PROGRAM_ID);
-  assert.equal(status.programDeployed, false); assert.match(status.blockedReason, /not deployed on Solana devnet/);
+  assert.equal(status.programDeployed, false); assert.match(status.blockedReason, /not deployed on Solana mainnet/);
 });
 // Execute the actual handler with mocked auth/secrets/RPC, no network or writes.
 const source = ts.transpile(readFileSync(new URL('../../base44/functions/adminLaunchToken/entry.ts', import.meta.url), 'utf8'), { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext }).replace(/^import .*;\n/gm, '').replace('export default async function', 'return async function');

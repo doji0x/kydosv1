@@ -9,7 +9,9 @@ const PopoverTrigger = PopoverPrimitive.Trigger
 
 const PopoverAnchor = PopoverPrimitive.Anchor
 
-const PopoverContent = React.forwardRef(({ className, align = "center", sideOffset = 4, ...props }, ref) => (
+const PopoverContent = React.forwardRef(/** @param {React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content>} props
+ * @param {React.ForwardedRef<React.ElementRef<typeof PopoverPrimitive.Content>>} ref */
+({ className, align = "center", sideOffset = 4, ...props }, ref) => (
   <PopoverPrimitive.Portal>
     <PopoverPrimitive.Content
       ref={ref}

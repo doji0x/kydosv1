@@ -4,7 +4,8 @@ import { ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button";
 
-const Pagination = ({
+const Pagination = /** @param {React.ComponentPropsWithoutRef<"nav">} props */
+({
   className,
   ...props
 }) => (
@@ -16,7 +17,9 @@ const Pagination = ({
 )
 Pagination.displayName = "Pagination"
 
-const PaginationContent = React.forwardRef(({ className, ...props }, ref) => (
+const PaginationContent = React.forwardRef(/** @param {React.ComponentPropsWithoutRef<"ul">} props
+ * @param {React.ForwardedRef<React.ElementRef<"ul">>} ref */
+({ className, ...props }, ref) => (
   <ul
     ref={ref}
     className={cn("flex flex-row items-center gap-1", className)}
@@ -24,12 +27,15 @@ const PaginationContent = React.forwardRef(({ className, ...props }, ref) => (
 ))
 PaginationContent.displayName = "PaginationContent"
 
-const PaginationItem = React.forwardRef(({ className, ...props }, ref) => (
+const PaginationItem = React.forwardRef(/** @param {React.ComponentPropsWithoutRef<"li">} props
+ * @param {React.ForwardedRef<React.ElementRef<"li">>} ref */
+({ className, ...props }, ref) => (
   <li ref={ref} className={cn("", className)} {...props} />
 ))
 PaginationItem.displayName = "PaginationItem"
 
-const PaginationLink = ({
+const PaginationLink = /** @param {React.ComponentPropsWithoutRef<"a"> & { isActive?: boolean } & Pick<import('class-variance-authority').VariantProps<typeof buttonVariants>, 'size'>} props */
+({
   className,
   isActive,
   size = "icon",
@@ -45,7 +51,8 @@ const PaginationLink = ({
 )
 PaginationLink.displayName = "PaginationLink"
 
-const PaginationPrevious = ({
+const PaginationPrevious = /** @param {React.ComponentPropsWithoutRef<typeof PaginationLink>} props */
+({
   className,
   ...props
 }) => (
@@ -60,7 +67,8 @@ const PaginationPrevious = ({
 )
 PaginationPrevious.displayName = "PaginationPrevious"
 
-const PaginationNext = ({
+const PaginationNext = /** @param {React.ComponentPropsWithoutRef<typeof PaginationLink>} props */
+({
   className,
   ...props
 }) => (
@@ -75,7 +83,8 @@ const PaginationNext = ({
 )
 PaginationNext.displayName = "PaginationNext"
 
-const PaginationEllipsis = ({
+const PaginationEllipsis = /** @param {React.ComponentPropsWithoutRef<"span">} props */
+({
   className,
   ...props
 }) => (

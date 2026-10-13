@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { feedHealth, mergeTrades } from '@/lib/solana/chartFeed';
+/** @typedef {{ initialized?: boolean; chain?: string; before?: string; after?: string; live?: boolean; history?: boolean }} FeedSession */
 export default function useSolanaChartFeed(mint) {
   const [trades, setTrades] = useState([]), [marketInfo, setMarketInfo] = useState(null), [loading, setLoading] = useState(true), [error, setError] = useState('');
   const [cursor, setCursor] = useState(null), [lastSync, setLastSync] = useState(null), [network, setNetwork] = useState(null), [coverage, setCoverage] = useState(null);
-  const [now, setNow] = useState(Date.now()), session = useRef({});
+  const [now, setNow] = useState(Date.now()), session = useRef(/** @type {FeedSession} */ ({}));
   const load = useCallback(async ({ backfill = false } = {}) => {
     const current = session.current, lane = backfill ? 'history' : 'live';
     if (current[lane] || (backfill && !current.before)) return;

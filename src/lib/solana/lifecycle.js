@@ -68,8 +68,9 @@ export function createActivityStore({ storage, locks, notify = () => {}, now = D
           : record.state === 'confirmed' ? 'confirmed'
           : cause?.code === 4001 && record.state === 'signing' ? 'rejected' : 'not-submitted';
         try { save({ state, message: state === 'unknown' ? 'Submission ambiguous; reconcile history, never replace automatically.' : state }); } catch { /* Keep durable lock. */ }
-        const error = new Error(state === 'unknown' ? 'Submission ambiguous. Inspect persistent activity; do not resubmit.' : cause?.message || state);
-        error.state = state; error.signature = record.signature; error.mint = metadata.mint; error.recordId = record.id;
+        const error = Object.assign(new Error(state === 'unknown' ? 'Submission ambiguous. Inspect persistent activity; do not resubmit.' : cause?.message || state), {
+          state, signature: record.signature, mint: metadata.mint, recordId: record.id,
+        });
         throw error;
       }
     });

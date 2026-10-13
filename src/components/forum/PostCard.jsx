@@ -10,7 +10,7 @@ import { useSignInGate } from "@/lib/SignInGate";
 import { repost } from "@/lib/social";
 import { timeAgo } from "@/lib/time";
 
-function Action({ icon: Icon, count, active, onClick, activeCls }) {
+function Action({ icon: Icon, count, active = false, onClick, activeCls = "" }) {
   return (
     <button onClick={(e) => { e.stopPropagation(); onClick(); }} className={`flex items-center gap-1.5 text-xs font-mono transition-colors hover:text-foreground ${active ? activeCls : "text-muted-foreground"}`}>
       <Icon className="h-4 w-4" fill={active ? "currentColor" : "none"} />{count || 0}
@@ -18,7 +18,7 @@ function Action({ icon: Icon, count, active, onClick, activeCls }) {
   );
 }
 
-export default function PostCard({ post, large }) {
+export default function PostCard({ post, large = false }) {
   const { me, likedIds, toggleLike } = useMe();
   const { requireAuth } = useSignInGate();
   const navigate = useNavigate();

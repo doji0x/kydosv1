@@ -30,7 +30,7 @@ The on-chain workspace lives in `solana/`. Client adapters live in `src/lib/sola
 
 ## Local development
 
-1. Install dependencies with `npm install`.
+1. Install committed dependencies with `npm ci`.
 2. Configure a local Solana validator and Anchor toolchain using `solana/README.md`.
 3. Set the required Solana and Helius environment values through the platform secret manager.
 4. Run the web app with `npm run dev`.
@@ -45,6 +45,14 @@ reviewed priority/rent fees, real-SOL consent, confirmed-launch navigation and
 controller fee actions. Configure and verify the approved mainnet deployment
 using [the mainnet release checklist](docs/dbc-mainnet.md). No live manifest or
 private key is included in this repository.
+
+## Verification
+
+Run `npm run typecheck`, `npm run test:types`, `npm run lint`, and `npm run build`.
+Typecheck covers all maintained frontend source and rejects coverage gaps.
+Backend/Deno and Node-tooling checks are the next milestone, not yet covered by
+this command. Production operations use mainnet only; local fixtures do not
+need a devnet RPC. See [the readiness record](docs/mainnet-readiness.md).
 
 ## Repository map
 
