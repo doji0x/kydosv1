@@ -2,6 +2,7 @@ import { callOpenAi, safeAstraError } from '../../shared/astraOpenAi.ts';
 import { auditToolSchemas, referenceToolSchemas, repositoryToolSchemas, runTool, webToolSchemas } from '../../shared/astraTools.ts';
 import { ASTRA_WORKING_BRANCH, commitFile, compareRefs, getBranchChecks, getCiLogs, inspectWriteAccess, listCommits, listRepoTree, readFile } from '../../shared/astraGithub.ts';
 import { ASTRA_LIMITS } from '../../shared/astraLimits.ts';
+import { parseToolArgs, type AstraToolArgs } from '../../shared/astraToolArgs.ts';
 
 export const chatTools=[...repositoryToolSchemas.filter(tool=>['listRepoTree','readFile','checkBranchStatus','listCommits','compareRefs','getCiLogs','inspectWriteAccess','commitFile'].includes(tool.function.name)),...referenceToolSchemas,...webToolSchemas,...auditToolSchemas];
 const repo='doji0x/kydosv1';
@@ -13,10 +14,10 @@ export async function runManagerWithGithub({apiKey,model,messages,responseFormat
   if(!message.tool_calls?.length)return {...message,history,hadErrors};
   for(const call of message.tool_calls){
    await assertActive();
-   const name=call.function.name;let args={},result;
+   const name=call.function.name;let args:AstraToolArgs={},result;
    try{
     if(!chatTools.some(tool=>tool.function.name===name))throw new Error('This tool is not available in chat.');
-    args=JSON.parse(call.function.arguments||'{}');
+    args=parseToolArgs(JSON.parse(call.function.arguments||'{}'));
     if(args.repo&&args.repo!==repo)throw new Error('Chat access is limited to the Kydos repository.');
     if(args.branch&&args.branch!==ASTRA_WORKING_BRANCH)throw new Error('Chat edits are limited to astra/latest.');
     args.repo=repo;args.branch=ASTRA_WORKING_BRANCH;if(name==='recordAuditFinding')args.conversationId=conversationId;

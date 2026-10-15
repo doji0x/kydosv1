@@ -1,51 +1,50 @@
 # Astra continuity checkpoint
 
-## Active delivery: PR #36, frontend types and mainnet-only boundaries
+## Active delivery: PR #37, one new backend/tooling branch
 
-Continue `codex/mainnet-readiness-typecheck`, created from merged PR #35/main
-`0fe3a908b2f1169871a03f7bff3187164bd3035f`. The formerly interrupted 87-file
-implementation is now committed and pushed at
-`1b78c30a18812cc97d1031575c51e49fd37a1fc6`; PR #36 is open. Do not recreate the
-branch, resume the older DBC branch, merge, deploy or spend public funds.
+Continue `codex/mainnet-backend-tooling`, created at merged PR #36/main
+`2e361e82972a8aa0e6af137e205c611b92c7112c`. Current remote source before this
+repair: `f32b8fe45606f1f623b2974bc74dd70ac86ba53a`. The owner requested high-quality
+continuation on ONE new branch. Do not create another branch, modify main, merge,
+deploy, inject credentials/manifests or spend public funds.
 
-## Delivered scope
+PR #36/frontend completion is merged; its former pending/open checkpoint was
+stale. The opening PR #37 diagnostic reproduced 56 backend errors and generated
+fresh verified source/dependency inputs. Source artifact 12009147791 SHA256:
+`f9463387081f23e86c350c6f10d13f7b0cc8557239a6137a5c7b63268adaf929`.
+The initial diagnostic is intentionally superseded by this frozen implementation.
 
-Full frontend compiler and coverage checks: 201 maintained files, zero diagnostics.
-Accurate UI/ref/state/wallet/error and upload contracts; no active-source exclusions
-or suppression comments. Application CI now enforces checking instead of relying
-on builds. New DBC releases, launch readiness, indexing and RPC relay require
-mainnet; historical labels remain intact. The bounded, sanitized relay never
-retries a submission or falls back to devnet. Obsolete public protected-route
-observations were retired; compatibility and local regressions remain.
+## Completed locally
 
-Rust, canonical IDL, locked dependencies, nominal supply, creator rights and fee
-policy are unchanged. No release manifest or signing credentials were supplied.
-Design: docs/mainnet-readiness.md. Live-release procedure: docs/dbc-mainnet.md.
+Backend types now preserve deadline results, validate model-tool fields, require
+trusted observed-head preconditions for commits, use common versioned-message
+keys, and type named RPC parameters/cursor windows accurately. Operational checks
+use the root and isolated DBC SDK contexts separately; neither npm lock changed.
+The generated controller account-only declaration is checked against canonical
+IDL. No Rust, IDL values, economic settings or operational release gates changed.
 
-## Publication replay and compatibility correction
+Composite typecheck: 201 frontend, 60 backend/shared, 20 root/Solana tooling and
+9 isolated DBC helper/harness/declaration files. Zero diagnostics. Three existing
+nondeployed snippets plus 114 archived EVM files are explicitly hash-inventoried;
+active imports of those fail. Tests are inventoried and exercised separately.
+Existing non-strict baseline is retained; no complete strict-mode audit is claimed.
 
-At 1b78c30, clean-install application CI passed the complete frontend compiler,
-coverage, five contract tests, network tests, lint and build. Browser integration
-passed, and mainnet UI run 38120766762 passed all 40 Node checks and 11 executed
-Chromium scenarios, including devnet rejection. The downloaded artifact
-11695251961 has SHA256 dff4896274e7b8e4b4d00576f67164418862e11a063cca544570b6180bd93b68.
-These are isolated wallet/RPC fixtures, not mainnet or real Phantom execution.
+Local tests: 29 backend/Astra/coverage contracts, five Deno runtime tests without
+network or secret permissions, five frontend type contracts, 144 Solana tests,
+46 isolated SDK tests, lint and build passed. Suites may overlap. Shell networking
+was unavailable; final CI must clean-install both npm locks and resolve the new
+frozen Deno lock. See docs/backend-tooling.md for details and primary sources.
 
-The legacy exact-source check failed only on two compiler-only Anchor IDL casts
-in client.js. This correction permits precisely those two complete annotated
-lines, then compares all remaining bytes with the ORIGINAL baseline. No generic
-comment/whitespace stripping or baseline replacement is introduced. Six local
-mutation tests prove changed slippage, recipients, preflight, retries, added code,
-other annotations and duplicate lines still fail. All original program/IDL/math
-compatibility checks remain. No production code changes in this correction.
+## Next action and release boundary
 
-## Next action
+Publish substantive changes and inspect resulting exact-head PR #37 workflows.
+Do not call pending/skipped/failing checks passing. Update PR/chat with actual
+SHA and results, without a recursive own-SHA documentation commit. All existing
+compatibility, controller, browser and Anchor checks remain enabled.
 
-Inspect all resulting exact-head PR checks, especially full Anchor and the repaired
-compatibility job; do not reuse the prior SHA's green results as final evidence.
-Record delivery SHA and completed results in PR/chat without recursive self-SHA
-commits. The source work-state is historical; this checkpoint supersedes it.
-Backend/Deno and Node-tooling coverage/errors remain the next approved milestone,
-followed by live evidence, trading/indexing, durable workers, residual policy and
-controlled release. This is FRONTEND completion, not repository-wide type safety
-or production launch authorization. Main and public networks remain untouched.
+Then continue the approved mainnet product work: live code/config compatibility,
+DBC/DAMM trading and initial-buy UX, authenticated indexing, durable graduation
+and fee workers, separately approved residual policy and controlled live rehearsal.
+Ordinary SPL WSOL DBC creation is permissionless; no Meteora team approval is
+needed. Kydos's verified release manifest is its own safety gate, not a restored
+private-DAMM operator dependency. No devnet RPC is required.

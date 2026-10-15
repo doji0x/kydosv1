@@ -30,7 +30,8 @@ function precise(fn) {
   try { return fn(); } finally { Decimal.set(previous); }
 }
 
-/** Return fresh params; no caller-controlled economics or production addresses. */
+/** Return fresh params; no caller-controlled economics or production addresses.
+ * @returns {import("@meteora-ag/dynamic-bonding-curve-sdk").BuildCurveParams} */
 export function candidateInputs() {
   return {
     token: { tokenType: TokenType.SPLToken, tokenBaseDecimal: TokenDecimal.SIX,

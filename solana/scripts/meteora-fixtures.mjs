@@ -12,7 +12,7 @@ import * as sdk from '@meteora-ag/cp-amm-sdk';
 
 const require = createRequire(import.meta.url);
 // The SDK's CommonJS entry uses this Decimal instance, not decimal.mjs's instance.
-const Decimal = require('decimal.js');
+const Decimal = require('decimal.js').Decimal;
 const version = JSON.parse(readFileSync(require.resolve('@meteora-ag/cp-amm-sdk/package.json'), 'utf8')).version;
 assert.equal(version, '1.4.10');
 const originalPrecision = Decimal.precision;
@@ -53,7 +53,7 @@ function zero(type) {
   const definition = sdk.CpAmmIdl.types.find(t => t.name === type.defined.name);
   return Object.fromEntries(definition.type.fields.map(f => [f.name, zero(f.type)]));
 }
-const configCoder = new BorshAccountsCoder(sdk.CpAmmIdl);
+const configCoder = new BorshAccountsCoder(/** @type {import("@coral-xyz/anchor").Idl} */ (sdk.CpAmmIdl));
 const program = new Program(sdk.CpAmmIdl, { connection: new Connection('http://127.0.0.1:8899') });
 const addressCases = [];
 for (const [mintByte, programByte, index] of [[1, 7, '1'], [254, 8, '18446744073709551615']]) {

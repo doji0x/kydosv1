@@ -1,46 +1,60 @@
-name: Backend runtime typecheck
+name: Backend and tooling typecheck
 on:
+  push:
+    branches: [main]
+    paths: ['base44/**', '_shared/**', 'astraChat/**', 'astraAudit/**', 'archive/**', 'scripts/**', 'solana/**', 'typechecks/**', 'tests/**', 'package*.json', '*.config.js', '.github/workflows/runtime-typecheck.yml']
   pull_request:
     branches: [main]
-    paths: ['base44/**', '_shared/**', 'astraChat/**', 'astraAudit/**', 'scripts/**', 'typechecks/**', '.github/workflows/runtime-typecheck.yml']
+    paths: ['base44/**', '_shared/**', 'astraChat/**', 'astraAudit/**', 'archive/**', 'scripts/**', 'solana/**', 'typechecks/**', 'tests/**', 'package*.json', '*.config.js', '.github/workflows/runtime-typecheck.yml']
 permissions:
   contents: read
 jobs:
   backend:
+    name: Frozen backend and operational-tooling contracts
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     env:
       DENO_DIR: /tmp/kydos-deno-cache
       DENO_NO_PACKAGE_JSON: '1'
       NO_COLOR: '1'
+      WS_NO_BUFFER_UTIL: '1'
+      WS_NO_UTF_8_VALIDATE: '1'
     steps:
       - uses: actions/checkout@v4
         with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: '22.16.0'}
       - uses: denoland/setup-deno@v2
         with: {deno-version: '2.9.7'}
-      - name: Establish isolated check-only platform declaration
+      - name: Install existing npm locks without dependency upgrades
         run: |
-          mkdir -p /tmp/kydos-runtime-evidence
-          printf 'export declare const secrets: { get(name: string): string | undefined };\n' > /tmp/kydos-runtime-evidence/runtime.d.ts
-          printf '{"nodeModulesDir":"none","compilerOptions":{"checkJs":true,"strict":false},"imports":{"base44:runtime":"./runtime.d.ts"}}\n' > /tmp/kydos-runtime-evidence/deno.json
-          deno --version > /tmp/kydos-runtime-evidence/versions.txt
-          git rev-parse HEAD > /tmp/kydos-runtime-evidence/source-commit.txt
-          git archive --format=tar.gz HEAD > /tmp/kydos-runtime-evidence/source.tar.gz
-      - name: Check actual backend source without executing handlers
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm --prefix solana/dbc ci --ignore-scripts --no-audit --no-fund
+      - name: Check maintained backend and tooling with frozen dependencies
         run: |
-          set -o pipefail
-          mapfile -t files < <(find base44/functions base44/shared -type f \( -name '*.ts' -o -name '*.js' \) | sort)
-          deno check --config /tmp/kydos-runtime-evidence/deno.json --lock /tmp/kydos-runtime-evidence/deno.lock "${files[@]}" 2>&1 | tee /tmp/kydos-runtime-evidence/backend-check.txt
-      - name: Preserve public checker inputs for offline reproduction
-        if: ${{ !cancelled() }}
+          set -euo pipefail
+          mkdir -p runtime-check-results
+          npm run typecheck:backend 2>&1 | tee runtime-check-results/backend.txt
+          npm run typecheck:tooling 2>&1 | tee runtime-check-results/tooling.txt
+          npm run typecheck:coverage 2>&1 | tee runtime-check-results/coverage.txt
+      - name: Test validation, deadlines, commit preconditions and coverage guards
         run: |
-          cp "$(command -v deno)" /tmp/kydos-runtime-evidence/deno
-          tar -czf /tmp/kydos-runtime-evidence/deno-cache.tar.gz -C /tmp/kydos-deno-cache .
-          cd /tmp/kydos-runtime-evidence
-          sha256sum deno source.tar.gz deno-cache.tar.gz > SHA256SUMS
+          set -euo pipefail
+          npm run test:backend 2>&1 | tee runtime-check-results/node-tests.txt
+      - name: Execute Deno SDK and index contracts without network or secret access
+        run: |
+          set -euo pipefail
+          npm run test:backend-runtime 2>&1 | tee runtime-check-results/deno-tests.txt
+      - name: Record immutable source and tool versions
+        run: |
+          git diff --exit-code
+          git rev-parse HEAD > runtime-check-results/source-commit.txt
+          node --version > runtime-check-results/versions.txt
+          deno --version >> runtime-check-results/versions.txt
+          sha256sum package-lock.json solana/dbc/package-lock.json typechecks/deno.lock > runtime-check-results/lock-hashes.txt
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
-          name: runtime-typecheck-baseline
+          name: backend-tooling-evidence
           retention-days: 7
-          path: /tmp/kydos-runtime-evidence/
+          path: runtime-check-results/

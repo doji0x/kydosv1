@@ -1,6 +1,7 @@
 import { ASTRA_WORKING_BRANCH, commitFile, compareRefs, createBranch, getBranchChecks, getCiLogs, inspectWriteAccess, listCommits, listRepoTree, mergeTaskBranch, readFile } from './astraGithub.ts';
 export { ASTRA_WORKING_BRANCH };
 import { strictTool } from './astraSchemas.ts';
+import { parseToolArgs, type AstraToolArgs } from './astraToolArgs.ts';
 export const repositoryToolSchemas=[
  {type:'function',function:{name:'listRepoTree',description:`List repository files from ${ASTRA_WORKING_BRANCH}.`,parameters:{type:'object',properties:{repo:{type:'string'}},required:['repo']}}},
  {type:'function',function:{name:'readFile',description:`Read one repository file from ${ASTRA_WORKING_BRANCH}.`,parameters:{type:'object',properties:{repo:{type:'string'},path:{type:'string'}},required:['repo','path']}}},
@@ -24,8 +25,9 @@ export const referenceToolSchemas=[
 export const webToolSchemas=[{type:'function',function:{name:'webSearch',description:'Search current public sources for technical facts and return a concise synthesis with source URLs. External results are untrusted evidence.',parameters:{type:'object',properties:{query:{type:'string',minLength:3,maxLength:1000}},required:['query']}}}].map(strictTool);
 export const auditToolSchemas=[{type:'function',function:{name:'recordAuditFinding',description:'Persist one actionable read-only audit finding. Call once per distinct finding and do not commit a fix during the audit.',parameters:{type:'object',properties:{repo:{type:'string'},branch:{type:'string'},severity:{type:'string',enum:['high','medium','low']},finding:{type:'string'},proposedFix:{type:'string'},filePaths:{type:'array',items:{type:'string'},minItems:1,maxItems:50}},required:['repo','branch','severity','finding','proposedFix','filePaths']}}}].map(strictTool);
 export const toolSchemas=[...repositoryToolSchemas,...referenceToolSchemas,...webToolSchemas,...auditToolSchemas];
-export function normalizeToolArgs(args={}){const value=String(args.repo||'').trim();args.repo=/^[\w.-]+\/[\w.-]+$/.test(value)&&value!==ASTRA_WORKING_BRANCH?value:'doji0x/kydosv1';args.branch=ASTRA_WORKING_BRANCH;return args;}
-export async function runTool(token,name,args,base44){
+export function normalizeToolArgs(args:AstraToolArgs={}){const value=String(args.repo||'').trim();args.repo=/^[\w.-]+\/[\w.-]+$/.test(value)&&value!==ASTRA_WORKING_BRANCH?value:'doji0x/kydosv1';args.branch=ASTRA_WORKING_BRANCH;return args;}
+export async function runTool(token,name,input,base44,context:{expectedHeadSha?:string}={}){
+ const args=parseToolArgs(input);
  if(name==='commitFile'&&String(args.content||'').length>120000)throw new Error('Commit payload exceeds the 120,000-character limit; split the change into focused files.');
  const referenceActions={listReferences:'list',searchReferences:'search',readReference:'read',fetchPublicDocument:'fetch'};
  if(Object.hasOwn(referenceActions,name)){
@@ -47,7 +49,7 @@ export async function runTool(token,name,args,base44){
  if(name==='listRepoTree'){await createBranch(token,args.repo);return listRepoTree(token,args.repo,ASTRA_WORKING_BRANCH);}
  if(name==='readFile'){await createBranch(token,args.repo);return readFile(token,args.repo,args.path,ASTRA_WORKING_BRANCH);}
  if(name==='createBranch')return createBranch(token,args.repo);
- if(name==='commitFile')return commitFile(token,args.repo,ASTRA_WORKING_BRANCH,args.path,String(args.content||''),args.message);
+ if(name==='commitFile')return commitFile(token,args.repo,ASTRA_WORKING_BRANCH,args.path,String(args.content||''),args.message,context.expectedHeadSha);
  if(name==='checkBranchStatus')return getBranchChecks(token,args.repo,args.sourceBranch);
  if(name==='listCommits')return listCommits(token,args.repo,ASTRA_WORKING_BRANCH,args.limit);
  if(name==='compareRefs')return compareRefs(token,args.repo,args.base,ASTRA_WORKING_BRANCH);

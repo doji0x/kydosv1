@@ -30,7 +30,7 @@ export async function getTradeOrder(input, apiKey) {
   let transaction = data.transaction || null, unavailable = data.errorMessage || data.error || null;
   if (transaction) {
     const tx = VersionedTransaction.deserialize(Uint8Array.from(atob(transaction), c => c.charCodeAt(0)));
-    const keys = tx.message.staticAccountKeys || tx.message.accountKeys;
+    const keys = tx.message.staticAccountKeys;
     if (tx.message.header.numRequiredSignatures !== 1 || keys[0].toBase58() !== params.taker) { transaction = null; unavailable = 'This quote requires a sponsored or co-signed route. Fund your wallet with SOL and refresh.'; }
   }
   const now = Date.now(), providerExpiry = Date.parse(data.expireAt);
@@ -45,7 +45,7 @@ export async function executeTrade(input, apiKey) {
   const wallet = address(input.wallet);
   let tx;
   try { tx = VersionedTransaction.deserialize(Uint8Array.from(atob(input.signedTransaction), c => c.charCodeAt(0))); } catch { throw invalid('Invalid signed swap.'); }
-  const keys = tx.message.staticAccountKeys || tx.message.accountKeys;
+  const keys = tx.message.staticAccountKeys;
   if (tx.message.header.numRequiredSignatures !== 1 || keys[0].toBase58() !== wallet || !tx.signatures[0]?.some(Boolean)) throw invalid('The connected wallet must sign this swap.');
   const data = await jupiter('execute', apiKey, { method: 'POST', body: JSON.stringify({ signedTransaction: input.signedTransaction, requestId: input.requestId }) });
   return { status: data.status, signature: data.signature, error: data.error, code: data.code, totalInputAmount: data.totalInputAmount, totalOutputAmount: data.totalOutputAmount };
