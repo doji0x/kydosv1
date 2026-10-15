@@ -30,7 +30,7 @@ jobs:
         run: |
           set -o pipefail
           mapfile -t files < <(find base44/functions base44/shared -type f \( -name '*.ts' -o -name '*.js' \) | sort)
-          deno check --config /tmp/kydos-runtime-evidence/deno.json --no-lock "${files[@]}" 2>&1 | tee /tmp/kydos-runtime-evidence/backend-check.txt
+          deno check --config /tmp/kydos-runtime-evidence/deno.json --lock /tmp/kydos-runtime-evidence/deno.lock "${files[@]}" 2>&1 | tee /tmp/kydos-runtime-evidence/backend-check.txt
       - name: Preserve public checker inputs for offline reproduction
         if: ${{ !cancelled() }}
         run: |
@@ -42,5 +42,5 @@ jobs:
         if: ${{ !cancelled() }}
         with:
           name: runtime-typecheck-baseline
-          retention-days: 3
+          retention-days: 7
           path: /tmp/kydos-runtime-evidence/
