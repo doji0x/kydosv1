@@ -7,6 +7,7 @@ const solana = fileURLToPath(new URL('../../', import.meta.url));
 const root = resolve(solana, '..');
 const keypair = resolve(solana, 'target/deploy/kydos_launchpad-keypair.json');
 const stamp = resolve(solana, '.program-id');
+/** @type {Array<[string, RegExp, (id: string) => string]>} */
 const targets = [
   ['solana/programs/kydos_launchpad/src/lib.rs', /declare_id!\("([1-9A-HJ-NP-Za-km-z]{32,44})"\)/g, id => `declare_id!("${id}")`],
   ['solana/Anchor.toml', /^(kydos_launchpad = ")[1-9A-HJ-NP-Za-km-z]{32,44}(".*)$/gm, id => `kydos_launchpad = "${id}"`],

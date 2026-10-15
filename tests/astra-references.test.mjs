@@ -52,7 +52,7 @@ test('fetch uses bounded unauthenticated raw-text requests and records provenanc
   const result = await fetchPublicDocument('https://github.com/owner/repo/blob/abc123/spec.md', async (url, options) => {
     calls++;
     assert.equal(url, 'https://raw.githubusercontent.com/owner/repo/abc123/spec.md');
-    assert.equal(options.redirect, 'error');
+    assert.equal(options.redirect, 'manual');
     assert.equal(options.credentials, 'omit');
     assert.ok(options.signal);
     assert.equal(options.headers.authorization, undefined);
@@ -72,8 +72,10 @@ test('fetch rejects unsupported content, HTTP failure and redirect errors', asyn
   const url = 'https://www.helius.dev/docs/example.md';
   for (const response of [
     new Response('missing', { status: 404 }),
-    new Response('<html>page</html>', { headers: { 'content-type': 'text/html' } }),
-    new Response('<html>page</html>', { headers: { 'content-type': 'text/plain' } }),
+    new Response('<html><script>not readable</script></html>', { headers: { 'content-type': 'text/html' } }),
+    new Response('<html><style>not readable</style></html>', { headers: { 'content-type': 'text/plain' } }),
+    new Response('unsupported', { headers: { 'content-type': 'application/pdf' } }),
+    new Response(null, { status: 302, headers: { location: 'https://private.example/redirect' } }),
     new Response('', { headers: { 'content-type': 'text/plain' } }),
   ]) await assert.rejects(fetchPublicDocument(url, async () => response));
   await assert.rejects(fetchPublicDocument(url, async () => { throw new TypeError('redirect blocked'); }), /redirect blocked/);
@@ -89,4 +91,16 @@ test('summaries omit private storage URLs and do not invent legacy provenance', 
   assert.equal(summary.source_version, undefined);
   assert.equal('file_uri' in summary, false);
   assert.equal('signed_url' in summary, false);
+});
+
+// HTML support predates this type repair. Prove bounded extraction, not execution.
+test('readable HTML is extracted without script/style and retains provenance', async () => {
+  const result = await fetchPublicDocument('https://solana.com/docs/test', async (_url, options) => {
+    assert.equal(options.redirect, 'manual');
+    return new Response('<html><head><style>hidden</style></head><body><h1>Protocol</h1><script>run()</script><p>Read only.</p></body></html>', { headers: { 'content-type': 'text/html' } });
+  });
+  assert.match(result.content, /Protocol/); assert.match(result.content, /Read only\./);
+  assert.doesNotMatch(result.content, /hidden|run\(\)|<script/);
+  assert.equal(result.quality, 'readable-unreviewed');
+  assert.equal(result.content_sha256, await contentHash(result.content));
 });

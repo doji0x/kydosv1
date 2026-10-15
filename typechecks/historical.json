@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "files": {
+    "_shared/astraAudit.ts": {
+      "sha256": "416a23372f60710c77415bf9c5450d2ac1d86f6389d3e5a0436b39ccc8320a3b",
+      "reason": "Unimplemented persistence example; no active module imports it."
+    },
+    "astraAudit/index.ts": {
+      "sha256": "3f14ae4d0ca42955f7cd7b1d3717e6f3684d8e69062dd136fae7d2e757083052",
+      "reason": "Nondeployed example importing absent auth/http helpers; not a Base44 entrypoint."
+    },
+    "astraChat/memory.ts": {
+      "sha256": "c2cda81371887c2f7c26f806718d8effbf6b7df199ee0fda1b7aef4323f71f84",
+      "reason": "Nondeployed snippet with undefined runTool; active implementation is base44/functions/astraChat."
+    }
+  },
+  "archives": [
+    {
+      "directory": "archive",
+      "sourceCount": 114,
+      "sourceHash": "80b817ab032f3549906d8ea17343b209363b34139d3bfadc429f8476d50d6a87",
+      "reason": "Former EVM implementation explicitly retired in README. Source manifest hash covers sorted [path, SHA256] pairs. Active code must not import this archive."
+    }
+  ]
+}

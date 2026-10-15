@@ -1,4 +1,13 @@
-# Mainnet readiness: approved work, initial delivery
+# Mainnet readiness: approved work and progress
+
+## Backend/tooling continuation
+
+PR #36 is merged into main at `2e361e82972a8aa0e6af137e205c611b92c7112c`.
+The new `codex/mainnet-backend-tooling` branch completes runtime-correct backend
+and operational-script checks with a frozen Deno lock, explicit source inventory
+and behavioral regressions. See [backend-tooling.md](backend-tooling.md) for the
+exact scope, local evidence, historical-code boundaries and remaining release work.
+The initial-delivery record below describes PR #36, not the latest check coverage.
 
 ## Base and branch
 

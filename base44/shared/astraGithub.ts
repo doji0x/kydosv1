@@ -1,7 +1,7 @@
 const apiBase = 'https://api.github.com';
 export const ASTRA_WORKING_BRANCH = 'astra/latest';
 function headers(token) { return { authorization: `Bearer ${token}`, accept: 'application/vnd.github+json', 'user-agent': 'kydos-astra', 'x-github-api-version': '2022-11-28' }; }
-async function github(token, path, options = {}) {
+async function github(token: string, path: string, options: RequestInit = {}) {
   const response = await fetch(`${apiBase}${path}`, { ...options, signal: options.signal || AbortSignal.timeout(20000), headers: { ...headers(token), ...(options.body ? { 'content-type': 'application/json' } : {}) } });
   const text = await response.text(); const body = text ? JSON.parse(text) : {};
   if (!response.ok) throw Object.assign(new Error(`GitHub ${response.status}: ${body.message || text.slice(0, 200)}`), { status: response.status });
@@ -95,10 +95,11 @@ export async function resetWorkingBranch() {
 }
 export async function commitFile(token, repoRef, branch, path, content, message, expectedHeadSha) {
   const { owner, repo } = parseRepo(repoRef); if (branch !== ASTRA_WORKING_BRANCH) throw new Error(`Commits require ${ASTRA_WORKING_BRANCH}.`);
+  if (typeof expectedHeadSha !== 'string' || !/^[0-9a-f]{40}$/.test(expectedHeadSha)) throw new Error('A verified expectedHeadSha is required before committing.');
   await createBranch(token, repoRef, branch);
   const refPath = `/repos/${owner}/${repo}/git/ref/heads/${encodeURIComponent(branch)}`;
   const branchRef = await github(token, refPath); const parentSha = branchRef.object.sha;
-  if (expectedHeadSha && parentSha !== expectedHeadSha) throw new Error('The repository changed during this chat turn. Stop and review the new branch state before editing.');
+  if (parentSha !== expectedHeadSha) throw new Error('The repository changed during this chat turn. Stop and review the new branch state before editing.');
   const parentCommit = await github(token, `/repos/${owner}/${repo}/git/commits/${parentSha}`);
   const blob = await github(token, `/repos/${owner}/${repo}/git/blobs`, { method: 'POST', body: JSON.stringify({ content, encoding: 'utf-8' }) });
   const tree = await github(token, `/repos/${owner}/${repo}/git/trees`, { method: 'POST', body: JSON.stringify({ base_tree: parentCommit.tree.sha, tree: [{ path, mode: '100644', type: 'blob', sha: blob.sha }] }) });
