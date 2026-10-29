@@ -1,0 +1,42 @@
+name: DBC product integration
+on:
+  push:
+    branches: [codex/mainnet-backend-tooling]
+    paths: ['.github/workflows/dbc-product.yml']
+permissions:
+  contents: read
+jobs:
+  baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      DENO_DIR: /tmp/kydos-product-deno
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: '22.16.0'}
+      - uses: denoland/setup-deno@v2
+        with: {deno-version: '2.9.7'}
+      - name: Install current approved locks
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm --prefix solana/dbc ci --ignore-scripts --no-audit --no-fund
+      - name: Verify merged maintained-source baseline
+        run: npm run typecheck
+      - name: Preserve exact public inputs for isolated integration work
+        if: ${{ !cancelled() }}
+        run: |
+          mkdir -p /tmp/kydos-product-inputs
+          git rev-parse HEAD > /tmp/kydos-product-inputs/source-commit.txt
+          git archive --format=tar.gz HEAD > /tmp/kydos-product-inputs/source.tar.gz
+          tar -czf /tmp/kydos-product-inputs/dependencies.tar.gz node_modules solana/dbc/node_modules
+          cp "$(command -v deno)" /tmp/kydos-product-inputs/deno
+          tar -czf /tmp/kydos-product-inputs/deno-cache.tar.gz -C "$DENO_DIR" .
+          cd /tmp/kydos-product-inputs && sha256sum *.tar.gz deno > SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: dbc-product-inputs
+          retention-days: 2
+          path: /tmp/kydos-product-inputs/
