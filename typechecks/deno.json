@@ -1,0 +1,6 @@
+{
+  "nodeModulesDir": "none",
+  "compilerOptions": {"checkJs": true, "strict": false},
+  "imports": {"base44:runtime": "./base44-runtime.d.ts"},
+  "lock": {"path": "./deno.lock", "frozen": true}
+}

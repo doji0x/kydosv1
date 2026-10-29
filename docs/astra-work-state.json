@@ -2,31 +2,29 @@
   "schema_version": 1,
   "purpose": "Small navigation and resume record; not an execution engine, deployment authorization, or passing-check claim.",
   "owner": "ChatGPT",
-  "delivery_branch": "codex/meteora-dbc-integration",
-  "observed_source_sha": "1640f470d653732ff187d5d7dd48a0816e6f26b3",
-  "observed_upstream_sha": "38ff3b3619ea1e11bd6d6576ba03a35eea0c1f8b",
+  "delivery_branch": "codex/mainnet-backend-tooling",
+  "observed_source_sha": "f32b8fe45606f1f623b2974bc74dd70ac86ba53a",
+  "observed_upstream_sha": "2e361e82972a8aa0e6af137e205c611b92c7112c",
   "active_task": {
-    "id": "dbc-mainnet-ui",
-    "request": "Prepare the DBC launch flow for mainnet and connect the actual token-launch UI actions.",
-    "status": "approved-draft-being-committed-exact-head-ci-required",
+    "id": "backend-tooling-checks",
+    "request": "Continue approved mainnet completion at highest quality in one new branch.",
+    "status": "local-runtime-typechecks-and-regressions-pass-delivery-ci-required",
     "scope": [
-      "src/components/solana/DbcWorkspace.jsx",
-      "src/components/nav/TopBar.jsx",
-      "src/pages/SolanaLaunch.jsx",
-      "src/lib/solana/dbcBrowser.js",
-      "src/lib/solana/dbcReview.js",
-      "src/lib/solana/dbcMetadata.js",
-      "src/lib/solana/dbcLinks.js",
-      "src/lib/solana/Activity.jsx",
-      "solana/scripts/check-dbc-release.mjs",
-      "tests/dbc-*.test.mjs",
-      "tests/ui",
-      ".github/workflows/dbc-workspace.yml",
-      "docs/dbc-mainnet.md"
+      "base44/functions/astraChat",
+      "base44/shared",
+      "scripts/runtime-typecheck.mjs",
+      "solana/dbc",
+      "solana/scripts",
+      "typechecks",
+      "tests",
+      "package.json",
+      ".github/workflows/ci.yml",
+      ".github/workflows/runtime-typecheck.yml",
+      "docs/backend-tooling.md"
     ],
-    "acceptance": "Verified mainnet and devnet identities, working connect/upload/review/approve/copy/open controls, explicit mainnet consent and bounded costs, stale/rejected/ambiguous safeguards, unchanged controller policy, exact-head tests pass.",
-    "design_record": "docs/dbc-mainnet.md",
-    "next_action": "Commit the approved mainnet UI draft on this branch. Same-tool publication now succeeds. Inspect all exact-head PR workflows, especially the new Chromium UI suite; fix demonstrated failures without disabling checks. No merge, deployment, live manifest injection or public transaction."
+    "acceptance": "Zero diagnostics for explicit maintained frontend/backend/tooling scopes; frozen deps, no hidden exclusions, behavioral tests and unchanged protocol policy.",
+    "design_record": "docs/backend-tooling.md",
+    "next_action": "Inspect exact-head PR #37 checks after publication; do not merge/deploy. Then continue live evidence, trading/indexing and durable workers."
   },
   "read_policy": {
     "startup": ["check delivery HEAD/checks", "read AGENTS.md", "read rolling checkpoint", "read this state when resuming"],
@@ -38,6 +36,7 @@
     "research_rule": "Complete required file ranges/inventory pages; persist exact returned cursors/hashes without inventing them."
   },
   "task_routes": {
+    "backend-tooling": {"start":["docs/backend-tooling.md","scripts/runtime-typecheck.mjs","typechecks/deno.json"],"focused_check":"npm run typecheck && npm run test:backend && npm run test:backend-runtime","evidence_status":"Passing local runtime-correct checks; exact-head CI required."},
     "reference-research": {"start": ["docs/reference-index.md"], "only_if_implementation_changes": ["base44/shared/astraReferences.ts", "base44/functions/astraReference/entry.ts", "base44/functions/ingestReference/entry.ts"], "focused_check": "node --test tests/astra-references.test.mjs"},
     "chat-tool-access": {"start": ["base44/functions/astraChat/githubChat.ts", "base44/shared/astraTools.ts"], "only_if_needed": ["base44/shared/astraGithub.ts", "base44/functions/astraChat/entry.ts"], "focused_check": "node --test tests/astra-delivery.test.mjs"},
     "solana-transactions": {"start": ["src/lib/solana/client.js"], "only_if_needed": ["src/lib/solana/lifecycle.js", "src/lib/solana/budget.js", "src/lib/solana/costs.js"], "evidence_status": "Navigation only; behavior requires current verification."},
@@ -61,19 +60,32 @@
     "cursor_rules": "Store actual returned offsets/hashes only; restart the affected document on hash mismatch."
   }],
   "verification": {
-    "source_commit": "a869fb96cd442996a043c7aba56eecf6d7629f01",
-    "sdk_version": "1.5.13",
-    "validator_version": "2.1.21",
-    "lockfile_blob": "84c53d6dc45db9cdd88d86a6f8b5d7a2a2f7d039",
-    "controller_run": 37675320585,
-    "controller_artifact": 11507476130,
-    "artifact_sha256": "39dae51ad1efb9572ac933306cb9c9c213032012ee82bf7b34d25d0658a487e8",
-    "checks": ["Controller Rust tests and safe-stack SBF build passed in the source-commit CI", "23 executed PDA-controller groups passed in source-commit CI", "Source-commit CI failed at stale browser IDL; this completion synchronizes actual generated data", "Local unsigned builders and compiler/browser equality passed without RPC", "Removing only new definitions exactly reconstructs original browser blob df514227a2853d4810e5588291161509492d92e5"],
-    "nominal_curve_raw": "793100000000000",
-    "nominal_migration_raw": "206900000000000",
-    "initial_supply_raw": "1000000000000000",
-    "actual_rounding_observed": {"base_residual_beyond_nominal_raw": "1", "quote_surplus_raw": "1", "source": "prior isolated DBC lifecycle proof"},
-    "limitations": ["Final exact-head controller CI must be inspected after this IDL commit", "Synthetic genesis protocol migration configuration; pinned binaries not verified against current mainnet", "Controller executes with PDA custody locally, but is not publicly deployed", "Production frontend/indexer/keeper not connected; WSOL claim UX remains to implement", "Surplus, leftovers and rewards are outside these trading-fee endpoints", "No mainnet/devnet transaction, paid upgrade or operator request"]
+    "source_commit": "f32b8fe45606f1f623b2974bc74dd70ac86ba53a",
+    "base_commit": "2e361e82972a8aa0e6af137e205c611b92c7112c",
+    "local_counts": {
+      "frontend": 201,
+      "backend": 60,
+      "tooling": 20,
+      "dbc": 9,
+      "historical": 117,
+      "node_tests": 29,
+      "deno_tests": 5,
+      "frontend_contracts": 5,
+      "solana_tests": 144,
+      "dbc_sdk_tests": 46
+    },
+    "checks": [
+      "Composite typecheck passed locally with zero diagnostics",
+      "Node and Deno behavioral/negative contract tests pass",
+      "Lint and production build pass"
+    ],
+    "limitations": [
+      "Exact delivery commit CI not yet established",
+      "Not a full strict-mode or third-party-code audit",
+      "Historical/nondeployed code remains explicitly inventoried but unchecked",
+      "No deployed Base44 runtime verification or public-chain execution",
+      "Trading/indexing/automation and mainnet release acceptance remain unfinished"
+    ]
   },
   "merged_revert": {"pull_request": "https://github.com/doji0x/kydosv1/pull/29", "head_sha": "9a9d38e49b64e01b7b16a24961610f632d134cf9", "merge_sha": "221180adfb065382463119436f8ff8cddbd65854", "observed_status": "merged", "decision": "Reverted operator scripts remain absent; DBC selected."},
   "previous_delivery": {"id": "atomic-protected-graduation-reverted-by-owner", "revert_commit": "111a75acc8c172b66bf8cedbc4af7eebe1f6a0b7", "status": "Existing custom migration work is no longer selected. Do not resume operator provisioning."},

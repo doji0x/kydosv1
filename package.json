@@ -8,11 +8,15 @@
     "build": "vite build",
     "lint": "eslint . --quiet",
     "lint:fix": "eslint . --fix",
-    "typecheck": "npm run typecheck:app && npm run typecheck:coverage",
+    "typecheck": "npm run typecheck:app && npm run typecheck:backend && npm run typecheck:tooling && npm run typecheck:coverage",
     "preview": "vite preview",
     "typecheck:app": "tsc -p ./jsconfig.json",
-    "typecheck:coverage": "node scripts/typecheck-coverage.mjs",
-    "test:types": "node --test tests/typecheck-contracts.test.mjs"
+    "typecheck:coverage": "node scripts/typecheck-coverage.mjs && node scripts/runtime-typecheck.mjs coverage",
+    "test:types": "node --test tests/typecheck-contracts.test.mjs",
+    "typecheck:backend": "node scripts/runtime-typecheck.mjs backend",
+    "typecheck:tooling": "node scripts/runtime-typecheck.mjs tooling",
+    "test:backend": "node --experimental-strip-types --test tests/backend-contracts.test.mjs tests/runtime-typecheck.test.mjs tests/astra-delivery.test.mjs tests/astra-references.test.mjs",
+    "test:backend-runtime": "deno test --config typechecks/deno.json --frozen-lockfile --cached-only --allow-env=WS_NO_BUFFER_UTIL,WS_NO_UTF_8_VALIDATE,NODE_ENV tests/backend-runtime.test.ts"
   },
   "dependencies": {
     "@base44/sdk": "^0.8.57",

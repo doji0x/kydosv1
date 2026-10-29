@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { ASTRA_WORKING_BRANCH, createBranch, commitFile, resetWorkingBranch } from '../base44/shared/astraGithub.ts';
 import { repositoryToolSchemas, runTool } from '../base44/shared/astraTools.ts';
-import { ASTRA_DELIVERY_POLICY } from '../base44/shared/astraDelivery.ts';
+import { ASTRA_SYSTEM_PROMPT } from '../base44/shared/astraPrompt.ts';
 
 const repo = 'doji0x/kydosv1';
 const head = '/git/ref/heads/astra%2Flatest';
@@ -70,26 +70,26 @@ test('reset and per-task branches fail without network writes', async t => {
 
 test('commit preserves parent tree and surfaces ref conflicts without force or retry', async t => {
   const calls = mockGithub(t, [
-    [repo, 200, { default_branch: 'main' }], [head, 200, { object: { sha: 'parent' } }],
-    [head, 200, { object: { sha: 'parent' } }],
-    ['/git/commits/parent', 200, { tree: { sha: 'parent-tree' } }],
+    [repo, 200, { default_branch: 'main' }], [head, 200, { object: { sha: 'a'.repeat(40) } }],
+    [head, 200, { object: { sha: 'a'.repeat(40) } }],
+    ['/git/commits/'+'a'.repeat(40), 200, { tree: { sha: 'parent-tree' } }],
     ['/git/blobs', 201, { sha: 'blob' }, 'POST'],
     ['/git/trees', 201, { sha: 'tree' }, 'POST'],
     ['/git/commits', 201, { sha: 'candidate' }, 'POST'],
     ['/git/refs/heads/astra%2Flatest', 422, { message: 'Not fast forward' }, 'PATCH'],
   ]);
-  await assert.rejects(commitFile('test', repo, ASTRA_WORKING_BRANCH, 'file.txt', 'text', 'message'), /GitHub 422/);
+  await assert.rejects(commitFile('test', repo, ASTRA_WORKING_BRANCH, 'file.txt', 'text', 'message', 'a'.repeat(40)), /GitHub 422/);
   assert.equal(calls.find(call => call.url.endsWith('/git/trees')).body.base_tree, 'parent-tree');
-  assert.deepEqual(calls.find(call => call.url.endsWith('/git/commits')).body.parents, ['parent']);
+  assert.deepEqual(calls.find(call => call.url.endsWith('/git/commits')).body.parents, ['a'.repeat(40)]);
   assert.deepEqual(calls.at(-1).body, { sha: 'candidate', force: false });
 });
 
-test('direct chat builder consumes the delivery policy', async () => {
+test('direct chat builder supplies its current safety and delivery prompt', async () => {
   const source = await readFile(new URL('../base44/functions/astraChat/entry.ts', import.meta.url), 'utf8');
-  assert.match(source, /import \{ ASTRA_DELIVERY_POLICY \} from/);
-  assert.ok(source.includes('${ASTRA_DELIVERY_POLICY}'));
-  for (const requirement of ['astra/latest', 'changed files', 'delivery SHA', 'Never force', 'blocked delivery']) {
-    assert.ok(ASTRA_DELIVERY_POLICY.includes(requirement), requirement);
+  assert.match(source, /import \{ ASTRA_SYSTEM_PROMPT, ASTRA_CODEBASE_CONTEXT, ASTRA_PROMPT_VERSION \} from/);
+  assert.ok(source.includes("{role:'developer',content:ASTRA_SYSTEM_PROMPT}"));
+  for (const requirement of ['astra/latest', 'changed files', 'confirmed commit SHA', 'force-push', 'blockers']) {
+    assert.ok(ASTRA_SYSTEM_PROMPT.includes(requirement), requirement);
   }
   assert.doesNotMatch(source, /AstraJob|specialist jobs|Builder delegation/);
 });

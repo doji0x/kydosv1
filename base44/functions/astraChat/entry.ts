@@ -16,7 +16,7 @@ export default async function(req:Request):Promise<Response>{
  let base44,userMessage,log,conversationId,requestId;
  // Leave ten seconds inside the turn budget for independent failure persistence.
  const deadline=Date.now()+ASTRA_LIMITS.turnMs-10000;
- const bounded=operation=>beforeDeadline(operation,deadline,'Astra reached its time budget. Review saved activity before retrying.');
+ const bounded=<T>(operation:()=>T|PromiseLike<T>)=>beforeDeadline(operation,deadline,'Astra reached its time budget. Review saved activity before retrying.');
  try{
   if(req.method!=='POST')return Response.json({error:'Use POST.'},{status:405});
   base44=createClientFromRequest(req);const user=await base44.auth.me().catch(()=>null);

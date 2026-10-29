@@ -44,6 +44,9 @@ export function executor(connection) {
   const measurements = [];
   return {
     measurements,
+    /** @param {import('@solana/web3.js').Transaction} transaction
+     * @param {import('@solana/web3.js').Signer[]} signers
+     * @param {{program?: string, succeeds?: boolean}} [options] */
     async send(transaction, signers, { program, succeeds = true } = {}) {
       assertLocal(connection);
       const latest = await connection.getLatestBlockhash();

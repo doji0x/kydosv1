@@ -10,11 +10,11 @@ Kydos targets Solana exclusively. The active implementation uses Anchor programs
 
 ## Core product
 
-- Atomic Solana token creation with an optional initial creator buy
+- Atomic DBC token creation and original-creator registration (DBC initial-buy UI remains planned)
 - Image upload and automatic IPFS metadata through a server-configured Pinata integration
 - Phantom-only signing for launch and trading flows
 - Constant-product bonding curve with explicit slippage limits
-- One-billion-token launch supply: 79.31% curve allocation and 20.69% liquidity allocation; 30 virtual SOL and inventory-based completion (approximately 85.005 SOL); see [the build specification](docs/launchpad-build-spec.md)
+- One-billion-token launch supply: 793.1M nominal DBC curve allocation and 206.9M gross migration allocation; see [DBC accounting](docs/dbc-transition.md). Legacy curves remain a separate path.
 - Persistent transaction recovery and confirmed-state refreshes
 - Helius transaction parsing and history ingestion
 - Social posts, replies, likes, follows, profiles, and token discussion
@@ -48,11 +48,17 @@ private key is included in this repository.
 
 ## Verification
 
-Run `npm run typecheck`, `npm run test:types`, `npm run lint`, and `npm run build`.
-Typecheck covers all maintained frontend source and rejects coverage gaps.
-Backend/Deno and Node-tooling checks are the next milestone, not yet covered by
-this command. Production operations use mainnet only; local fixtures do not
-need a devnet RPC. See [the readiness record](docs/mainnet-readiness.md).
+Install Node 22.16.0 and Deno 2.9.7, then run `npm ci --ignore-scripts` and
+`npm --prefix solana/dbc ci --ignore-scripts`. Run `npm run typecheck`,
+`npm run test:types`, `npm run test:backend`, `npm run test:backend-runtime`,
+`npm run lint`, and `npm run build`. Typecheck covers maintained frontend,
+backend/shared modules and operational scripts using their actual runtime
+contexts and committed dependency locks. Coverage guards reject unassigned files.
+Historical examples, archived EVM source and test suites have explicit boundaries;
+this is not a strict-mode or third-party-code safety claim. See
+[backend/tooling verification](docs/backend-tooling.md). Production operations use
+mainnet only; local fixtures do not need a devnet RPC. See
+[the readiness record](docs/mainnet-readiness.md).
 
 ## Repository map
 

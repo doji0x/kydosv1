@@ -1,6 +1,8 @@
 import { requireMainnetNetwork } from './solanaNetwork.js';
 import { PROGRAM_ADDRESS, DECODER_VERSION } from './solanaProtocol.js';
 import { decodeKydosTransaction, uniqueEvents } from './solanaEvents.js';
+/** @param {string} endpoint @param {string} method
+ * @param {unknown[] | Record<string, unknown>} [params] Positional RPC or named DAS parameters. */
 export async function rpcCall(endpoint, method, params = []) {
   const response = await fetch(endpoint, { method: 'POST', headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ jsonrpc: '2.0', id: method, method, params }), signal: AbortSignal.timeout(15000) });
@@ -53,6 +55,8 @@ export function advanceIndexState(state, page, mode, now = Date.now()) {
   }
   return next;
 }
+/** @param {{filter: (query: Record<string, unknown>, sort: string, limit: number) => Promise<Array<{event_id: string, order_key: string}>>}} entity @param {Record<string, unknown>} filter
+ * @param {{before?: string | null, after?: string | null, limit?: number}} [options] */
 export async function readEventWindow(entity, filter, { before, after, limit = 200 } = {}) {
   if (before && after) throw new Error('Choose an older or a newer window');
   const direction = after ? '' : '-', query = { ...filter };

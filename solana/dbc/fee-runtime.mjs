@@ -19,7 +19,8 @@ import {feeAuthority,feeAddresses,launchDbcInstruction,settleDammInstruction,cla
 if(process.argv.length!==2)throw new Error('No arguments or network endpoint accepted');
 const c=new Connection('http://127.0.0.1:18899','confirmed');
 assert.equal(c.rpcEndpoint,'http://127.0.0.1:18899');
-const program=new Program(JSON.parse(readFileSync('../target/idl/kydos_launchpad.json')),{connection:c});
+/** @type {import('@coral-xyz/anchor').Program<import('./controller-account.d.ts').ControllerAccountIdl>} */
+const program=new Program(/** @type {import('./controller-account.d.ts').ControllerAccountIdl} */ (JSON.parse(readFileSync('../target/idl/kydos_launchpad.json','utf8'))),{connection:c});
 const dbc=sdk.DynamicBondingCurveClient.create(c,'confirmed'),amm=sdk.createDammV2Program(c);
 const payer=Keypair.generate(),creator=Keypair.generate(),newCreator=Keypair.generate(),trader=Keypair.generate(),sponsor=Keypair.generate();
 const bn=x=>new BN(x.toString()),int=x=>BigInt(x.toString());
@@ -64,6 +65,8 @@ const baseTrader=getAssociatedTokenAddressSync(mint.publicKey,trader.publicKey),
 let positionMint;
 const claimArgs=()=>({program,payer:sponsor.publicKey,creator:creator.publicKey,mint:mint.publicKey,config:config.publicKey});
 const settleTx=async(overrides={})=>withRecipientAccounts(await settleDammInstruction({...claimArgs(),positionNftMint:positionMint,...overrides}),sponsor.publicKey,overrides.creator??creator.publicKey);
+/** @param {boolean} isSell @param {bigint} input
+ * @param {sdk.SwapMode.ExactIn | sdk.SwapMode.PartialFill} [mode] */
 async function dbcSwap(isSell,input,mode=sdk.SwapMode.ExactIn){const tx=await dbc.pool.swap2({pool:a.dbcPool,swapBaseForQuote:isSell,swapMode:mode,owner:trader.publicKey,referralTokenAccount:null,amountIn:bn(input),minimumAmountOut:bn(1)});return send(tx,[trader],true,DBC_PROGRAM);}
 async function ammSwap(isSell,input){const tx=new Transaction().add(createAssociatedTokenAccountIdempotentInstruction(trader.publicKey,wsolTrader,trader.publicKey,NATIVE_MINT));
  if(!isSell)tx.add(SystemProgram.transfer({fromPubkey:trader.publicKey,toPubkey:wsolTrader,lamports:input}),createSyncNativeInstruction(wsolTrader));

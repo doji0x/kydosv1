@@ -22,6 +22,15 @@ launch reads its registry directly and supports the existing bonding-fee and
 post-migration settlement actions; it does not reinterpret a DBC mint as a legacy
 market. Local confirmed launches are labeled as browser history, not an indexer.
 
+## DBC access and approval
+
+Ordinary SPL WSOL-quoted DBC launches do not require a Meteora team member to
+approve access. Any payer may create a valid DBC configuration; the creator signs
+pool initialization. The operator steps below refer to Kydos's release operator,
+not a request for a private DAMM configuration. Unsupported Token-2022 quote
+extensions can require a token badge, but that is not the configured WSOL path.
+Source: https://docs.meteora.ag/core-products/dbc/accounts-and-permissions
+
 ## Mainnet configuration (operator-owned, no secrets in the browser)
 
 1. Independently review and approve the exact Kydos SBF build and controller
@@ -115,10 +124,10 @@ controller/lifecycle validators and compatibility workflows remain enabled.
 Creation does not include an initial purchase. DBC/DAMM buy/sell screens,
 production DBC indexing/discovery, graduation/settlement keepers, leftover handling
 and optional SOL unwrapping are not supplied by this UI change. The legacy admin
-server-wallet launch path is not silently repointed. The full frontend compiler and coverage checks now pass and run in CI. Backend
-and Node-tooling coverage remain a separate unfinished milestone; passing the
-frontend checks must not be called repository-wide type safety. See
-[mainnet-readiness.md](mainnet-readiness.md).
+server-wallet launch path is not silently repointed. The full frontend compiler and coverage checks now pass and run in CI. Maintained backend/shared and Node-tooling coverage now have separate frozen
+checks and regressions; see [backend-tooling.md](backend-tooling.md) for the
+explicit boundaries. Passing types is not live deployment verification or a
+strict-mode security audit. See [mainnet-readiness.md](mainnet-readiness.md).
 
 Primary protocol references: https://solana.com/docs/core/fees/fee-structure,
 https://solana.com/docs/rpc/http/getgenesishash,

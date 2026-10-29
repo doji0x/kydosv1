@@ -68,6 +68,8 @@ async function rejected(name, tx, signers, keys, program = DBC_PROGRAM_ID) {
 }
 const eventAuthority = PublicKey.findProgramAddressSync([Buffer.from('__event_authority')], DAMM)[0];
 
+/** @param {PublicKey} pool @param {boolean} isSell @param {bigint} input
+ * @param {sdk.SwapMode.ExactIn | sdk.SwapMode.PartialFill} [mode] @param {bigint} [minimum] */
 async function swapBase(pool, isSell, input, mode = sdk.SwapMode.ExactIn, minimum = 1n) {
   return client.pool.swap2({ pool, swapBaseForQuote: isSell, swapMode: mode, owner: trader.publicKey,
     referralTokenAccount: null, amountIn: bn(input), minimumAmountOut: bn(minimum) });

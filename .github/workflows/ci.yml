@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    name: Frontend typecheck, lint and build
+    name: Maintained-source typecheck, lint and build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,7 +16,10 @@ jobs:
         with:
           node-version: '22.16.0'
           cache: npm
-      - run: npm ci
+      - uses: denoland/setup-deno@v2
+        with: {deno-version: '2.9.7'}
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm --prefix solana/dbc ci --ignore-scripts --no-audit --no-fund
       - run: npm run typecheck
       - run: npm run test:types
       - run: node --test tests/mainnet-network.test.mjs
