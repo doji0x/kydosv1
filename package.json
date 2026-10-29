@@ -15,8 +15,8 @@
     "test:types": "node --test tests/typecheck-contracts.test.mjs"
   },
   "dependencies": {
-    "@base44/sdk": "^0.8.53",
-    "@base44/vite-plugin": "^1.0.44",
+    "@base44/sdk": "^0.8.57",
+    "@base44/vite-plugin": "^1.0.50",
     "@coral-xyz/anchor": "^0.31.1",
     "@hello-pangea/dnd": "^17.0.0",
     "@hookform/resolvers": "^4.1.2",
