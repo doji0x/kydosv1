@@ -24,14 +24,15 @@ jobs:
           npm --prefix solana/dbc ci --ignore-scripts --no-audit --no-fund
       - name: Verify merged maintained-source baseline
         run: npm run typecheck
-      - name: Resolve the existing pinned SDKs for the backend gateway
+      - name: Resolve pinned product SDK and Node declarations
         run: |
           mkdir -p /tmp/kydos-product-inputs
           cp typechecks/deno.lock /tmp/kydos-product-inputs/deno.lock
           printf '{"nodeModulesDir":"none","lock":{"path":"./deno.lock","frozen":false}}\n' > /tmp/kydos-product-inputs/deno.json
-          printf "import 'npm:@meteora-ag/dynamic-bonding-curve-sdk@1.5.13';\nimport 'npm:@meteora-ag/cp-amm-sdk@1.4.10';\nimport 'npm:bn.js@5.2.1';\n" > /tmp/kydos-product-inputs/product-imports.ts
-          DENO_NO_PACKAGE_JSON=1 deno cache --config /tmp/kydos-product-inputs/deno.json /tmp/kydos-product-inputs/product-imports.ts
-      - name: Preserve exact public inputs for isolated integration work
+          printf '/// <reference types="npm:@types/node@22.19.11" />\n' > /tmp/kydos-product-inputs/product-imports.ts
+          printf "import 'npm:@meteora-ag/dynamic-bonding-curve-sdk@1.5.13';\nimport 'npm:@meteora-ag/cp-amm-sdk@1.4.10';\nimport 'npm:bn.js@5.2.1';\nimport {Buffer} from 'node:buffer';\nconst sample:Buffer=Buffer.alloc(1);\n" >> /tmp/kydos-product-inputs/product-imports.ts
+          DENO_NO_PACKAGE_JSON=1 deno check --config /tmp/kydos-product-inputs/deno.json /tmp/kydos-product-inputs/product-imports.ts
+      - name: Preserve exact public checker inputs
         if: ${{ !cancelled() }}
         run: |
           mkdir -p /tmp/kydos-product-inputs
